@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Credit Risk PD Pipeline",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\python.exe",
+      "args": [
+        "scripts/run_pipeline.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/credit-risk-pd-model"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Credit Risk PD Tests",
+      "type": "shell",
+      "command": ".\\.venv\\Scripts\\pytest.exe",
+      "args": [],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/credit-risk-pd-model"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
+
