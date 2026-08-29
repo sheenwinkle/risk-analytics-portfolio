@@ -7,5 +7,6 @@ __all__ = [
     "model",
     "monitoring",
     "pipeline",
+    "reporting",
 ]
 

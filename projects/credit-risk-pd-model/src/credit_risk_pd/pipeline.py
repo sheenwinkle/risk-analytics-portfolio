@@ -11,6 +11,7 @@ from credit_risk_pd.features import NUMERIC_FEATURES, split_features_target
 from credit_risk_pd.metrics import calibration_table, classification_metrics
 from credit_risk_pd.model import candidate_models
 from credit_risk_pd.monitoring import psi_report
+from credit_risk_pd.reporting import generate_model_report
 
 
 def run_pd_modelling_workflow(
@@ -70,12 +71,14 @@ def run_pd_modelling_workflow(
     predictions.to_csv(predictions_file, index=False)
     psi_df.to_csv(psi_file, index=False)
     joblib.dump(trained_models[best_model_name], model_file)
+    report_file = generate_model_report(output_path)
 
     return {
         "metrics": metrics_file,
         "calibration": calibration_file,
         "predictions": predictions_file,
         "psi": psi_file,
+        "report": report_file,
         "model": model_file,
     }
 

@@ -86,6 +86,7 @@ The pipeline writes:
 - `reports/model_metrics.csv`: ROC-AUC, Gini, KS, Brier score, precision, recall, confusion matrix values
 - `reports/calibration_table.csv`: decile-level predicted PD vs observed default rate
 - `reports/psi_report.csv`: population drift indicators
+- `reports/model_report.md`: markdown summary of model performance, calibration, and PSI monitoring
 - `reports/oot_predictions.csv`: account-level out-of-time predicted PDs
 - `models/<best_model>.joblib`: selected trained model
 
