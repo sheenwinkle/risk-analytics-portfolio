@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from sklearn.inspection import permutation_importance
 from sklearn.metrics import (
     accuracy_score,
     brier_score_loss,
@@ -77,4 +78,36 @@ def calibration_table(
     table["bucket"] = table["bucket"].astype(str)
     table["calibration_gap"] = table["predicted_pd"] - table["observed_default_rate"]
     return table
+
+
+def permutation_feature_importance(
+    estimator,
+    x_oot: pd.DataFrame,
+    y_oot: pd.Series | np.ndarray,
+    scoring: str = "roc_auc",
+    n_repeats: int = 10,
+    random_state: int = 42,
+) -> pd.DataFrame:
+    """Calculate model-agnostic permutation importance on the out-of-time sample."""
+    result = permutation_importance(
+        estimator,
+        x_oot,
+        y_oot,
+        scoring=scoring,
+        n_repeats=n_repeats,
+        random_state=random_state,
+        n_jobs=1,
+    )
+
+    return (
+        pd.DataFrame(
+            {
+                "feature": x_oot.columns,
+                "importance_mean": result.importances_mean,
+                "importance_std": result.importances_std,
+            }
+        )
+        .sort_values("importance_mean", ascending=False)
+        .reset_index(drop=True)
+    )
 

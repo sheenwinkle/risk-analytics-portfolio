@@ -1,6 +1,14 @@
 import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
 
-from credit_risk_pd.metrics import calibration_table, classification_metrics, gini_from_auc, ks_statistic
+from credit_risk_pd.metrics import (
+    calibration_table,
+    classification_metrics,
+    gini_from_auc,
+    ks_statistic,
+    permutation_feature_importance,
+)
 
 
 def test_gini_from_auc():
@@ -34,4 +42,27 @@ def test_calibration_table_returns_bins():
 
     assert set(["accounts", "predicted_pd", "observed_default_rate"]).issubset(table.columns)
     assert table["accounts"].sum() == 10
+
+
+def test_permutation_feature_importance_ranks_predictive_feature_first():
+    x = pd.DataFrame(
+        {
+            "predictive": [0, 0, 0, 0, 1, 1, 1, 1],
+            "noise": [0, 1, 0, 1, 0, 1, 0, 1],
+        }
+    )
+    y = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+    estimator = LogisticRegression().fit(x, y)
+
+    importance = permutation_feature_importance(
+        estimator,
+        x,
+        y,
+        n_repeats=5,
+        random_state=7,
+    )
+
+    assert list(importance.columns) == ["feature", "importance_mean", "importance_std"]
+    assert importance.iloc[0]["feature"] == "predictive"
+    assert importance.iloc[0]["importance_mean"] > importance.iloc[1]["importance_mean"]
 

@@ -7,6 +7,7 @@ def test_pipeline_creates_outputs(tmp_path):
         model_dir=tmp_path / "models",
     )
 
+    assert "feature_importance" in outputs
     for path in outputs.values():
         assert path.exists()
 

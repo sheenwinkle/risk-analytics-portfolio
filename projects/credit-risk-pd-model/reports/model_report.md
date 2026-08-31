@@ -6,6 +6,7 @@
 - Discrimination: ROC-AUC 0.714, Gini 0.429, KS 0.362.
 - Calibration: Brier score 0.197; largest absolute decile gap 32.2%.
 - Stability: 1 material shift feature(s), 0 moderate shift feature(s); top PSI feature `interest_rate` (0.351).
+- Explainability: top out-of-time permutation importance feature `credit_utilisation` (0.077 mean ROC-AUC decrease after permutation).
 
 ## Model Performance
 
@@ -30,6 +31,24 @@ Decile calibration compares average predicted PD with observed default rate. Pos
 | (0.513, 0.57] | 99 | 54.3% | 28.3% | 28 | 26.0% |
 | (0.57, 0.644] | 99 | 60.6% | 29.3% | 29 | 31.3% |
 | (0.644, 0.937] | 100 | 71.2% | 39.0% | 39 | 32.2% |
+
+## Feature Importance
+
+Permutation importance measures the drop in out-of-time ROC-AUC when each input feature is shuffled, giving model-agnostic evidence for validation review.
+
+| Feature | Mean ROC-AUC Drop | Std Dev |
+| --- | --- | --- |
+| credit_utilisation | 0.077 | 0.012 |
+| debt_to_income | 0.056 | 0.014 |
+| home_ownership | 0.053 | 0.007 |
+| delinquencies_2y | 0.037 | 0.006 |
+| annual_income | 0.022 | 0.007 |
+| loan_amount | 0.016 | 0.009 |
+| purpose | 0.011 | 0.006 |
+| employment_length | 0.010 | 0.003 |
+| loan_to_income | 0.001 | 0.001 |
+| age | -0.000 | 0.000 |
+| interest_rate | -0.002 | 0.004 |
 
 ## Population Stability
 

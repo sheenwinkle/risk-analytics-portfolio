@@ -36,12 +36,21 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
         ],
     )
     psi = _read_csv(reports_path / "psi_report.csv", ["feature", "psi", "status"])
+    feature_importance = _read_csv(
+        reports_path / "feature_importance.csv",
+        ["feature", "importance_mean", "importance_std"],
+    )
 
     metrics = metrics.sort_values("roc_auc", ascending=False).reset_index(drop=True)
+    feature_importance = feature_importance.sort_values(
+        "importance_mean",
+        ascending=False,
+    ).reset_index(drop=True)
     best_model = metrics.iloc[0]
     material_shift_count = int(psi["status"].eq("material_shift").sum())
     moderate_shift_count = int(psi["status"].eq("moderate_shift").sum())
     top_drift_feature = psi.sort_values("psi", ascending=False).iloc[0]
+    top_importance_feature = feature_importance.iloc[0]
     largest_gap = calibration.iloc[calibration["calibration_gap"].abs().idxmax()]
 
     report = "\n".join(
@@ -68,6 +77,13 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                 f"{moderate_shift_count} moderate shift feature(s); "
                 f"top PSI feature `{top_drift_feature['feature']}` "
                 f"({_format_decimal(top_drift_feature['psi'])})."
+            ),
+            (
+                "- Explainability: "
+                f"top out-of-time permutation importance feature "
+                f"`{top_importance_feature['feature']}` "
+                f"({_format_decimal(top_importance_feature['importance_mean'])} mean "
+                "ROC-AUC decrease after permutation)."
             ),
             "",
             "## Model Performance",
@@ -101,6 +117,22 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                     ("observed_default_rate", "Observed Default Rate", _format_percent),
                     ("defaults", "Defaults", _format_integer),
                     ("calibration_gap", "Gap", _format_percent),
+                ],
+            ),
+            "",
+            "## Feature Importance",
+            "",
+            (
+                "Permutation importance measures the drop in out-of-time ROC-AUC when each "
+                "input feature is shuffled, giving model-agnostic evidence for validation review."
+            ),
+            "",
+            _markdown_table(
+                feature_importance,
+                [
+                    ("feature", "Feature", str),
+                    ("importance_mean", "Mean ROC-AUC Drop", _format_decimal),
+                    ("importance_std", "Std Dev", _format_decimal),
                 ],
             ),
             "",

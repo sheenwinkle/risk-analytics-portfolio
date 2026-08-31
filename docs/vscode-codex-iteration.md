@@ -41,7 +41,7 @@ pytest
 From the repository root:
 
 ```powershell
-codex exec --cd . --sandbox workspace-write --ask-for-approval never "Improve the Credit Risk PD project by adding one focused, tested enhancement. Keep the change small, update docs, and run tests."
+codex exec -C . -s workspace-write "Improve the Credit Risk PD project by adding one focused, tested enhancement. Keep the change small, update docs, and run tests."
 ```
 
 Good prompts:
@@ -107,14 +107,17 @@ gh pr view 1 --repo sheenwinkle/risk-analytics-portfolio --web
 
 ## 6. Suggested Iteration Backlog
 
+Completed iterations:
+
+- Markdown model report generator.
+- Out-of-time permutation feature importance.
+
 High-impact next tasks:
 
-1. Add a Markdown model report generator.
-2. Add feature importance or permutation importance.
-3. Add scorecard-style binning and Weight of Evidence.
-4. Add LendingClub raw-to-model-schema transformation script.
-5. Add IFRS 9 ECL account-level calculation module.
-6. Add model validation framework that consumes Project 1 outputs.
+1. Add scorecard-style binning and Weight of Evidence.
+2. Add a public lending dataset raw-to-model-schema transformation script.
+3. Add PD recalibration and lending threshold strategy analysis.
+4. Add an IFRS 9 ECL account-level calculation module.
+5. Add a model validation framework that consumes Project 1 outputs.
 
 Work on one task per branch. The GitHub history should look deliberate and professional.
-

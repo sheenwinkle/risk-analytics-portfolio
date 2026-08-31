@@ -8,7 +8,7 @@ The repository is built around a candidate profile that combines economics, comp
 
 | Project | Status | Target roles | Main evidence |
 | --- | --- | --- | --- |
-| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Implemented | Credit Risk Analyst, Risk Analytics Analyst, Model Validation Analyst | PD model pipeline, out-of-time validation, calibration, PSI monitoring, SQL schema |
+| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Implemented | Credit Risk Analyst, Risk Analytics Analyst, Model Validation Analyst | PD model pipeline, out-of-time validation, calibration, permutation importance, PSI monitoring, SQL schema |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Planned | Credit Risk Analyst, ECL Analyst, Portfolio Risk Analyst | PD/LGD/EAD, staging, lifetime ECL, macro scenario weighting |
 | [Model Validation Framework](projects/model-validation-framework) | Planned | Model Risk Analyst, Validation Analyst, Quant Risk Analyst | Backtesting, benchmarking, calibration, drift monitoring, validation report |
 
@@ -24,6 +24,7 @@ Data checks
 -> random forest challenger
 -> discrimination metrics
 -> calibration review
+-> permutation importance
 -> PSI drift monitoring
 -> report artefacts
 ```
@@ -32,6 +33,7 @@ Key outputs:
 
 - `reports/model_metrics.csv`: ROC-AUC, Gini, KS, Brier score, precision, recall, and confusion matrix values
 - `reports/calibration_table.csv`: decile-level predicted PD vs observed default rate
+- `reports/feature_importance.csv`: selected-model permutation importance on the out-of-time sample
 - `reports/psi_report.csv`: feature-level population stability monitoring
 - `reports/oot_predictions.csv`: account-level out-of-time PD predictions
 
@@ -101,7 +103,7 @@ pytest
 This repository is intended to be developed iteratively with VS Code and Codex CLI:
 
 ```powershell
-codex exec --cd . --sandbox workspace-write --ask-for-approval never "Improve the Credit Risk PD project by adding one focused, tested enhancement. Keep the change small and update documentation."
+codex exec -C . -s workspace-write "Improve the Credit Risk PD project by adding one focused, tested enhancement. Keep the change small and update documentation."
 ```
 
 Recommended iteration cycle:
@@ -119,11 +121,11 @@ Detailed instructions are in [docs/vscode-codex-iteration.md](docs/vscode-codex-
 
 Suggested one-line project description:
 
-> Built a Python and SQL credit risk analytics portfolio covering probability of default modelling, out-of-time validation, model calibration, PSI monitoring, and planned IFRS 9 ECL and model validation extensions.
+> Built a Python and SQL credit risk analytics portfolio covering probability of default modelling, out-of-time validation, model calibration, permutation importance, PSI monitoring, and planned IFRS 9 ECL and model validation extensions.
 
 Suggested bullet:
 
-> Developed an end-to-end credit risk PD modelling workflow using Python, scikit-learn, and SQL, benchmarking interpretable and challenger models with ROC-AUC, Gini, KS, Brier score, calibration deciles, and PSI drift monitoring.
+> Developed an end-to-end credit risk PD modelling workflow using Python, scikit-learn, and SQL, benchmarking interpretable and challenger models with ROC-AUC, Gini, KS, Brier score, calibration deciles, permutation importance, and PSI drift monitoring.
 
 ## Roadmap
 
@@ -131,7 +133,7 @@ Next improvements:
 
 - Replace synthetic data with a public lending dataset transformation pipeline.
 - Add scorecard-style binning and Weight of Evidence features.
-- Add SHAP or permutation importance for explainability.
+- Add PD recalibration and lending threshold strategy analysis.
 - Build the IFRS 9 ECL engine using Project 1 PD outputs.
 - Build the reusable model validation framework and validation report.
 

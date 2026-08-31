@@ -55,6 +55,20 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
             {"feature": "annual_income", "psi": 0.04, "status": "stable"},
         ]
     ).to_csv(reports_dir / "psi_report.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "feature": "debt_to_income",
+                "importance_mean": 0.085,
+                "importance_std": 0.012,
+            },
+            {
+                "feature": "annual_income",
+                "importance_mean": 0.010,
+                "importance_std": 0.004,
+            },
+        ]
+    ).to_csv(reports_dir / "feature_importance.csv", index=False)
 
     report_path = generate_model_report(reports_dir)
 
@@ -64,6 +78,8 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
     assert "Best model by out-of-time ROC-AUC: `logistic_regression`" in report
     assert "| logistic_regression | 0.710 | 0.420 | 0.310 | 0.190 | 40.0% | 55.0% |" in report
     assert "largest absolute decile gap 7.0%" in report
+    assert "top out-of-time permutation importance feature `debt_to_income`" in report
+    assert "| debt_to_income | 0.085 | 0.012 |" in report
     assert "| interest_rate | 0.310 | material_shift |" in report
 
 
