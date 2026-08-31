@@ -69,6 +69,26 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
             },
         ]
     ).to_csv(reports_dir / "feature_importance.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "rank": 1,
+                "feature": "credit_utilisation",
+                "feature_type": "numeric",
+                "bins": 5,
+                "information_value": 0.42,
+                "iv_band": "strong",
+            },
+            {
+                "rank": 2,
+                "feature": "home_ownership",
+                "feature_type": "categorical",
+                "bins": 4,
+                "information_value": 0.08,
+                "iv_band": "weak",
+            },
+        ]
+    ).to_csv(reports_dir / "woe_summary.csv", index=False)
 
     report_path = generate_model_report(reports_dir)
 
@@ -79,6 +99,10 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
     assert "| logistic_regression | 0.710 | 0.420 | 0.310 | 0.190 | 40.0% | 55.0% |" in report
     assert "largest absolute decile gap 7.0%" in report
     assert "top out-of-time permutation importance feature `debt_to_income`" in report
+    assert "top development-sample Information Value feature `credit_utilisation`" in report
+    assert "## Information Value" in report
+    assert "WOE is ln(% good / % bad)" in report
+    assert "| 1 | credit_utilisation | numeric | 5 | 0.420 | strong |" in report
     assert "| debt_to_income | 0.085 | 0.012 |" in report
     assert "| interest_rate | 0.310 | material_shift |" in report
 

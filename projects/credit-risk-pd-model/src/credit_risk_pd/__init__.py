@@ -8,5 +8,6 @@ __all__ = [
     "monitoring",
     "pipeline",
     "reporting",
+    "woe",
 ]
 

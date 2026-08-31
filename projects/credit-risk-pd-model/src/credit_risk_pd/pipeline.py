@@ -6,8 +6,16 @@ import joblib
 import pandas as pd
 
 from credit_risk_pd.config import DEFAULT_CONFIG, ModelConfig
-from credit_risk_pd.data import generate_synthetic_credit_data, load_credit_data, make_out_of_time_split
-from credit_risk_pd.features import NUMERIC_FEATURES, split_features_target
+from credit_risk_pd.data import (
+    generate_synthetic_credit_data,
+    load_credit_data,
+    make_out_of_time_split,
+)
+from credit_risk_pd.features import (
+    CATEGORICAL_FEATURES,
+    NUMERIC_FEATURES,
+    split_features_target,
+)
 from credit_risk_pd.metrics import (
     calibration_table,
     classification_metrics,
@@ -16,6 +24,7 @@ from credit_risk_pd.metrics import (
 from credit_risk_pd.model import candidate_models
 from credit_risk_pd.monitoring import psi_report
 from credit_risk_pd.reporting import generate_model_report
+from credit_risk_pd.woe import calculate_woe_iv
 
 
 def run_pd_modelling_workflow(
@@ -63,6 +72,12 @@ def run_pd_modelling_workflow(
 
     calibration_df = calibration_table(y_oot, best_scores)
     psi_df = psi_report(x_train, x_oot, NUMERIC_FEATURES)
+    woe_bins_df, woe_summary_df = calculate_woe_iv(
+        x_train,
+        y_train,
+        NUMERIC_FEATURES,
+        CATEGORICAL_FEATURES,
+    )
     feature_importance_df = permutation_feature_importance(
         trained_models[best_model_name],
         x_oot,
@@ -74,6 +89,8 @@ def run_pd_modelling_workflow(
     calibration_file = output_path / "calibration_table.csv"
     predictions_file = output_path / "oot_predictions.csv"
     psi_file = output_path / "psi_report.csv"
+    woe_bins_file = output_path / "woe_bins.csv"
+    woe_summary_file = output_path / "woe_summary.csv"
     feature_importance_file = output_path / "feature_importance.csv"
     model_file = model_path / f"{best_model_name}.joblib"
 
@@ -81,6 +98,8 @@ def run_pd_modelling_workflow(
     calibration_df.to_csv(calibration_file, index=False)
     predictions.to_csv(predictions_file, index=False)
     psi_df.to_csv(psi_file, index=False)
+    woe_bins_df.to_csv(woe_bins_file, index=False)
+    woe_summary_df.to_csv(woe_summary_file, index=False)
     feature_importance_df.to_csv(feature_importance_file, index=False)
     joblib.dump(trained_models[best_model_name], model_file)
     report_file = generate_model_report(output_path)
@@ -90,6 +109,8 @@ def run_pd_modelling_workflow(
         "calibration": calibration_file,
         "predictions": predictions_file,
         "psi": psi_file,
+        "woe_bins": woe_bins_file,
+        "woe_summary": woe_summary_file,
         "feature_importance": feature_importance_file,
         "report": report_file,
         "model": model_file,

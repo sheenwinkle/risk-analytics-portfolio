@@ -41,17 +41,17 @@ pytest
 From the repository root:
 
 ```powershell
-codex exec -C . -s workspace-write "Improve the Credit Risk PD project by adding one focused, tested enhancement. Keep the change small, update docs, and run tests."
+codex exec -C . -s workspace-write "Improve the Credit Risk PD project with one focused enhancement. Run the baseline suite first; add focused tests; then run the full suite, pipeline, and git diff --check. Update docs, but do not commit or push."
 ```
 
 Good prompts:
 
 ```text
-Add a scorecard-style feature binning module for numeric credit risk variables. Include tests and README documentation.
+Add PD recalibration diagnostics and compare calibration intercept and slope on the out-of-time sample. Include tests, report outputs, and README documentation.
 ```
 
 ```text
-Add a model validation report generator that writes a Markdown summary from model_metrics.csv, calibration_table.csv, and psi_report.csv. Include tests.
+Add a lending approval threshold strategy that reports approval rate, default rate, and expected loss trade-offs. Include tests and a report artefact.
 ```
 
 ```text
@@ -72,8 +72,10 @@ After Codex CLI finishes:
 git status
 git diff
 cd projects/credit-risk-pd-model
-pytest
-python scripts/run_pipeline.py
+$pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
+.\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
+.\.venv\Scripts\python.exe scripts\run_pipeline.py
+git diff --check
 ```
 
 Then commit:
@@ -111,13 +113,13 @@ Completed iterations:
 
 - Markdown model report generator.
 - Out-of-time permutation feature importance.
+- Scorecard-style binning, Weight of Evidence, and Information Value screening.
 
 High-impact next tasks:
 
-1. Add scorecard-style binning and Weight of Evidence.
-2. Add a public lending dataset raw-to-model-schema transformation script.
-3. Add PD recalibration and lending threshold strategy analysis.
-4. Add an IFRS 9 ECL account-level calculation module.
-5. Add a model validation framework that consumes Project 1 outputs.
+1. Add a public lending dataset raw-to-model-schema transformation script.
+2. Add PD recalibration and lending threshold strategy analysis.
+3. Add an IFRS 9 ECL account-level calculation module.
+4. Add a model validation framework that consumes Project 1 outputs.
 
 Work on one task per branch. The GitHub history should look deliberate and professional.

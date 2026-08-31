@@ -10,7 +10,8 @@ This project builds a practical workflow:
 
 ```text
 Data checks -> feature engineering -> out-of-time split -> baseline model -> challenger model
--> model performance -> calibration -> permutation importance -> PSI monitoring -> report outputs
+-> model performance -> calibration -> WOE/IV screening -> permutation importance
+-> PSI monitoring -> report outputs
 ```
 
 ## Why This Project Fits Risk Analytics
@@ -30,6 +31,7 @@ It demonstrates:
 - Random forest as a challenger model
 - Out-of-time validation to mimic model performance after economic change
 - Calibration review for predicted PD accuracy
+- Scorecard-style Weight of Evidence and Information Value variable screening
 - Model-agnostic permutation importance evaluated on the out-of-time sample
 - Population Stability Index for monitoring drift
 - SQL schema design for credit risk data
@@ -86,9 +88,11 @@ The pipeline writes:
 
 - `reports/model_metrics.csv`: ROC-AUC, Gini, KS, Brier score, precision, recall, confusion matrix values
 - `reports/calibration_table.csv`: decile-level predicted PD vs observed default rate
+- `reports/woe_bins.csv`: Weight of Evidence bin detail for numeric quantile bins and categorical category bins
+- `reports/woe_summary.csv`: feature-level Information Value ranking for development-sample variable screening
 - `reports/feature_importance.csv`: model-agnostic permutation importance for the selected model on the out-of-time sample
 - `reports/psi_report.csv`: population drift indicators
-- `reports/model_report.md`: markdown summary of model performance, calibration, feature importance, and PSI monitoring
+- `reports/model_report.md`: markdown summary of model performance, calibration, Information Value, feature importance, and PSI monitoring
 - `reports/oot_predictions.csv`: account-level out-of-time predicted PDs
 - `models/<best_model>.joblib`: selected trained model
 
@@ -98,6 +102,7 @@ The project intentionally separates:
 
 - Discrimination: ROC-AUC, Gini, KS
 - Calibration: Brier score and decile calibration table
+- Scorecard screening: WOE is calculated as `ln(% good / % bad)`, so positive WOE means lower observed default risk and negative WOE means higher observed default risk; Information Value ranks variables by development-sample separation
 - Explainability: permutation importance measured by out-of-time ROC-AUC drop
 - Stability: PSI across development and out-of-time samples
 
@@ -115,7 +120,7 @@ Do not commit large raw datasets to GitHub. Store raw files under `data/raw/`, w
 
 ## Resume Bullets
 
-- Built an end-to-end credit risk PD modelling workflow in Python, including feature engineering, out-of-time validation, calibration analysis, permutation importance, and PSI-based monitoring.
+- Built an end-to-end credit risk PD modelling workflow in Python, including feature engineering, out-of-time validation, calibration analysis, scorecard-style WOE/IV screening, permutation importance, and PSI-based monitoring.
 - Compared interpretable logistic regression against a tree-based challenger model using ROC-AUC, Gini, KS, Brier score, precision, recall, and confusion matrix diagnostics.
 - Designed SQL schemas and analytics queries for loan, customer, and performance data to support credit risk reporting and model development.
 
@@ -123,6 +128,7 @@ Do not commit large raw datasets to GitHub. Store raw files under `data/raw/`, w
 
 - Why calibration matters more in credit risk than ordinary classification accuracy
 - Why an out-of-time split is more realistic than a random train-test split
+- How WOE sign convention and Information Value support scorecard-style variable screening
 - How permutation importance supports model-agnostic validation review
 - How PSI can detect portfolio drift before model performance deteriorates
 - Why logistic regression is still common in regulated risk modelling

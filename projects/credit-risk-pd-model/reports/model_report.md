@@ -7,6 +7,7 @@
 - Calibration: Brier score 0.197; largest absolute decile gap 32.2%.
 - Stability: 1 material shift feature(s), 0 moderate shift feature(s); top PSI feature `interest_rate` (0.351).
 - Explainability: top out-of-time permutation importance feature `credit_utilisation` (0.077 mean ROC-AUC decrease after permutation).
+- Scorecard diagnostics: top development-sample Information Value feature `credit_utilisation` (0.179, medium).
 
 ## Model Performance
 
@@ -49,6 +50,24 @@ Permutation importance measures the drop in out-of-time ROC-AUC when each input 
 | loan_to_income | 0.001 | 0.001 |
 | age | -0.000 | 0.000 |
 | interest_rate | -0.002 | 0.004 |
+
+## Information Value
+
+Weight of Evidence and Information Value are calculated on the development sample for scorecard-style variable screening. WOE is ln(% good / % bad), where good is non-default and bad is default. Positive WOE indicates lower observed default risk than the development sample mix.
+
+| Rank | Feature | Type | Bins | IV | Band |
+| --- | --- | --- | --- | --- | --- |
+| 1 | credit_utilisation | numeric | 5 | 0.179 | medium |
+| 2 | interest_rate | numeric | 5 | 0.160 | medium |
+| 3 | debt_to_income | numeric | 5 | 0.124 | medium |
+| 4 | home_ownership | categorical | 4 | 0.078 | weak |
+| 5 | loan_to_income | numeric | 5 | 0.065 | weak |
+| 6 | loan_amount | numeric | 5 | 0.063 | weak |
+| 7 | delinquencies_2y | numeric | 2 | 0.043 | weak |
+| 8 | purpose | categorical | 6 | 0.034 | weak |
+| 9 | age | numeric | 5 | 0.020 | weak |
+| 10 | annual_income | numeric | 5 | 0.020 | not_predictive |
+| 11 | employment_length | numeric | 5 | 0.015 | not_predictive |
 
 ## Population Stability
 

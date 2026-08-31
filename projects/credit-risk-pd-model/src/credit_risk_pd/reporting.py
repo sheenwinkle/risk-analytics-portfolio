@@ -5,6 +5,8 @@ from typing import Callable
 
 import pandas as pd
 
+from credit_risk_pd.woe import WOE_SIGN_CONVENTION
+
 
 MetricFormatter = Callable[[object], str]
 
@@ -36,6 +38,10 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
         ],
     )
     psi = _read_csv(reports_path / "psi_report.csv", ["feature", "psi", "status"])
+    woe_summary = _read_csv(
+        reports_path / "woe_summary.csv",
+        ["rank", "feature", "feature_type", "bins", "information_value", "iv_band"],
+    )
     feature_importance = _read_csv(
         reports_path / "feature_importance.csv",
         ["feature", "importance_mean", "importance_std"],
@@ -46,11 +52,16 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
         "importance_mean",
         ascending=False,
     ).reset_index(drop=True)
+    woe_summary = woe_summary.sort_values(
+        ["information_value", "feature"],
+        ascending=[False, True],
+    ).reset_index(drop=True)
     best_model = metrics.iloc[0]
     material_shift_count = int(psi["status"].eq("material_shift").sum())
     moderate_shift_count = int(psi["status"].eq("moderate_shift").sum())
     top_drift_feature = psi.sort_values("psi", ascending=False).iloc[0]
     top_importance_feature = feature_importance.iloc[0]
+    top_iv_feature = woe_summary.iloc[0]
     largest_gap = calibration.iloc[calibration["calibration_gap"].abs().idxmax()]
 
     report = "\n".join(
@@ -84,6 +95,13 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                 f"`{top_importance_feature['feature']}` "
                 f"({_format_decimal(top_importance_feature['importance_mean'])} mean "
                 "ROC-AUC decrease after permutation)."
+            ),
+            (
+                "- Scorecard diagnostics: "
+                f"top development-sample Information Value feature "
+                f"`{top_iv_feature['feature']}` "
+                f"({_format_decimal(top_iv_feature['information_value'])}, "
+                f"{top_iv_feature['iv_band']})."
             ),
             "",
             "## Model Performance",
@@ -133,6 +151,26 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                     ("feature", "Feature", str),
                     ("importance_mean", "Mean ROC-AUC Drop", _format_decimal),
                     ("importance_std", "Std Dev", _format_decimal),
+                ],
+            ),
+            "",
+            "## Information Value",
+            "",
+            (
+                "Weight of Evidence and Information Value are calculated on the development "
+                "sample for scorecard-style variable screening. "
+                f"{WOE_SIGN_CONVENTION}"
+            ),
+            "",
+            _markdown_table(
+                woe_summary,
+                [
+                    ("rank", "Rank", _format_integer),
+                    ("feature", "Feature", str),
+                    ("feature_type", "Type", str),
+                    ("bins", "Bins", _format_integer),
+                    ("information_value", "IV", _format_decimal),
+                    ("iv_band", "Band", str),
                 ],
             ),
             "",
