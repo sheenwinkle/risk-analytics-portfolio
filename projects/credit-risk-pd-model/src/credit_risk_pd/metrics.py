@@ -75,7 +75,7 @@ def calibration_table(
         )
         .reset_index()
     )
-    table["bucket"] = table["bucket"].astype(str)
+    table["bucket"] = [f"D{rank:02d}" for rank in range(1, len(table) + 1)]
     table["calibration_gap"] = table["predicted_pd"] - table["observed_default_rate"]
     return table
 

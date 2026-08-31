@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 
 from credit_risk_pd.woe import WOE_SIGN_CONVENTION
-
 
 MetricFormatter = Callable[[object], str]
 
@@ -18,12 +17,61 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
         reports_path / "model_metrics.csv",
         [
             "model",
+            "score_type",
+            "classification_threshold",
             "roc_auc",
             "gini",
             "ks",
             "brier_score",
             "precision",
             "recall",
+        ],
+    )
+    selection = _read_csv(
+        reports_path / "model_selection_audit.csv",
+        [
+            "model",
+            "model_development_accounts",
+            "calibration_holdout_accounts",
+            "model_development_start",
+            "model_development_end",
+            "calibration_holdout_start",
+            "calibration_holdout_end",
+            "calibration_holdout_roc_auc",
+            "selected_model",
+        ],
+    )
+    recalibration = _read_csv(
+        reports_path / "recalibration_summary.csv",
+        [
+            "model",
+            "score_type",
+            "evaluation_sample",
+            "recalibration_fit_sample",
+            "recalibration_fit_intercept",
+            "recalibration_fit_slope",
+            "calibration_intercept",
+            "calibration_slope",
+            "brier_score",
+            "log_loss",
+            "mean_pd",
+            "observed_default_rate",
+        ],
+    )
+    strategy = _read_csv(
+        reports_path / "approval_strategy.csv",
+        [
+            "max_pd_cutoff",
+            "lgd",
+            "approved_accounts",
+            "rejected_accounts",
+            "approval_rate",
+            "approved_observed_defaults",
+            "approved_default_rate",
+            "approved_exposure",
+            "expected_loss",
+            "expected_loss_rate",
+            "rejected_default_capture_rate",
         ],
     )
     calibration = _read_csv(
@@ -47,7 +95,13 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
         ["feature", "importance_mean", "importance_std"],
     )
 
-    metrics = metrics.sort_values("roc_auc", ascending=False).reset_index(drop=True)
+    selection = selection.sort_values(
+        ["selected_model", "calibration_holdout_roc_auc"],
+        ascending=[False, False],
+    ).reset_index(drop=True)
+    selected_model = selection.loc[selection["selected_model"].astype(bool)].iloc[0]
+    selected_model_name = selected_model["model"]
+    metrics = metrics.sort_values(["model", "score_type"]).reset_index(drop=True)
     feature_importance = feature_importance.sort_values(
         "importance_mean",
         ascending=False,
@@ -56,13 +110,18 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
         ["information_value", "feature"],
         ascending=[False, True],
     ).reset_index(drop=True)
-    best_model = metrics.iloc[0]
+    selected_recalibrated = metrics.loc[
+        metrics["model"].eq(selected_model_name) & metrics["score_type"].eq("recalibrated")
+    ].iloc[0]
+    selected_recalibration = recalibration.loc[
+        recalibration["model"].eq(selected_model_name)
+    ].iloc[0]
     material_shift_count = int(psi["status"].eq("material_shift").sum())
     moderate_shift_count = int(psi["status"].eq("moderate_shift").sum())
     top_drift_feature = psi.sort_values("psi", ascending=False).iloc[0]
     top_importance_feature = feature_importance.iloc[0]
     top_iv_feature = woe_summary.iloc[0]
-    largest_gap = calibration.iloc[calibration["calibration_gap"].abs().idxmax()]
+    largest_gap = float(calibration["calibration_gap"].abs().max())
 
     report = "\n".join(
         [
@@ -70,17 +129,21 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
             "",
             "## Executive Summary",
             "",
-            f"- Best model by out-of-time ROC-AUC: `{best_model['model']}`.",
             (
-                "- Discrimination: "
-                f"ROC-AUC {_format_decimal(best_model['roc_auc'])}, "
-                f"Gini {_format_decimal(best_model['gini'])}, "
-                f"KS {_format_decimal(best_model['ks'])}."
+                "- Selected model by pre-OOT calibration holdout ROC-AUC: "
+                f"`{selected_model_name}`."
             ),
             (
-                "- Calibration: "
-                f"Brier score {_format_decimal(best_model['brier_score'])}; "
-                f"largest absolute decile gap {_format_percent(largest_gap['calibration_gap'])}."
+                "- Discrimination: "
+                f"OOT recalibrated ROC-AUC {_format_decimal(selected_recalibrated['roc_auc'])}, "
+                f"Gini {_format_decimal(selected_recalibrated['gini'])}, "
+                f"KS {_format_decimal(selected_recalibrated['ks'])}."
+            ),
+            (
+                "- PD recalibration: "
+                f"OOT recalibrated Brier score "
+                f"{_format_decimal(selected_recalibrated['brier_score'])}; "
+                f"largest absolute decile gap {_format_percent(largest_gap)}."
             ),
             (
                 "- Stability: "
@@ -106,10 +169,37 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
             "",
             "## Model Performance",
             "",
+            (
+                "Model selection occurred before OOT evaluation: candidates were trained on the "
+                "earlier model-development sample and selected by ROC-AUC on the later pre-OOT "
+                "calibration holdout."
+            ),
+            (
+                "Precision, recall, accuracy, and confusion counts use the fixed configured "
+                "threshold of "
+                f"{_format_percent(selected_recalibrated['classification_threshold'])}; "
+                "it is not tuned on OOT outcomes."
+            ),
+            "",
+            _markdown_table(
+                selection,
+                [
+                    ("model", "Model", str),
+                    ("model_development_accounts", "Dev Accounts", _format_integer),
+                    ("calibration_holdout_accounts", "Holdout Accounts", _format_integer),
+                    ("model_development_end", "Dev End", str),
+                    ("calibration_holdout_start", "Holdout Start", str),
+                    ("calibration_holdout_roc_auc", "Holdout ROC-AUC", _format_decimal),
+                    ("selected_model", "Selected", _format_boolean),
+                ],
+            ),
+            "",
             _markdown_table(
                 metrics,
                 [
                     ("model", "Model", str),
+                    ("score_type", "Score", str),
+                    ("classification_threshold", "Threshold", _format_percent),
                     ("roc_auc", "ROC-AUC", _format_decimal),
                     ("gini", "Gini", _format_decimal),
                     ("ks", "KS", _format_decimal),
@@ -119,10 +209,37 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                 ],
             ),
             "",
+            "## PD Recalibration",
+            "",
+            (
+                "Logistic recalibration is fitted only on the pre-OOT calibration holdout. "
+                "Raw and recalibrated PD diagnostics below are calculated on the untouched "
+                "OOT sample."
+            ),
+            (
+                "Fitted transform: logit(PD_recalibrated) = "
+                f"{_format_decimal(selected_recalibration['recalibration_fit_intercept'])} + "
+                f"{_format_decimal(selected_recalibration['recalibration_fit_slope'])} x "
+                "logit(PD_raw)."
+            ),
+            "",
+            _markdown_table(
+                recalibration.loc[recalibration["model"].eq(selected_model_name)],
+                [
+                    ("score_type", "Score", str),
+                    ("calibration_intercept", "Intercept", _format_decimal),
+                    ("calibration_slope", "Slope", _format_decimal),
+                    ("brier_score", "Brier", _format_decimal),
+                    ("log_loss", "Log Loss", _format_decimal),
+                    ("mean_pd", "Mean PD", _format_percent),
+                    ("observed_default_rate", "Observed Default Rate", _format_percent),
+                ],
+            ),
+            "",
             "## Calibration Review",
             "",
             (
-                "Decile calibration compares average predicted PD with observed default rate. "
+                "Decile calibration runs from D01 (lowest predicted PD) to D10 (highest). "
                 "Positive gaps indicate predicted PD is above the realised default rate."
             ),
             "",
@@ -135,6 +252,33 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                     ("observed_default_rate", "Observed Default Rate", _format_percent),
                     ("defaults", "Defaults", _format_integer),
                     ("calibration_gap", "Gap", _format_percent),
+                ],
+            ),
+            "",
+            "## Lending Strategy",
+            "",
+            (
+                "Approval cutoffs are fixed scenario rows, not recommendations. Expected loss is "
+                "calculated as the sum of recalibrated PD x LGD x EAD for approved accounts, "
+                "using loan_amount as an EAD proxy."
+            ),
+            "",
+            _markdown_table(
+                strategy,
+                [
+                    ("max_pd_cutoff", "Max PD", _format_percent),
+                    ("lgd", "LGD", _format_percent),
+                    ("approved_accounts", "Approved", _format_integer),
+                    ("approval_rate", "Approval Rate", _format_percent),
+                    ("approved_default_rate", "Approved Default Rate", _format_percent),
+                    ("approved_exposure", "Approved Exposure", _format_integer),
+                    ("expected_loss", "Expected Loss", _format_integer),
+                    ("expected_loss_rate", "Expected Loss Rate", _format_percent),
+                    (
+                        "rejected_default_capture_rate",
+                        "Rejected Default Capture",
+                        _format_percent,
+                    ),
                 ],
             ),
             "",
@@ -238,3 +382,7 @@ def _format_percent(value: object) -> str:
 
 def _format_integer(value: object) -> str:
     return f"{float(value):.0f}"
+
+
+def _format_boolean(value: object) -> str:
+    return "yes" if bool(value) else "no"

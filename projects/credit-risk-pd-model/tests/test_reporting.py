@@ -11,6 +11,8 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
         [
             {
                 "model": "logistic_regression",
+                "score_type": "raw",
+                "classification_threshold": 0.15,
                 "roc_auc": 0.71,
                 "gini": 0.42,
                 "ks": 0.31,
@@ -20,6 +22,8 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
             },
             {
                 "model": "random_forest",
+                "score_type": "raw",
+                "classification_threshold": 0.15,
                 "roc_auc": 0.68,
                 "gini": 0.36,
                 "ks": 0.27,
@@ -27,8 +31,107 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
                 "precision": 0.35,
                 "recall": 0.50,
             },
+            {
+                "model": "logistic_regression",
+                "score_type": "recalibrated",
+                "classification_threshold": 0.15,
+                "roc_auc": 0.71,
+                "gini": 0.42,
+                "ks": 0.31,
+                "brier_score": 0.16,
+                "precision": 0.44,
+                "recall": 0.57,
+            },
         ]
     ).to_csv(reports_dir / "model_metrics.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "model": "logistic_regression",
+                "model_development_accounts": 600,
+                "calibration_holdout_accounts": 200,
+                "model_development_start": "2019-01-01",
+                "model_development_end": "2020-06-01",
+                "calibration_holdout_start": "2020-07-01",
+                "calibration_holdout_end": "2020-12-01",
+                "calibration_holdout_roc_auc": 0.73,
+                "selected_model": True,
+            },
+            {
+                "model": "random_forest",
+                "model_development_accounts": 600,
+                "calibration_holdout_accounts": 200,
+                "model_development_start": "2019-01-01",
+                "model_development_end": "2020-06-01",
+                "calibration_holdout_start": "2020-07-01",
+                "calibration_holdout_end": "2020-12-01",
+                "calibration_holdout_roc_auc": 0.70,
+                "selected_model": False,
+            },
+        ]
+    ).to_csv(reports_dir / "model_selection_audit.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "model": "logistic_regression",
+                "score_type": "raw",
+                "evaluation_sample": "out_of_time",
+                "recalibration_fit_sample": "pre_oot_calibration_holdout",
+                "recalibration_fit_intercept": -0.35,
+                "recalibration_fit_slope": 1.20,
+                "calibration_intercept": -0.21,
+                "calibration_slope": 0.82,
+                "brier_score": 0.19,
+                "log_loss": 0.58,
+                "mean_pd": 0.24,
+                "observed_default_rate": 0.20,
+            },
+            {
+                "model": "logistic_regression",
+                "score_type": "recalibrated",
+                "evaluation_sample": "out_of_time",
+                "recalibration_fit_sample": "pre_oot_calibration_holdout",
+                "recalibration_fit_intercept": -0.35,
+                "recalibration_fit_slope": 1.20,
+                "calibration_intercept": 0.03,
+                "calibration_slope": 1.04,
+                "brier_score": 0.16,
+                "log_loss": 0.51,
+                "mean_pd": 0.21,
+                "observed_default_rate": 0.20,
+            },
+        ]
+    ).to_csv(reports_dir / "recalibration_summary.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "max_pd_cutoff": 0.10,
+                "lgd": 0.45,
+                "approved_accounts": 120,
+                "rejected_accounts": 880,
+                "approval_rate": 0.12,
+                "approved_observed_defaults": 6,
+                "approved_default_rate": 0.05,
+                "approved_exposure": 1_800_000,
+                "expected_loss": 81_000,
+                "expected_loss_rate": 0.045,
+                "rejected_default_capture_rate": 0.97,
+            },
+            {
+                "max_pd_cutoff": 0.20,
+                "lgd": 0.45,
+                "approved_accounts": 420,
+                "rejected_accounts": 580,
+                "approval_rate": 0.42,
+                "approved_observed_defaults": 42,
+                "approved_default_rate": 0.10,
+                "approved_exposure": 6_300_000,
+                "expected_loss": 567_000,
+                "expected_loss_rate": 0.09,
+                "rejected_default_capture_rate": 0.79,
+            },
+        ]
+    ).to_csv(reports_dir / "approval_strategy.csv", index=False)
     pd.DataFrame(
         [
             {
@@ -96,8 +199,21 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
     assert report_path == reports_dir / "model_report.md"
     report = report_path.read_text(encoding="utf-8")
     assert "# Credit Risk PD Model Report" in report
-    assert "Best model by out-of-time ROC-AUC: `logistic_regression`" in report
-    assert "| logistic_regression | 0.710 | 0.420 | 0.310 | 0.190 | 40.0% | 55.0% |" in report
+    assert "Selected model by pre-OOT calibration holdout ROC-AUC: `logistic_regression`" in report
+    assert (
+        "| logistic_regression | raw | 15.0% | 0.710 | 0.420 | 0.310 | "
+        "0.190 | 40.0% | 55.0% |"
+    ) in report
+    assert "Model selection occurred before OOT evaluation" in report
+    assert "## PD Recalibration" in report
+    assert "logit(PD_recalibrated) = -0.350 + 1.200 x logit(PD_raw)" in report
+    assert "| recalibrated | 0.030 | 1.040 | 0.160 | 0.510 | 21.0% | 20.0% |" in report
+    assert "## Lending Strategy" in report
+    assert "scenario rows, not recommendations" in report
+    assert (
+        "| 20.0% | 45.0% | 420 | 42.0% | 10.0% | 6300000 | 567000 | "
+        "9.0% | 79.0% |"
+    ) in report
     assert "largest absolute decile gap 7.0%" in report
     assert "top out-of-time permutation importance feature `debt_to_income`" in report
     assert "top development-sample Information Value feature `credit_utilisation`" in report

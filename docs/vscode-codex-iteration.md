@@ -33,6 +33,7 @@ python -m venv .venv
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install -e .
+ruff check src tests scripts
 pytest
 ```
 
@@ -47,11 +48,11 @@ codex exec -C . -s workspace-write "Improve the Credit Risk PD project with one 
 Good prompts:
 
 ```text
-Add PD recalibration diagnostics and compare calibration intercept and slope on the out-of-time sample. Include tests, report outputs, and README documentation.
+Validate the LendingClub-format end-to-end path after a pipeline contract change. Preserve the terminal-outcome/right-censoring caveat and do not commit raw data.
 ```
 
 ```text
-Add a lending approval threshold strategy that reports approval rate, default rate, and expected loss trade-offs. Include tests and a report artefact.
+Add a focused model validation enhancement that consumes the PD pipeline outputs. Include tests, report outputs, and README documentation.
 ```
 
 ```text
@@ -75,6 +76,7 @@ cd projects/credit-risk-pd-model
 $pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
 .\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
 .\.venv\Scripts\python.exe scripts\run_pipeline.py
+.\.venv\Scripts\ruff.exe check src tests scripts
 git diff --check
 ```
 
@@ -90,6 +92,16 @@ before use.
   --output data\processed\lendingclub_pd.csv `
   --audit data\processed\lendingclub_ingestion_audit.csv
 .\.venv\Scripts\python.exe scripts\run_pipeline.py --input data\processed\lendingclub_pd.csv --oot-cutoff 2017-01-01
+```
+
+Optional PD calibration and strategy settings:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\run_pipeline.py `
+  --calibration-fraction 0.25 `
+  --lgd 0.45 `
+  --approval-thresholds 0.10 0.15 0.20 0.25 `
+  --classification-threshold 0.15
 ```
 
 Then commit:
@@ -129,11 +141,12 @@ Completed iterations:
 - Out-of-time permutation feature importance.
 - Scorecard-style binning, Weight of Evidence, and Information Value screening.
 - LendingClub accepted-loans raw-to-canonical-schema ingestion adapter.
+- Leakage-safe pre-OOT model selection, logistic PD recalibration, and fixed approval cutoff strategy scenarios.
 
 High-impact next tasks:
 
-1. Add PD recalibration and lending threshold strategy analysis.
-2. Run and review LendingClub public-data diagnostics locally after downloading the dataset.
+1. Run and review LendingClub public-data diagnostics locally after downloading the dataset.
+2. Add public-data interpretation notes without committing raw or borrower-level processed data.
 3. Add an IFRS 9 ECL account-level calculation module.
 4. Add a model validation framework that consumes Project 1 outputs.
 

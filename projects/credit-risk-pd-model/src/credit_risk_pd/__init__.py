@@ -1,6 +1,7 @@
 """Credit risk probability of default modelling package."""
 
 __all__ = [
+    "calibration",
     "data",
     "features",
     "lendingclub",
@@ -9,6 +10,7 @@ __all__ = [
     "monitoring",
     "pipeline",
     "reporting",
+    "strategy",
     "woe",
 ]
 

@@ -23,6 +23,31 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_CONFIG.oot_cutoff_date,
         help="Out-of-time cutoff date. Defaults to the synthetic-data cutoff.",
     )
+    parser.add_argument(
+        "--calibration-fraction",
+        type=float,
+        default=DEFAULT_CONFIG.calibration_fraction,
+        help="Fraction of pre-OOT rows reserved as the later calibration holdout.",
+    )
+    parser.add_argument(
+        "--lgd",
+        type=float,
+        default=DEFAULT_CONFIG.lgd,
+        help="Loss given default used in approval strategy expected-loss scenarios.",
+    )
+    parser.add_argument(
+        "--approval-thresholds",
+        type=float,
+        nargs="+",
+        default=DEFAULT_CONFIG.approval_thresholds,
+        help="Fixed max-PD cutoffs used for approval scenario rows.",
+    )
+    parser.add_argument(
+        "--classification-threshold",
+        type=float,
+        default=DEFAULT_CONFIG.test_threshold,
+        help="Fixed threshold for precision, recall, accuracy, and confusion counts.",
+    )
     return parser.parse_args()
 
 
@@ -32,7 +57,14 @@ def main() -> None:
         input_path=args.input,
         output_dir=args.reports,
         model_dir=args.models,
-        config=replace(DEFAULT_CONFIG, oot_cutoff_date=args.oot_cutoff),
+        config=replace(
+            DEFAULT_CONFIG,
+            oot_cutoff_date=args.oot_cutoff,
+            calibration_fraction=args.calibration_fraction,
+            lgd=args.lgd,
+            approval_thresholds=tuple(args.approval_thresholds),
+            test_threshold=args.classification_threshold,
+        ),
     )
     for name, path in outputs.items():
         print(f"{name}: {path}")

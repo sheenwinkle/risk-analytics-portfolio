@@ -5,7 +5,6 @@ from collections.abc import Sequence
 import numpy as np
 import pandas as pd
 
-
 WOE_SIGN_CONVENTION = (
     "WOE is ln(% good / % bad), where good is non-default and bad is default. "
     "Positive WOE indicates lower observed default risk than the development sample mix."

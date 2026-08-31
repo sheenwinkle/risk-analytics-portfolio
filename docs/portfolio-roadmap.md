@@ -13,8 +13,11 @@ Core deliverables:
 - Logistic regression baseline
 - Tree-based challenger model
 - ROC-AUC, Gini, KS, Brier score, confusion matrix
-- Calibration table
 - Out-of-time split
+- Leakage-safe model selection on a later pre-OOT calibration holdout
+- Logistic PD recalibration with OOT calibration diagnostics
+- Fixed max-PD approval cutoff strategy scenarios
+- Calibration table
 - Population Stability Index monitoring
 - Clean README and resume bullets
 

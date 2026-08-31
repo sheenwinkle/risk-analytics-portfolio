@@ -40,8 +40,9 @@ def test_calibration_table_returns_bins():
 
     table = calibration_table(y_true, y_score, n_bins=5)
 
-    assert set(["accounts", "predicted_pd", "observed_default_rate"]).issubset(table.columns)
+    assert {"accounts", "predicted_pd", "observed_default_rate"}.issubset(table.columns)
     assert table["accounts"].sum() == 10
+    assert table["bucket"].tolist() == ["D01", "D02", "D03", "D04", "D05"]
 
 
 def test_permutation_feature_importance_ranks_predictive_feature_first():

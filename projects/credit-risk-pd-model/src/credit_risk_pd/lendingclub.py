@@ -7,7 +7,6 @@ import pandas as pd
 
 from credit_risk_pd.data import CANONICAL_COLUMNS
 
-
 RAW_COLUMNS = [
     "id",
     "issue_d",

@@ -8,7 +8,7 @@ The repository is built around a candidate profile that combines economics, comp
 
 | Project | Status | Target roles | Main evidence |
 | --- | --- | --- | --- |
-| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Implemented | Credit Risk Analyst, Risk Analytics Analyst, Model Validation Analyst | PD model pipeline, out-of-time validation, calibration, WOE/IV screening, permutation importance, PSI monitoring, SQL schema |
+| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Implemented | Credit Risk Analyst, Risk Analytics Analyst, Model Validation Analyst | PD model pipeline, pre-OOT model selection, PD recalibration, approval strategy scenarios, WOE/IV screening, permutation importance, PSI monitoring, SQL schema |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Planned | Credit Risk Analyst, ECL Analyst, Portfolio Risk Analyst | PD/LGD/EAD, staging, lifetime ECL, macro scenario weighting |
 | [Model Validation Framework](projects/model-validation-framework) | Planned | Model Risk Analyst, Validation Analyst, Quant Risk Analyst | Backtesting, benchmarking, calibration, drift monitoring, validation report |
 
@@ -23,8 +23,11 @@ LendingClub raw-data ingestion
 -> out-of-time split
 -> logistic regression baseline
 -> random forest challenger
+-> pre-OOT calibration holdout model selection
 -> discrimination metrics
--> calibration review
+-> logistic PD recalibration
+-> fixed lending approval cutoff scenarios
+-> calibration review on untouched OOT data
 -> scorecard-style WOE/IV screening
 -> permutation importance
 -> PSI drift monitoring
@@ -33,7 +36,10 @@ LendingClub raw-data ingestion
 
 Key outputs:
 
-- `reports/model_metrics.csv`: ROC-AUC, Gini, KS, Brier score, precision, recall, and confusion matrix values
+- `reports/model_metrics.csv`: ROC-AUC, Gini, KS, Brier score, and threshold-based metrics with the fixed evaluation threshold recorded
+- `reports/model_selection_audit.csv`: pre-OOT model-development and calibration-holdout split audit
+- `reports/recalibration_summary.csv`: fitted pre-OOT recalibration parameters and raw vs recalibrated OOT diagnostics
+- `reports/approval_strategy.csv`: fixed max-PD approval scenarios using disclosed LGD and `loan_amount` as the EAD proxy
 - `reports/calibration_table.csv`: decile-level predicted PD vs observed default rate
 - `reports/woe_bins.csv`: scorecard-style Weight of Evidence bins on the development sample
 - `reports/woe_summary.csv`: feature-level Information Value ranking for variable screening
@@ -45,15 +51,18 @@ Example result from the synthetic development sample:
 
 | Model | ROC-AUC | Gini | KS | Brier score |
 | --- | ---: | ---: | ---: | ---: |
-| Logistic regression | 0.714 | 0.429 | 0.362 | 0.197 |
-| Random forest | 0.698 | 0.396 | 0.337 | 0.192 |
+| Logistic regression raw | 0.710 | 0.421 | 0.342 | 0.194 |
+| Logistic regression recalibrated | 0.710 | 0.421 | 0.342 | 0.141 |
+| Random forest raw | 0.687 | 0.373 | 0.303 | 0.188 |
 
 The synthetic data intentionally includes a stressed 2022 out-of-time period. The PSI report flags interest-rate distribution shift as material, which creates a realistic monitoring discussion for interviews.
 
 Project 1 also includes an auditable adapter for the user-downloaded
 [LendingClub accepted-loans dataset](https://www.kaggle.com/datasets/wordsforthewise/lending-club).
 It prepares `accepted_2007_to_2018Q4.csv.gz` into the canonical PD schema, writes an
-ingestion audit, and keeps the committed demo reports synthetic.
+ingestion audit, and keeps the committed demo reports synthetic. Public-data outputs should
+remain local unless they are reviewed and intentionally added without raw or borrower-level
+processed data.
 
 ## Repository Layout
 
@@ -104,6 +113,7 @@ python scripts/run_pipeline.py
 Run the tests:
 
 ```powershell
+ruff check src tests scripts
 pytest
 ```
 
@@ -119,7 +129,7 @@ Recommended iteration cycle:
 
 1. Create a GitHub issue or short local task.
 2. Ask Codex CLI to implement one focused enhancement.
-3. Run `pytest` from `projects/credit-risk-pd-model`.
+3. Run `ruff check src tests scripts` and `pytest` from `projects/credit-risk-pd-model`.
 4. Review the diff in VS Code.
 5. Commit and push to a feature branch.
 6. Open or update a pull request.
@@ -134,13 +144,12 @@ Suggested one-line project description:
 
 Suggested bullet:
 
-> Developed an end-to-end credit risk PD modelling workflow using Python, scikit-learn, and SQL, including LendingClub raw-data preparation and interpretable/challenger model benchmarking with ROC-AUC, Gini, KS, Brier score, calibration deciles, WOE/IV variable screening, permutation importance, and PSI drift monitoring.
+> Developed an end-to-end credit risk PD modelling workflow using Python, scikit-learn, and SQL, including LendingClub raw-data preparation, leakage-safe pre-OOT model selection, logistic PD recalibration, fixed approval cutoff scenario analysis, WOE/IV variable screening, permutation importance, and PSI drift monitoring.
 
 ## Roadmap
 
 Next improvements:
 
-- Add PD recalibration and lending threshold strategy analysis.
 - Run the LendingClub accepted-loans adapter on the user-downloaded public dataset and compare diagnostics with the committed synthetic demo reports.
 - Add public-data WOE/IV interpretation notes once prepared LendingClub reports are generated locally.
 - Build the IFRS 9 ECL engine using Project 1 PD outputs.

@@ -144,11 +144,17 @@ def test_prepare_lendingclub_data_rejects_non_positive_row_limit(tmp_path):
 def test_prepared_lendingclub_data_runs_end_to_end_pd_workflow(tmp_path):
     rows = []
     for index in range(240):
-        is_oot = index >= 160
+        if index >= 160:
+            issue_d = "Jan-2017"
+        elif index >= 120:
+            issue_d = "Jul-2016"
+        else:
+            issue_d = "Jan-2016"
+
         rows.append(
             {
                 "id": f"LC{index:06d}",
-                "issue_d": "Jan-2017" if is_oot else "Jan-2016",
+                "issue_d": issue_d,
                 "annual_inc": 50_000 + (index % 20) * 2_500,
                 "dti": 12 + index % 25,
                 "revol_util": f"{20 + index % 60}%",

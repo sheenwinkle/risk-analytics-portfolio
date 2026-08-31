@@ -8,7 +8,6 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from credit_risk_pd.config import DEFAULT_CONFIG, ModelConfig
 
-
 NUMERIC_FEATURES = [
     "age",
     "annual_income",
