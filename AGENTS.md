@@ -58,7 +58,7 @@ Do not commit or push when any required check fails. Fix the failure, rerun the 
 ## Roadmap Order
 
 1. Improve Project 1 until it is strong enough to show recruiters.
-2. Add real public dataset ingestion.
+2. Validate the LendingClub adapter on locally downloaded public data.
 3. Add PD recalibration and lending threshold strategy analysis.
 4. Build Project 2: IFRS 9 ECL Engine.
 5. Build Project 3: Model Validation Framework.

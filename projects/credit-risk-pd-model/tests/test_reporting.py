@@ -53,6 +53,7 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
         [
             {"feature": "interest_rate", "psi": 0.31, "status": "material_shift"},
             {"feature": "annual_income", "psi": 0.04, "status": "stable"},
+            {"feature": "age", "psi": float("nan"), "status": "not_available"},
         ]
     ).to_csv(reports_dir / "psi_report.csv", index=False)
     pd.DataFrame(
@@ -105,6 +106,7 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
     assert "| 1 | credit_utilisation | numeric | 5 | 0.420 | strong |" in report
     assert "| debt_to_income | 0.085 | 0.012 |" in report
     assert "| interest_rate | 0.310 | material_shift |" in report
+    assert "| age | N/A | not_available |" in report
 
 
 def test_generate_model_report_requires_expected_inputs(tmp_path):

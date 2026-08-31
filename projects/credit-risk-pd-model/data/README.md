@@ -1,6 +1,42 @@
 # Data Guide
 
-The project can run with synthetic data, so no external dataset is required for the first commit.
+The project can run with synthetic data, so no external dataset is required. Committed
+demo reports are still generated from synthetic data unless a user prepares and supplies
+a local public-data CSV.
+
+## LendingClub Accepted Loans
+
+The auditable ingestion path supports the user-downloaded Kaggle dataset
+[All Lending Club loan data](https://www.kaggle.com/datasets/wordsforthewise/lending-club).
+Download `accepted_2007_to_2018Q4.csv.gz` yourself and place it under `data/raw/`.
+
+Dataset caveat: review the Kaggle and source dataset terms before use. Do not commit the
+raw file or any processed borrower-level output.
+
+Prepare the raw file:
+
+```powershell
+python scripts/prepare_lendingclub_data.py `
+  --input data/raw/accepted_2007_to_2018Q4.csv.gz `
+  --output data/processed/lendingclub_pd.csv `
+  --audit data/processed/lendingclub_ingestion_audit.csv
+```
+
+Run the modelling workflow with a public-data out-of-time cutoff:
+
+```powershell
+python scripts/run_pipeline.py --input data/processed/lendingclub_pd.csv --oot-cutoff 2017-01-01
+```
+
+The adapter reads only origination-time fields needed for modelling and excludes unresolved
+loan statuses such as `Current`, `Issued`, `In Grace Period`, and late loans. It does not use
+post-origination performance fields as predictors. LendingClub does not disclose borrower age,
+so the canonical `age` column is retained as missing rather than inferred.
+
+This target is an eventual terminal-outcome proxy, not a Basel or IFRS 9 fixed-horizon PD
+definition. Removing unresolved loans prevents active accounts from being labelled non-default,
+but it does not eliminate right-censoring or selection bias in recent vintages. Public-data
+results should remain exploratory until vintage and maturity controls are implemented.
 
 ## Expected CSV Schema
 
@@ -8,9 +44,9 @@ If you use a real public dataset, transform it into this schema:
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `customer_id` | string | Unique borrower identifier |
-| `observation_date` | date | Month or date of model observation |
-| `age` | integer | Borrower age |
+| `customer_id` | string | Unique modelling observation ID; LendingClub uses the loan ID |
+| `observation_date` | date | Month or date of model observation; LendingClub uses issue month |
+| `age` | integer | Borrower age; missing for LendingClub because it is not disclosed |
 | `annual_income` | numeric | Annual income |
 | `debt_to_income` | numeric | Debt-to-income ratio |
 | `credit_utilisation` | numeric | Revolving credit utilisation |

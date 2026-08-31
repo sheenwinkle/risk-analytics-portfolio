@@ -55,7 +55,7 @@ Add a lending approval threshold strategy that reports approval rate, default ra
 ```
 
 ```text
-Add a public dataset ingestion plan for LendingClub data without committing raw data. Include a transformation script stub and data dictionary updates.
+Add LendingClub ingestion diagnostics or documentation improvements without committing raw data. Keep committed demo reports synthetic unless the task explicitly regenerates reports.
 ```
 
 Avoid vague prompts such as:
@@ -76,6 +76,20 @@ $pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
 .\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
 .\.venv\Scripts\python.exe scripts\run_pipeline.py
 git diff --check
+```
+
+For a local LendingClub public-data run, first download
+`accepted_2007_to_2018Q4.csv.gz` from
+[All Lending Club loan data](https://www.kaggle.com/datasets/wordsforthewise/lending-club)
+and keep it under `projects/credit-risk-pd-model/data/raw/`. Review the dataset terms
+before use.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\prepare_lendingclub_data.py `
+  --input data\raw\accepted_2007_to_2018Q4.csv.gz `
+  --output data\processed\lendingclub_pd.csv `
+  --audit data\processed\lendingclub_ingestion_audit.csv
+.\.venv\Scripts\python.exe scripts\run_pipeline.py --input data\processed\lendingclub_pd.csv --oot-cutoff 2017-01-01
 ```
 
 Then commit:
@@ -114,11 +128,12 @@ Completed iterations:
 - Markdown model report generator.
 - Out-of-time permutation feature importance.
 - Scorecard-style binning, Weight of Evidence, and Information Value screening.
+- LendingClub accepted-loans raw-to-canonical-schema ingestion adapter.
 
 High-impact next tasks:
 
-1. Add a public lending dataset raw-to-model-schema transformation script.
-2. Add PD recalibration and lending threshold strategy analysis.
+1. Add PD recalibration and lending threshold strategy analysis.
+2. Run and review LendingClub public-data diagnostics locally after downloading the dataset.
 3. Add an IFRS 9 ECL account-level calculation module.
 4. Add a model validation framework that consumes Project 1 outputs.
 

@@ -7,6 +7,7 @@ Goal: build a bank-style probability of default workflow.
 Core deliverables:
 
 - Data loading and schema checks
+- LendingClub accepted-loans ingestion adapter for user-downloaded public data
 - SQL schema for customer, loan, and performance tables
 - Feature engineering for affordability, utilisation, delinquency, and loan terms
 - Logistic regression baseline

@@ -17,3 +17,13 @@ def test_psi_report_labels_material_shift():
 
     assert report.loc[0, "status"] == "material_shift"
 
+
+def test_psi_report_marks_all_missing_feature_not_available():
+    expected = pd.DataFrame({"age": [None, None]})
+    actual = pd.DataFrame({"age": [None, None]})
+
+    report = psi_report(expected, actual, ["age"])
+
+    assert pd.isna(report.loc[0, "psi"])
+    assert report.loc[0, "status"] == "not_available"
+

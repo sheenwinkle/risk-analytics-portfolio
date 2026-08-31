@@ -46,7 +46,7 @@ def build_preprocessor() -> ColumnTransformer:
     """Build preprocessing for numeric and categorical credit risk variables."""
     numeric_pipeline = Pipeline(
         steps=[
-            ("imputer", SimpleImputer(strategy="median")),
+            ("imputer", SimpleImputer(strategy="median", keep_empty_features=True)),
             ("scaler", StandardScaler()),
         ]
     )

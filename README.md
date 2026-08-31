@@ -17,7 +17,8 @@ The repository is built around a candidate profile that combines economics, comp
 The first project builds an end-to-end probability of default workflow:
 
 ```text
-Data checks
+LendingClub raw-data ingestion
+-> data checks
 -> feature engineering
 -> out-of-time split
 -> logistic regression baseline
@@ -48,6 +49,11 @@ Example result from the synthetic development sample:
 | Random forest | 0.698 | 0.396 | 0.337 | 0.192 |
 
 The synthetic data intentionally includes a stressed 2022 out-of-time period. The PSI report flags interest-rate distribution shift as material, which creates a realistic monitoring discussion for interviews.
+
+Project 1 also includes an auditable adapter for the user-downloaded
+[LendingClub accepted-loans dataset](https://www.kaggle.com/datasets/wordsforthewise/lending-club).
+It prepares `accepted_2007_to_2018Q4.csv.gz` into the canonical PD schema, writes an
+ingestion audit, and keeps the committed demo reports synthetic.
 
 ## Repository Layout
 
@@ -124,19 +130,19 @@ Detailed instructions are in [docs/vscode-codex-iteration.md](docs/vscode-codex-
 
 Suggested one-line project description:
 
-> Built a Python and SQL credit risk analytics portfolio covering probability of default modelling, out-of-time validation, model calibration, scorecard-style WOE/IV screening, permutation importance, PSI monitoring, and planned IFRS 9 ECL and model validation extensions.
+> Built a Python and SQL credit risk analytics portfolio covering LendingClub ingestion, probability of default modelling, out-of-time validation, model calibration, scorecard-style WOE/IV screening, permutation importance, PSI monitoring, and planned IFRS 9 ECL and model validation extensions.
 
 Suggested bullet:
 
-> Developed an end-to-end credit risk PD modelling workflow using Python, scikit-learn, and SQL, benchmarking interpretable and challenger models with ROC-AUC, Gini, KS, Brier score, calibration deciles, WOE/IV variable screening, permutation importance, and PSI drift monitoring.
+> Developed an end-to-end credit risk PD modelling workflow using Python, scikit-learn, and SQL, including LendingClub raw-data preparation and interpretable/challenger model benchmarking with ROC-AUC, Gini, KS, Brier score, calibration deciles, WOE/IV variable screening, permutation importance, and PSI drift monitoring.
 
 ## Roadmap
 
 Next improvements:
 
-- Replace synthetic data with a public lending dataset transformation pipeline.
-- Replace synthetic WOE/IV diagnostics with public lending data once ingestion is added.
 - Add PD recalibration and lending threshold strategy analysis.
+- Run the LendingClub accepted-loans adapter on the user-downloaded public dataset and compare diagnostics with the committed synthetic demo reports.
+- Add public-data WOE/IV interpretation notes once prepared LendingClub reports are generated locally.
 - Build the IFRS 9 ECL engine using Project 1 PD outputs.
 - Build the reusable model validation framework and validation report.
 

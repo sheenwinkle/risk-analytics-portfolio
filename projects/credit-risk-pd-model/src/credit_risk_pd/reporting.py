@@ -227,6 +227,8 @@ def _markdown_table(
 
 
 def _format_decimal(value: object) -> str:
+    if pd.isna(value):
+        return "N/A"
     return f"{float(value):.3f}"
 
 

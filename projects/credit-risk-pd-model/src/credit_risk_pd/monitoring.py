@@ -15,7 +15,7 @@ def population_stability_index(
     actual_series = pd.Series(actual).dropna()
 
     if expected_series.empty or actual_series.empty:
-        raise ValueError("PSI requires non-empty expected and actual samples.")
+        return np.nan
 
     quantiles = np.linspace(0, 1, buckets + 1)
     breakpoints = np.unique(expected_series.quantile(quantiles).to_numpy())
@@ -25,13 +25,24 @@ def population_stability_index(
     breakpoints[0] = -np.inf
     breakpoints[-1] = np.inf
 
-    expected_counts = pd.cut(expected_series, bins=breakpoints, include_lowest=True).value_counts(sort=False)
-    actual_counts = pd.cut(actual_series, bins=breakpoints, include_lowest=True).value_counts(sort=False)
+    expected_counts = pd.cut(
+        expected_series,
+        bins=breakpoints,
+        include_lowest=True,
+    ).value_counts(sort=False)
+    actual_counts = pd.cut(
+        actual_series,
+        bins=breakpoints,
+        include_lowest=True,
+    ).value_counts(sort=False)
 
     expected_pct = expected_counts / expected_counts.sum()
     actual_pct = actual_counts / actual_counts.sum()
 
-    psi = ((actual_pct - expected_pct) * np.log((actual_pct + epsilon) / (expected_pct + epsilon))).sum()
+    psi = (
+        (actual_pct - expected_pct)
+        * np.log((actual_pct + epsilon) / (expected_pct + epsilon))
+    ).sum()
     return float(psi)
 
 
@@ -45,7 +56,9 @@ def psi_report(
     rows = []
     for feature in features:
         value = population_stability_index(expected[feature], actual[feature], buckets=buckets)
-        if value < 0.1:
+        if pd.isna(value):
+            status = "not_available"
+        elif value < 0.1:
             status = "stable"
         elif value < 0.25:
             status = "moderate_shift"

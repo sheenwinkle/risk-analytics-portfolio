@@ -8,7 +8,7 @@ import pandas as pd
 from credit_risk_pd.config import DEFAULT_CONFIG, ModelConfig
 
 
-REQUIRED_COLUMNS = {
+CANONICAL_COLUMNS = [
     "customer_id",
     "observation_date",
     "age",
@@ -22,7 +22,9 @@ REQUIRED_COLUMNS = {
     "home_ownership",
     "purpose",
     "default",
-}
+]
+
+REQUIRED_COLUMNS = set(CANONICAL_COLUMNS)
 
 
 def generate_synthetic_credit_data(n_rows: int = 5_000, random_state: int = 42) -> pd.DataFrame:

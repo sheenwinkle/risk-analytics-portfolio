@@ -47,6 +47,7 @@ credit-risk-pd-model/
     README.md
   reports/
   scripts/
+    prepare_lendingclub_data.py
     run_pipeline.py
   sql/
     schema.sql
@@ -76,7 +77,22 @@ Use synthetic data:
 python scripts/run_pipeline.py
 ```
 
-Use your own CSV:
+Prepare the user-downloaded LendingClub accepted-loans file:
+
+```powershell
+python scripts/prepare_lendingclub_data.py `
+  --input data/raw/accepted_2007_to_2018Q4.csv.gz `
+  --output data/processed/lendingclub_pd.csv `
+  --audit data/processed/lendingclub_ingestion_audit.csv
+```
+
+Run with a public-data out-of-time cutoff:
+
+```powershell
+python scripts/run_pipeline.py --input data/processed/lendingclub_pd.csv --oot-cutoff 2017-01-01
+```
+
+Use any other canonical CSV:
 
 ```powershell
 python scripts/run_pipeline.py --input data/raw/credit_data.csv
@@ -110,17 +126,31 @@ That framing is closer to how banks and fintech lenders assess risk models.
 
 ## Data Source
 
-The code runs without external data by generating synthetic credit data. For a stronger public GitHub version, replace the synthetic data with a public lending dataset such as:
+The code runs without external data by generating synthetic credit data, and the committed
+demo reports remain synthetic. For public-data runs, the project includes a LendingClub
+accepted-loans adapter for
+[All Lending Club loan data](https://www.kaggle.com/datasets/wordsforthewise/lending-club).
+Download `accepted_2007_to_2018Q4.csv.gz` yourself, keep it under `data/raw/`, and review
+the dataset terms before use.
 
-- LendingClub accepted loans
-- Home Credit Default Risk
-- UCI Default of Credit Card Clients
+Leakage policy: the LendingClub adapter reads only origination-time predictors plus
+`loan_status` for target construction. It maps resolved terminal outcomes only:
+`Fully Paid` and the legacy fully-paid policy status to non-default; `Charged Off`,
+`Default`, and the legacy charged-off policy status to default. `Current`, `Issued`,
+`In Grace Period`, late, and other unresolved rows are excluded rather than mislabelled.
+Borrower age is not disclosed by LendingClub, so `age` is retained as missing.
 
-Do not commit large raw datasets to GitHub. Store raw files under `data/raw/`, which is ignored by Git.
+Target limitation: this mapping is a terminal-outcome PD proxy, not a Basel or IFRS 9
+fixed-horizon default definition. Excluding unresolved loans prevents active accounts from
+being labelled non-default, but recent vintages can still have right-censoring and selection
+bias. Treat public-data results as exploratory unless vintage and maturity controls are added.
+
+Do not commit raw datasets or borrower-level processed data to GitHub. Store raw files
+under `data/raw/` and processed files under `data/processed/`, both of which are ignored.
 
 ## Resume Bullets
 
-- Built an end-to-end credit risk PD modelling workflow in Python, including feature engineering, out-of-time validation, calibration analysis, scorecard-style WOE/IV screening, permutation importance, and PSI-based monitoring.
+- Built an end-to-end credit risk PD modelling workflow in Python, including LendingClub raw-data ingestion, feature engineering, out-of-time validation, calibration analysis, scorecard-style WOE/IV screening, permutation importance, and PSI-based monitoring.
 - Compared interpretable logistic regression against a tree-based challenger model using ROC-AUC, Gini, KS, Brier score, precision, recall, and confusion matrix diagnostics.
 - Designed SQL schemas and analytics queries for loan, customer, and performance data to support credit risk reporting and model development.
 

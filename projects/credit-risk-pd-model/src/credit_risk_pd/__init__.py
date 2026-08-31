@@ -3,6 +3,7 @@
 __all__ = [
     "data",
     "features",
+    "lendingclub",
     "metrics",
     "model",
     "monitoring",
