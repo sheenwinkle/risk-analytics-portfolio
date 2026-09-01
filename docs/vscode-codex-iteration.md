@@ -37,6 +37,20 @@ ruff check src tests scripts
 pytest
 ```
 
+Project 2 uses the same shape:
+
+```powershell
+cd ..\ifrs9-ecl-engine
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e .
+ruff check src tests scripts
+pytest
+python scripts\run_pipeline.py
+```
+
 ## 3. Use Codex CLI for One Focused Iteration
 
 From the repository root:
@@ -77,6 +91,11 @@ $pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
 .\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
 .\.venv\Scripts\python.exe scripts\run_pipeline.py
 .\.venv\Scripts\ruff.exe check src tests scripts
+cd ..\ifrs9-ecl-engine
+$pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
+..\credit-risk-pd-model\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
+..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_pipeline.py
+..\credit-risk-pd-model\.venv\Scripts\ruff.exe check src tests scripts
 git diff --check
 ```
 
@@ -142,12 +161,13 @@ Completed iterations:
 - Scorecard-style binning, Weight of Evidence, and Information Value screening.
 - LendingClub accepted-loans raw-to-canonical-schema ingestion adapter.
 - Leakage-safe pre-OOT model selection, logistic PD recalibration, and fixed approval cutoff strategy scenarios.
+- IFRS 9 ECL foundation with deterministic synthetic reports and SQL examples.
 
 High-impact next tasks:
 
 1. Run and review LendingClub public-data diagnostics locally after downloading the dataset.
 2. Add public-data interpretation notes without committing raw or borrower-level processed data.
-3. Add an IFRS 9 ECL account-level calculation module.
+3. Connect Project 1 PD outputs to the IFRS 9 ECL foundation.
 4. Add a model validation framework that consumes Project 1 outputs.
 
 Work on one task per branch. The GitHub history should look deliberate and professional.

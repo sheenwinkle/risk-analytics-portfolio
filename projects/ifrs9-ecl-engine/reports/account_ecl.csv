@@ -1,0 +1,7 @@
+account_id,days_past_due,sicr,credit_impaired,defaulted,effective_interest_rate,stage,stage_reason,prior_stage,gross_exposure,weighted_ecl,coverage_ratio
+SYN-ECL-001,0,False,False,False,0.105000,1,performing,1,150000.000000,734.509699,0.004897
+SYN-ECL-002,12,False,False,False,0.118000,1,performing,1,95000.000000,862.688193,0.009081
+SYN-ECL-003,36,False,False,False,0.132000,2,30_dpd_backstop,1,82000.000000,3697.904913,0.045096
+SYN-ECL-004,8,True,False,False,0.098000,2,sicr_indicator,1,120000.000000,6501.059769,0.054175
+SYN-ECL-005,74,True,False,False,0.145000,2,sicr_indicator,2,62000.000000,6753.351884,0.108925
+SYN-ECL-006,102,True,True,False,0.157000,3,credit_impaired,2,45000.000000,9447.403678,0.209942

@@ -25,24 +25,34 @@ Core deliverables:
 
 Goal: calculate expected credit loss using PD, LGD, EAD, staging, and macro scenario weights.
 
-Planned modules:
+Implemented foundation:
 
-- `staging.py`: Stage 1, Stage 2, Stage 3 classification logic
-- `ecl.py`: 12-month and lifetime ECL calculations
-- `scenarios.py`: base, upside, downside macro scenario weighting
-- `portfolio.py`: account-level and portfolio-level aggregation
-- `reports.py`: waterfall and sensitivity outputs
+- `run_ecl_engine(...)`: public API returning an `ECLResult` dataclass
+- Configurable Stage 1, Stage 2, and Stage 3 policy with DPD backstops
+- Monthly scenario term structures for marginal PD, LGD, and EAD
+- 12-month ECL for Stage 1 and lifetime ECL for Stage 2 and Stage 3
+- Explicit base, upside, and downside scenario weighting
+- Deterministic synthetic demo pipeline and committed report outputs
+- SQL schema and example portfolio, stage migration, and scenario queries
 
-Suggested outputs:
+Implemented outputs:
 
 - Account-level ECL table
 - Stage migration summary
 - Scenario-weighted portfolio ECL
-- Sensitivity to unemployment and interest-rate stress
+- Scenario-level account ECL table
+- Markdown demo report
+
+Still planned:
+
+- Connect Project 1 PD outputs to ECL term-structure generation
+- Add documented SICR rebuttal and management-overlay examples
+- Add macroeconomic sensitivity and stress reporting
+- Add model validation and governance artefacts around ECL inputs
 
 Resume angle:
 
-> Built an IFRS 9 expected credit loss engine calculating account-level and portfolio-level ECL using PD, LGD, EAD, staging rules, and macroeconomic scenario weights.
+> Built a runnable IFRS 9 ECL foundation calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, and stage migration reporting.
 
 ## Project 3: Model Validation Framework
 
