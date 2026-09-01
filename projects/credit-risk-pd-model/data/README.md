@@ -38,6 +38,10 @@ definition. Removing unresolved loans prevents active accounts from being labell
 but it does not eliminate right-censoring or selection bias in recent vintages. Public-data
 results should remain exploratory until vintage and maturity controls are implemented.
 
+Project 2's PD integration bridge may consume the committed synthetic `reports/oot_predictions.csv`
+output, but it uses only `customer_id`, `observation_date`, and `recalibrated_pd`. It does
+not use `actual_default` or any future outcome to construct ECL inputs.
+
 ## Expected CSV Schema
 
 If you use a real public dataset, transform it into this schema:

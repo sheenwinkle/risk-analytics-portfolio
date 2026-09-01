@@ -9,7 +9,7 @@ The repository is built around a candidate profile that combines economics, comp
 | Project | Status | Target roles | Main evidence |
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Implemented | Credit Risk Analyst, Risk Analytics Analyst, Model Validation Analyst | PD model pipeline, pre-OOT model selection, PD recalibration, approval strategy scenarios, WOE/IV screening, permutation importance, PSI monitoring, SQL schema |
-| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Implemented foundation | Credit Risk Analyst, ECL Analyst, Portfolio Risk Analyst | Staging policy, monthly PD/LGD/EAD term structures, 12-month and lifetime ECL, scenario weighting, stage migration reports |
+| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Implemented foundation plus PD bridge | Credit Risk Analyst, ECL Analyst, Portfolio Risk Analyst | Staging policy, monthly PD/LGD/EAD term structures, Project 1 recalibrated PD integration, scenario weighting, stage migration reports |
 | [Model Validation Framework](projects/model-validation-framework) | Planned | Model Risk Analyst, Validation Analyst, Quant Risk Analyst | Backtesting, benchmarking, calibration, drift monitoring, validation report |
 
 ## Project 1: Credit Risk PD Modelling
@@ -81,6 +81,23 @@ Synthetic account snapshot
 This is an educational simplified PD/LGD/EAD implementation, not a claim of full IFRS 9
 compliance and not accounting advice.
 
+Project 2 also includes a deterministic bridge from Project 1's committed synthetic
+`reports/oot_predictions.csv` into ECL inputs and reports:
+
+```text
+Project 1 recalibrated OOT PD snapshot
+-> latest or requested reporting-date cohort
+-> explicit synthetic account assumptions
+-> constant-hazard monthly marginal PD term structures
+-> Project 2 ECL engine
+-> lineage, account, scenario, portfolio, migration, and Markdown reports
+```
+
+The bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`. It does not
+use `actual_default` or future outcomes to construct ECL inputs. Project 1's synthetic
+target is a terminal-outcome proxy, and the bridge's constant-hazard lifetime extrapolation
+is an educational assumption rather than IFRS 9 compliance methodology.
+
 Key outputs:
 
 - `reports/account_ecl.csv`: account-level stage, stage reason, exposure, weighted ECL,
@@ -91,6 +108,15 @@ Key outputs:
   coverage ratio by stage and total
 - `reports/stage_migration.csv`: prior-stage to current-stage migration summary
 - `reports/ecl_report.md`: recruiter-readable synthetic demo summary
+- `reports/pd_integration/input_audit.csv`: Project 1 to Project 2 lineage and explicit
+  assumptions for the PD bridge
+- `reports/pd_integration/account_ecl.csv`: account-level PD-integrated ECL results with
+  synthetic `SYN-PD-ECL-` IDs
+- `reports/pd_integration/scenario_ecl.csv`: scenario-level PD-integrated ECL results with
+  weights, hazard multipliers, and LGD add-ons
+- `reports/pd_integration/portfolio_summary.csv`: PD-integrated stage and total summary
+- `reports/pd_integration/stage_migration.csv`: PD-integrated stage migration summary
+- `reports/pd_integration/pd_integration_report.md`: recruiter-readable bridge report
 
 ## Repository Layout
 
@@ -163,6 +189,7 @@ pip install -e .
 ruff check src tests scripts
 pytest
 python scripts\run_pipeline.py
+python scripts\run_pd_integration.py
 ```
 
 ## VS Code and Codex Workflow
@@ -188,7 +215,7 @@ Detailed instructions are in [docs/vscode-codex-iteration.md](docs/vscode-codex-
 
 Suggested one-line project description:
 
-> Built a Python and SQL credit risk analytics portfolio covering LendingClub ingestion, probability of default modelling, out-of-time validation, model calibration, scorecard-style WOE/IV screening, permutation importance, PSI monitoring, and a runnable IFRS 9 ECL foundation.
+> Built a Python and SQL credit risk analytics portfolio covering LendingClub ingestion, probability of default modelling, out-of-time validation, model calibration, scorecard-style WOE/IV screening, permutation importance, PSI monitoring, and a runnable IFRS 9 ECL foundation with a synthetic recalibrated-PD integration bridge.
 
 Suggested bullet:
 
@@ -196,7 +223,7 @@ Suggested bullet:
 
 Suggested Project 2 bullet:
 
-> Built a runnable IFRS 9 ECL foundation in Python, calculating account-level and portfolio-level expected credit loss from configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, and stage migration reporting.
+> Built a runnable IFRS 9 ECL foundation in Python, calculating account-level and portfolio-level expected credit loss from configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration reporting, and a validated bridge from Project 1 synthetic recalibrated PD outputs.
 
 ## Roadmap
 
@@ -204,6 +231,6 @@ Next improvements:
 
 - Run the LendingClub accepted-loans adapter on the user-downloaded public dataset and compare diagnostics with the committed synthetic demo reports.
 - Add public-data WOE/IV interpretation notes once prepared LendingClub reports are generated locally.
-- Extend the IFRS 9 ECL foundation with Project 1 PD outputs and documented SICR policy experiments.
+- Add documented SICR policy experiments and management-overlay examples to the IFRS 9 ECL foundation.
 - Build the reusable model validation framework and validation report.
 

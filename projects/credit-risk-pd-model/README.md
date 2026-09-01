@@ -132,7 +132,7 @@ The pipeline writes:
 - `reports/feature_importance.csv`: model-agnostic permutation importance for the selected model on the out-of-time sample
 - `reports/psi_report.csv`: population drift indicators
 - `reports/model_report.md`: markdown summary of model performance, recalibration, strategy scenarios, Information Value, feature importance, and PSI monitoring
-- `reports/oot_predictions.csv`: account-level out-of-time actuals, selected raw PD, and recalibrated PD
+- `reports/oot_predictions.csv`: account-level out-of-time actuals, selected raw PD, and recalibrated PD; Project 2's ECL bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`
 - `models/<selected_model>_recalibrated.joblib`: selected base model plus fitted logistic recalibrator with `predict_proba`
 
 ## Model Evaluation
@@ -171,6 +171,11 @@ fixed-horizon default definition. Excluding unresolved loans prevents active acc
 being labelled non-default, but recent vintages can still have right-censoring and selection
 bias. Treat public-data results as exploratory unless vintage and maturity controls are added.
 
+Project 2 can consume the committed synthetic `reports/oot_predictions.csv` through a
+separate PD-to-ECL bridge. That bridge treats `recalibrated_pd` as a 12-month cumulative PD
+and does not use `actual_default` when constructing ECL inputs. Its constant-hazard lifetime
+extrapolation is an educational portfolio assumption, not an IFRS 9 compliance claim.
+
 Do not commit raw datasets or borrower-level processed data to GitHub. Store raw files
 under `data/raw/` and processed files under `data/processed/`, both of which are ignored.
 
@@ -190,4 +195,5 @@ under `data/raw/` and processed files under `data/processed/`, both of which are
 - How permutation importance supports model-agnostic validation review
 - How PSI can detect portfolio drift before model performance deteriorates
 - Why logistic regression is still common in regulated risk modelling
-- How this project can extend into IFRS 9 ECL and model validation
+- How this project's recalibrated synthetic OOT PD outputs can feed an educational ECL
+  bridge without leaking future outcomes
