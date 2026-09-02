@@ -29,6 +29,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional row limit for smoke tests.",
     )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=100_000,
+        help="Rows processed per chunk to bound memory usage.",
+    )
     return parser.parse_args()
 
 
@@ -39,6 +45,7 @@ def main() -> None:
         output_path=args.output,
         audit_path=args.audit,
         max_rows=args.max_rows,
+        chunk_size=args.chunk_size,
     )
     print(f"output: {result.output_path}")
     print(f"audit: {result.audit_path}")

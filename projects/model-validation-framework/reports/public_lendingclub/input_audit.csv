@@ -1,0 +1,11 @@
+check,status,detail
+row_count,pass,225639 rows loaded
+required_columns,pass,"customer_id, observation_date, actual_default, selected_model, selected_model_raw_pd, logistic_regression_pd, recalibrated_pd, random_forest_pd"
+customer_id,pass,unique non-empty customer IDs
+observation_date,pass,2017-01-01 to 2018-12-01
+actual_default,pass,binary observed default flag with both classes present
+selected_model,pass,one supported selected model: random_forest
+selected_model_raw_pd,pass,matches selected model raw PD row-by-row
+logistic_regression_pd,pass,"finite PD values in [0, 1]"
+recalibrated_pd,pass,"finite PD values in [0, 1]"
+random_forest_pd,pass,"finite PD values in [0, 1]"

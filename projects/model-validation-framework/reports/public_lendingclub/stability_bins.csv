@@ -1,0 +1,11 @@
+model_name,score_version,bin,lower_pd_bound,upper_pd_bound,reference_observations,current_observations,reference_share,current_share,psi_component
+random_forest,recalibrated,1,0.000000,0.088457,16932,7735,0.099999,0.137345,0.011851
+random_forest,recalibrated,2,0.088457,0.125097,16932,6245,0.099999,0.110888,0.001125
+random_forest,recalibrated,3,0.125097,0.156213,16932,5655,0.099999,0.100412,0.000002
+random_forest,recalibrated,4,0.156213,0.186799,16932,5306,0.099999,0.094215,0.000345
+random_forest,recalibrated,5,0.186799,0.220539,16932,5287,0.099999,0.093878,0.000387
+random_forest,recalibrated,6,0.220539,0.257674,16933,5194,0.100005,0.092226,0.000630
+random_forest,recalibrated,7,0.257674,0.299884,16932,5138,0.099999,0.091232,0.000804
+random_forest,recalibrated,8,0.299884,0.352368,16932,5162,0.099999,0.091658,0.000727
+random_forest,recalibrated,9,0.352368,0.434886,16932,5392,0.099999,0.095742,0.000185
+random_forest,recalibrated,10,0.434886,1.000000,16932,5204,0.099999,0.092404,0.000600

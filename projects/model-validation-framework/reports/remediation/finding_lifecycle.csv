@@ -1,0 +1,2 @@
+finding_id,check,initial_status,initial_metric_value,remediation_action,retest_status,retest_metric_value,closure_status,closure_reason,evidence_reference
+CAL-001,absolute_calibration_gap,fail,0.077097,Monthly sequential logistic recalibration using only the prior 3 matured cohorts.,pass,0.009218,pending_fresh_oot,"Sequential retest passed, but closure requires an additional matured OOT horizon.",remediation_summary.csv

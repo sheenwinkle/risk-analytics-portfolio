@@ -1,4 +1,4 @@
-CREATE TABLE model_validation_run (
+CREATE TABLE IF NOT EXISTS model_validation_run (
     validation_run_id BIGSERIAL PRIMARY KEY,
     model_name TEXT NOT NULL,
     score_version TEXT NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE model_validation_run (
     CHECK (current_start <= current_end)
 );
 
-CREATE TABLE model_validation_metric (
+CREATE TABLE IF NOT EXISTS model_validation_metric (
     validation_run_id BIGINT NOT NULL REFERENCES model_validation_run(validation_run_id),
     check_name TEXT NOT NULL,
     metric_value NUMERIC NOT NULL,
@@ -35,16 +35,59 @@ CREATE TABLE model_validation_metric (
     PRIMARY KEY (validation_run_id, check_name)
 );
 
-CREATE TABLE model_validation_finding (
+CREATE TABLE IF NOT EXISTS model_validation_finding (
     finding_id BIGSERIAL PRIMARY KEY,
     validation_run_id BIGINT NOT NULL REFERENCES model_validation_run(validation_run_id),
     check_name TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('warning', 'fail')),
+    lifecycle_status TEXT NOT NULL DEFAULT 'open' CHECK (
+        lifecycle_status IN ('open', 'pending_fresh_oot', 'closed')
+    ),
     finding TEXT NOT NULL,
     recommended_action TEXT NOT NULL
 );
 
-CREATE TABLE model_validation_benchmark (
+ALTER TABLE model_validation_finding
+    ADD COLUMN IF NOT EXISTS lifecycle_status TEXT NOT NULL DEFAULT 'open';
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'model_validation_finding_lifecycle_status_check'
+          AND conrelid = 'model_validation_finding'::regclass
+    ) THEN
+        ALTER TABLE model_validation_finding
+            ADD CONSTRAINT model_validation_finding_lifecycle_status_check
+            CHECK (lifecycle_status IN ('open', 'pending_fresh_oot', 'closed'));
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS model_validation_finding_event (
+    finding_event_id BIGSERIAL PRIMARY KEY,
+    finding_id BIGINT NOT NULL REFERENCES model_validation_finding(finding_id),
+    event_type TEXT NOT NULL CHECK (
+        event_type IN ('identified', 'remediation_retest', 'closure_decision')
+    ),
+    event_status TEXT NOT NULL,
+    metric_value NUMERIC,
+    evidence_reference TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE model_validation_finding_event
+    DROP CONSTRAINT IF EXISTS model_validation_finding_event_event_status_check;
+
+ALTER TABLE model_validation_finding_event
+    ADD CONSTRAINT model_validation_finding_event_event_status_check CHECK (
+        event_status IN (
+            'pass', 'warning', 'fail', 'open', 'pending_fresh_oot', 'closed'
+        )
+    );
+
+CREATE TABLE IF NOT EXISTS model_validation_benchmark (
     validation_run_id BIGINT NOT NULL REFERENCES model_validation_run(validation_run_id),
     comparison TEXT NOT NULL,
     baseline_model TEXT NOT NULL,
@@ -66,7 +109,7 @@ CREATE TABLE model_validation_benchmark (
     PRIMARY KEY (validation_run_id, comparison)
 );
 
-CREATE TABLE model_validation_limitation (
+CREATE TABLE IF NOT EXISTS model_validation_limitation (
     validation_run_id BIGINT NOT NULL REFERENCES model_validation_run(validation_run_id),
     limitation TEXT NOT NULL,
     severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high')),
@@ -75,8 +118,11 @@ CREATE TABLE model_validation_limitation (
     PRIMARY KEY (validation_run_id, limitation)
 );
 
-CREATE INDEX idx_model_validation_run_model_created
+CREATE INDEX IF NOT EXISTS idx_model_validation_run_model_created
     ON model_validation_run (model_name, created_at DESC);
 
-CREATE INDEX idx_model_validation_finding_status
+CREATE INDEX IF NOT EXISTS idx_model_validation_finding_status
     ON model_validation_finding (status, validation_run_id);
+
+CREATE INDEX IF NOT EXISTS idx_model_validation_finding_event_finding
+    ON model_validation_finding_event (finding_id, created_at);

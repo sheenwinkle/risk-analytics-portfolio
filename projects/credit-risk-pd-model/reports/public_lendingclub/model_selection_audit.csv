@@ -1,0 +1,3 @@
+model,model_development_accounts,calibration_holdout_accounts,model_development_start,model_development_end,calibration_holdout_start,calibration_holdout_end,calibration_holdout_roc_auc,selected_model
+logistic_regression,829355,293105,2007-06-01,2015-12-01,2016-01-01,2016-12-01,0.6988209824809597,False
+random_forest,829355,293105,2007-06-01,2015-12-01,2016-01-01,2016-12-01,0.7022237828512111,True

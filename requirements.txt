@@ -1,0 +1,8 @@
+-e ./projects/credit-risk-pd-model
+-e ./projects/ifrs9-ecl-engine
+-e ./projects/model-validation-framework
+matplotlib>=3.8,<4
+kagglehub>=1.0,<2
+psycopg[binary]>=3.2,<4
+pytest>=8,<9
+ruff>=0.6,<1

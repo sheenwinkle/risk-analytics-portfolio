@@ -137,15 +137,48 @@ def build_validation_findings(validation_summary: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["status", "check", "finding", "recommended_action"])
 
 
-def build_model_limitations() -> pd.DataFrame:
-    return pd.DataFrame(
-        [
+def build_model_limitations(
+    *,
+    data_context: str = "synthetic",
+    observation_start: object | None = None,
+    observation_end: object | None = None,
+) -> pd.DataFrame:
+    if data_context == "synthetic":
+        context_limitations = [
             {
                 "limitation": "synthetic_data",
                 "severity": "medium",
                 "description": "Inputs are synthetic and cannot prove live portfolio performance.",
-                "mitigation": "Validate on locally downloaded public LendingClub data before production use.",
-            },
+                "mitigation": (
+                    "Validate on locally downloaded public LendingClub data before production use."
+                ),
+            }
+        ]
+    elif data_context == "public_lendingclub":
+        context_limitations = [
+            {
+                "limitation": "accepted_loan_selection_bias",
+                "severity": "medium",
+                "description": (
+                    "Public LendingClub data contains accepted loans rather than all applications."
+                ),
+                "mitigation": (
+                    "Do not generalise approval-strategy results to the full applicant population."
+                ),
+            }
+        ]
+    else:
+        raise ValueError(f"Unsupported data_context: {data_context}")
+
+    horizon_description = "Out-of-time validation horizon is limited."
+    if observation_start is not None and observation_end is not None:
+        start = pd.Timestamp(observation_start).date().isoformat()
+        end = pd.Timestamp(observation_end).date().isoformat()
+        horizon_description = f"Out-of-time validation covers {start} to {end}."
+
+    return pd.DataFrame(
+        [
+            *context_limitations,
             {
                 "limitation": "terminal_outcome_proxy",
                 "severity": "medium",
@@ -153,9 +186,9 @@ def build_model_limitations() -> pd.DataFrame:
                 "mitigation": "Replace with contractual default definitions and observation windows.",
             },
             {
-                "limitation": "one_year_oot_horizon",
+                "limitation": "limited_oot_horizon",
                 "severity": "medium",
-                "description": "Out-of-time validation covers one calendar year only.",
+                "description": horizon_description,
                 "mitigation": "Extend monitoring across additional vintages when data is available.",
             },
             {

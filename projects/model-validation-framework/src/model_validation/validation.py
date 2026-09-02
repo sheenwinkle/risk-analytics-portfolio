@@ -71,12 +71,19 @@ class ValidationResult:
 @dataclass(frozen=True)
 class Project1OOTPredictionAdapter:
     prediction_path: str | Path
+    data_context: str = "synthetic"
+
+    def __post_init__(self) -> None:
+        supported_contexts = {"synthetic", "public_lendingclub"}
+        if self.data_context not in supported_contexts:
+            supported = ", ".join(sorted(supported_contexts))
+            raise ValueError(f"data_context must be one of: {supported}")
 
     def load(self) -> pd.DataFrame:
         path = Path(self.prediction_path)
         if not path.is_file():
             raise FileNotFoundError(f"Project 1 OOT prediction file not found: {path}")
-        return pd.read_csv(path)
+        return pd.read_csv(path, dtype={"customer_id": "string"})
 
 
 def run_validation(
@@ -85,8 +92,7 @@ def run_validation(
     policy: ValidationPolicy | None = None,
 ) -> ValidationResult:
     active_policy = policy or ValidationPolicy()
-    predictions = adapter.load()
-    normalized = _validate_predictions(predictions)
+    normalized = load_validated_predictions(adapter)
     selected_model = str(normalized["selected_model"].iloc[0])
 
     input_audit = _build_input_audit(normalized)
@@ -118,7 +124,11 @@ def run_validation(
         policy=active_policy,
     )
     validation_findings = build_validation_findings(validation_summary)
-    model_limitations = build_model_limitations()
+    model_limitations = build_model_limitations(
+        data_context=adapter.data_context,
+        observation_start=normalized["observation_date"].min(),
+        observation_end=normalized["observation_date"].max(),
+    )
 
     return ValidationResult(
         input_audit=input_audit,
@@ -132,6 +142,11 @@ def run_validation(
         validation_findings=validation_findings,
         model_limitations=model_limitations,
     )
+
+
+def load_validated_predictions(adapter: Project1OOTPredictionAdapter) -> pd.DataFrame:
+    """Load and validate the frozen Project 1 score contract."""
+    return _validate_predictions(adapter.load())
 
 
 def run_validation_pipeline(

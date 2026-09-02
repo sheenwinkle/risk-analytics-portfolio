@@ -32,3 +32,58 @@ jobs:
         working-directory: ${{ matrix.project }}
         run: pytest
 
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: risk
+          POSTGRES_PASSWORD: risk
+          POSTGRES_DB: model_validation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U risk -d model_validation"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      MODEL_VALIDATION_TEST_DSN: postgresql://risk:risk@localhost:5432/model_validation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Project 3
+        working-directory: projects/model-validation-framework
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+      - name: Persist validation result
+        working-directory: projects/model-validation-framework
+        run: pytest -q tests/test_postgres_integration.py
+
+  portfolio-reproduction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install portfolio workspace
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Reproduce all project evidence
+        run: >-
+          python scripts/run_portfolio.py
+          --output-root .artifacts/ci-run
+          --verify-committed
+      - name: Build recruiter showcase
+        run: python scripts/build_showcase.py --output-dir .artifacts/showcase
+      - name: Check showcase assets
+        run: |
+          test $(find .artifacts/showcase -name '*.png' -size +10k | wc -l) -eq 4
+

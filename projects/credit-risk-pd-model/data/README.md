@@ -1,25 +1,32 @@
 # Data Guide
 
-The project can run with synthetic data, so no external dataset is required. Committed
-demo reports are still generated from synthetic data unless a user prepares and supplies
-a local public-data CSV.
+The project can run with synthetic data, so no external dataset is required. Default demo
+reports are synthetic. The separately labelled `reports/public_lendingclub/` directory
+contains aggregate evidence generated from the full public dataset.
 
 ## LendingClub Accepted Loans
 
-The auditable ingestion path supports the user-downloaded Kaggle dataset
+The auditable ingestion path supports the Kaggle dataset
 [All Lending Club loan data](https://www.kaggle.com/datasets/wordsforthewise/lending-club).
-Download `accepted_2007_to_2018Q4.csv.gz` yourself and place it under `data/raw/`.
+From the repository root, the public build script downloads the accepted-loans file through
+Kaggle's anonymous public endpoint, processes it in bounded-memory chunks, runs Projects 1
+and 3, and publishes only aggregate reports:
+
+```powershell
+.\scripts\run_public_lendingclub.ps1
+```
 
 Dataset caveat: review the Kaggle and source dataset terms before use. Do not commit the
 raw file or any processed borrower-level output.
 
-Prepare the raw file:
+To prepare an already downloaded raw file manually:
 
 ```powershell
 python scripts/prepare_lendingclub_data.py `
   --input data/raw/accepted_2007_to_2018Q4.csv.gz `
   --output data/processed/lendingclub_pd.csv `
-  --audit data/processed/lendingclub_ingestion_audit.csv
+  --audit data/processed/lendingclub_ingestion_audit.csv `
+  --chunk-size 100000
 ```
 
 Run the modelling workflow with a public-data out-of-time cutoff:
@@ -70,4 +77,8 @@ Keep raw data out of the repository. Commit only:
 - Small sample files if legally allowed
 - Transformation scripts
 - Aggregate reports
+
+The public-report publisher uses an explicit allow-list, rejects CSV files containing a
+`customer_id` column, and never publishes `oot_predictions.csv`. The committed lineage file
+records the source URL, licence, raw-file hash, input count, and resolved-output count.
 

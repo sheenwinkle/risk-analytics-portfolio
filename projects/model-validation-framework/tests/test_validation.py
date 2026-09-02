@@ -440,7 +440,7 @@ def test_run_validation_result_exposes_static_limitations(tmp_path) -> None:
     assert limitations["limitation"].tolist() == [
         "synthetic_data",
         "terminal_outcome_proxy",
-        "one_year_oot_horizon",
+        "limited_oot_horizon",
         "score_only_independent_validation",
     ]
     assert limitations["severity"].tolist() == ["medium", "medium", "medium", "medium"]
@@ -492,3 +492,39 @@ def test_run_validation_pipeline_is_compatible_with_actual_project1_candidate_re
         "observations",
     ].iloc[0]
     assert {path.name for path in (tmp_path / "reports").iterdir()} == EXPECTED_REPORT_FILES
+
+
+def test_adapter_preserves_numeric_looking_customer_ids_as_strings(tmp_path) -> None:
+    prediction_path = tmp_path / "numeric_ids.csv"
+    frame = _valid_predictions().copy()
+    frame["customer_id"] = [str(10_000 + index) for index in range(len(frame))]
+    frame.to_csv(prediction_path, index=False)
+
+    loaded = Project1OOTPredictionAdapter(prediction_path).load()
+
+    assert loaded["customer_id"].map(lambda value: isinstance(value, str)).all()
+    result = run_validation(Project1OOTPredictionAdapter(prediction_path))
+    assert result.input_audit.loc[
+        result.input_audit["check"].eq("customer_id"), "status"
+    ].item() == "pass"
+
+
+def test_public_lendingclub_context_replaces_synthetic_limitation(tmp_path) -> None:
+    prediction_path = tmp_path / "public_scores.csv"
+    _valid_predictions().to_csv(prediction_path, index=False)
+
+    result = run_validation(
+        Project1OOTPredictionAdapter(
+            prediction_path,
+            data_context="public_lendingclub",
+        )
+    )
+
+    limitations = set(result.model_limitations["limitation"])
+    assert "synthetic_data" not in limitations
+    assert "accepted_loan_selection_bias" in limitations
+    horizon = result.model_limitations.loc[
+        result.model_limitations["limitation"].eq("limited_oot_horizon"),
+        "description",
+    ].item()
+    assert "2022-01-01 to 2022-12-01" in horizon

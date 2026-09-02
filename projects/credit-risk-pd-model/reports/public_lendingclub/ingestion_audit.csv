@@ -1,0 +1,2 @@
+input_path,input_rows,excluded_rows,excluded_unresolved_status_rows,invalid_key_or_date_rows,duplicate_rows,output_rows,non_default_count,default_count,default_rate,observation_date_min,observation_date_max,chunks_processed,chunk_size
+data/raw/accepted_2007_to_2018Q4.csv.gz,2260701,912602,912602,0,0,1348099,1078739,269360,0.1998072841831349,2007-06-01,2018-12-01,23,100000

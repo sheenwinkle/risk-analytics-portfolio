@@ -1,158 +1,157 @@
 # Risk Analytics Portfolio
 
-Portfolio of practical risk analytics projects for credit risk, model risk, and fintech lending roles.
+[![Python tests](https://github.com/sheenwinkle/risk-analytics-portfolio/actions/workflows/python-tests.yml/badge.svg)](https://github.com/sheenwinkle/risk-analytics-portfolio/actions/workflows/python-tests.yml)
+![Python 3.11](https://img.shields.io/badge/python-3.11-2563eb)
+![License: MIT](https://img.shields.io/badge/license-MIT-0f766e)
 
-The repository is built around a candidate profile that combines economics, computer science, FRM knowledge, Python, SQL, PostgreSQL, and machine learning. The goal is to show bank-style risk thinking rather than generic notebook-based machine learning.
+I combine economics, computer science, FRM-aligned risk knowledge, Python, PostgreSQL, and
+machine learning to build auditable credit-risk workflows. This repository follows one
+connected model lifecycle rather than presenting unrelated notebooks:
 
-## Projects
+```text
+Public/synthetic lending data
+-> PD development and OOT scoring
+-> IFRS 9 ECL consumption
+-> independent validation opinion
+-> calibration remediation and finding lifecycle
+-> PostgreSQL governance evidence
+```
 
-| Project | Status | Target roles | Main evidence |
+## Evidence at a Glance
+
+The public-data run processes the complete accepted-loans file from the
+[All Lending Club loan data](https://www.kaggle.com/datasets/wordsforthewise/lending-club)
+dataset. Raw and borrower-level files remain local; only aggregate evidence is committed.
+
+| Evidence | Result |
+| --- | ---: |
+| Raw rows read | 2,260,701 |
+| Resolved terminal-outcome rows | 1,348,099 |
+| 2017-2018 OOT accounts | 225,639 |
+| Selected-model OOT ROC-AUC / Gini / KS | 0.700 / 0.400 / 0.292 |
+| Raw to recalibrated Brier score | 0.208 -> 0.155 |
+| Public independent validation opinion | warning |
+| Synthetic stress-case validation opinion | fail |
+| Sequential remediation calibration gap | 0.064 -> 0.009 |
+
+![Public LendingClub calibration](docs/assets/public_pd_calibration.png)
+
+![Public validation opinion](docs/assets/public_validation_opinion.png)
+
+## Connected Projects
+
+| Project | Status | Main evidence | Target roles |
 | --- | --- | --- | --- |
-| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Implemented | Credit Risk Analyst, Risk Analytics Analyst, Model Validation Analyst | PD model pipeline, pre-OOT model selection, PD recalibration, approval strategy scenarios, WOE/IV screening, permutation importance, PSI monitoring, SQL schema |
-| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Implemented foundation plus PD bridge | Credit Risk Analyst, ECL Analyst, Portfolio Risk Analyst | Staging policy, monthly PD/LGD/EAD term structures, Project 1 recalibrated PD integration, scenario weighting, stage migration reports |
-| [Model Validation Framework](projects/model-validation-framework) | Implemented foundation | Model Risk Analyst, Validation Analyst, Quant Risk Analyst | Independent score reperformance, calibration backtesting, PSI, challenger benchmarking, policy findings, SQL governance schema |
+| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
+| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, discounting, scenarios, migration, Project 1 bridge | ECL, Portfolio Risk, Credit Risk |
+| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent metrics, policy opinion, public-data validation, remediation lifecycle, PostgreSQL persistence | Model Risk, Validation, Quant Risk |
 
 ## Project 1: Credit Risk PD Modelling
 
-The first project builds an end-to-end probability of default workflow:
+The workflow keeps model selection and calibration before untouched OOT evaluation:
 
 ```text
-LendingClub raw-data ingestion
--> data checks
--> feature engineering
--> out-of-time split
--> logistic regression baseline
--> random forest challenger
--> pre-OOT calibration holdout model selection
--> discrimination metrics
--> logistic PD recalibration
--> fixed lending approval cutoff scenarios
--> calibration review on untouched OOT data
--> scorecard-style WOE/IV screening
--> permutation importance
--> PSI drift monitoring
--> report artefacts
+Chunked LendingClub ingestion and audit
+-> origination-time feature controls
+-> temporal development/calibration/OOT split
+-> logistic baseline and random-forest challenger
+-> pre-OOT model selection and logistic recalibration
+-> OOT discrimination, calibration, strategy, WOE/IV, importance, and PSI evidence
 ```
 
-Key outputs:
+The public-data model selected the random forest on the 2016 pre-OOT holdout. On the
+2017-2018 OOT cohort, recalibration preserved ROC-AUC `0.699887` while reducing Brier score
+from `0.208470` to `0.154725`. The highest-risk decile remained over-predicted by `7.1%`, so
+the report retains a material calibration discussion rather than presenting a perfect model.
 
-- `reports/model_metrics.csv`: ROC-AUC, Gini, KS, Brier score, and threshold-based metrics with the fixed evaluation threshold recorded
-- `reports/model_selection_audit.csv`: pre-OOT model-development and calibration-holdout split audit
-- `reports/recalibration_summary.csv`: fitted pre-OOT recalibration parameters and raw vs recalibrated OOT diagnostics
-- `reports/approval_strategy.csv`: fixed max-PD approval scenarios using disclosed LGD and `loan_amount` as the EAD proxy
-- `reports/calibration_table.csv`: decile-level predicted PD vs observed default rate
-- `reports/woe_bins.csv`: scorecard-style Weight of Evidence bins on the development sample
-- `reports/woe_summary.csv`: feature-level Information Value ranking for variable screening
-- `reports/feature_importance.csv`: selected-model permutation importance on the out-of-time sample
-- `reports/psi_report.csv`: feature-level population stability monitoring
-- `reports/oot_predictions.csv`: account-level out-of-time PD predictions
+Public aggregate evidence:
 
-Example result from the synthetic development sample:
+- [Public run summary](projects/credit-risk-pd-model/reports/public_lendingclub/README.md)
+- [Model report](projects/credit-risk-pd-model/reports/public_lendingclub/model_report.md)
+- [Data lineage and SHA-256](projects/credit-risk-pd-model/reports/public_lendingclub/data_lineage.json)
+- [Ingestion audit](projects/credit-risk-pd-model/reports/public_lendingclub/ingestion_audit.csv)
 
-| Model | ROC-AUC | Gini | KS | Brier score |
-| --- | ---: | ---: | ---: | ---: |
-| Logistic regression raw | 0.710 | 0.421 | 0.342 | 0.194 |
-| Logistic regression recalibrated | 0.710 | 0.421 | 0.342 | 0.141 |
-| Random forest raw | 0.687 | 0.373 | 0.303 | 0.188 |
+The committed synthetic run remains the fast, deterministic CI fixture for cross-project
+tests. It intentionally includes a stressed 2022 OOT period.
 
-The synthetic data intentionally includes a stressed 2022 out-of-time period. The PSI report flags interest-rate distribution shift as material, which creates a realistic monitoring discussion for interviews.
+## Project 2: IFRS 9 ECL Engine
 
-Project 1 also includes an auditable adapter for the user-downloaded
-[LendingClub accepted-loans dataset](https://www.kaggle.com/datasets/wordsforthewise/lending-club).
-It prepares `accepted_2007_to_2018Q4.csv.gz` into the canonical PD schema, writes an
-ingestion audit, and keeps the committed demo reports synthetic. Public-data outputs should
-remain local unless they are reviewed and intentionally added without raw or borrower-level
-processed data.
-
-## Project 2: IFRS 9 ECL Engine Foundation
-
-The second project builds a transparent expected credit loss foundation:
+Project 2 consumes frozen Project 1 recalibrated PDs through a validated adapter without
+using future outcomes to construct ECL inputs:
 
 ```text
-Synthetic account snapshot
--> configurable staging policy
--> monthly scenario PD/LGD/EAD term structures
--> 12-month ECL for Stage 1
--> lifetime ECL for Stage 2 and Stage 3
--> explicit base/upside/downside scenario weighting
--> account, scenario, portfolio, and migration reports
+Reporting-date PD cohort
+-> explicit account assumptions and SICR/default flags
+-> monthly base/upside/downside PD, LGD, and EAD paths
+-> Stage 1 12-month ECL / Stage 2-3 lifetime ECL
+-> discounting, scenario weighting, migration, and portfolio evidence
 ```
 
-This is an educational simplified PD/LGD/EAD implementation, not a claim of full IFRS 9
-compliance and not accounting advice.
+![ECL coverage by stage](docs/assets/ecl_stage_coverage.png)
 
-Project 2 also includes a deterministic bridge from Project 1's committed synthetic
-`reports/oot_predictions.csv` into ECL inputs and reports:
+The implementation is deliberately transparent. It demonstrates staging, term structures,
+discounting, scenario weighting, coverage ratios, and stage migration without claiming full
+institution-specific IFRS 9 compliance.
 
-```text
-Project 1 recalibrated OOT PD snapshot
--> latest or requested reporting-date cohort
--> explicit synthetic account assumptions
--> constant-hazard monthly marginal PD term structures
--> Project 2 ECL engine
--> lineage, account, scenario, portfolio, migration, and Markdown reports
+## Project 3: Model Validation and Remediation
+
+Project 3 consumes only frozen score-and-outcome contracts. It independently reperforms AUC,
+Gini, tie-safe KS, Brier score, calibration, monthly monitoring, PSI, and challenger tests.
+
+The public LendingClub model receives an overall **warning**: AUC, KS, and calibration are
+near or within warning thresholds, while PSI and challenger checks pass. The synthetic stress
+candidate receives **fail** for material PD underestimation.
+
+For the synthetic calibration finding, each monthly retest uses a recalibrator fitted only on
+the prior three matured monthly cohorts. Sequential retesting reduces the second-half
+calibration gap from `0.064` to `0.009`, but the finding remains `pending_fresh_oot` because
+six months of retesting are not enough for formal cross-cycle closure.
+
+Evidence:
+
+- [Public validation summary](projects/model-validation-framework/reports/public_lendingclub/README.md)
+- [Synthetic validation report](projects/model-validation-framework/reports/validation_report.md)
+- [Remediation and lifecycle report](projects/model-validation-framework/reports/remediation/remediation_report.md)
+- [PostgreSQL schema](projects/model-validation-framework/sql/schema.sql)
+
+## One-Command Reproduction
+
+Create one root environment, run all tests and pipelines, and verify committed demo reports:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup_and_run.ps1 `
+  -WithTests `
+  -VerifyCommitted
 ```
 
-The bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`. It does not
-use `actual_default` or future outcomes to construct ECL inputs. Project 1's synthetic
-target is a terminal-outcome proxy, and the bridge's constant-hazard lifetime extrapolation
-is an educational assumption rather than IFRS 9 compliance methodology.
+Download and rebuild the full public LendingClub evidence chain:
 
-Key outputs:
-
-- `reports/account_ecl.csv`: account-level stage, stage reason, exposure, weighted ECL,
-  and coverage ratio
-- `reports/scenario_ecl.csv`: account/scenario ECL with horizon, months included,
-  effective interest rate, and scenario weight
-- `reports/portfolio_summary.csv`: account count, gross exposure, weighted ECL, and
-  coverage ratio by stage and total
-- `reports/stage_migration.csv`: prior-stage to current-stage migration summary
-- `reports/ecl_report.md`: recruiter-readable synthetic demo summary
-- `reports/pd_integration/input_audit.csv`: Project 1 to Project 2 lineage and explicit
-  assumptions for the PD bridge
-- `reports/pd_integration/account_ecl.csv`: account-level PD-integrated ECL results with
-  synthetic `SYN-PD-ECL-` IDs
-- `reports/pd_integration/scenario_ecl.csv`: scenario-level PD-integrated ECL results with
-  weights, hazard multipliers, and LGD add-ons
-- `reports/pd_integration/portfolio_summary.csv`: PD-integrated stage and total summary
-- `reports/pd_integration/stage_migration.csv`: PD-integrated stage migration summary
-- `reports/pd_integration/pd_integration_report.md`: recruiter-readable bridge report
-
-## Project 3: Model Validation Framework
-
-The third project consumes only Project 1's frozen OOT score contract and performs an
-independent-style review without importing model-development internals:
-
-```text
-Project 1 frozen OOT scores
--> schema and selected-model lineage audit
--> AUC, Gini, tie-safe KS, Brier, and calibration reperformance
--> deterministic calibration deciles and monthly diagnostics
--> reference-period PSI stability analysis
--> incumbent/challenger and recalibration comparisons
--> illustrative traffic-light policy
--> findings, limitations, SQL governance design, and validation report
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_public_lendingclub.ps1
 ```
 
-The synthetic candidate receives an overall **fail** because its recalibrated mean PD is
-9.69% against a 17.40% observed default rate. AUC (0.710), KS (0.342), PSI (0.071), and
-the challenger test pass. Preserving the calibration finding demonstrates validation
-judgement rather than presenting every model as acceptable.
+The public command downloads approximately 374 MB, processes the raw file in bounded-memory
+chunks, fits the full model workflow, publishes aggregate-only Project 1 and Project 3
+evidence, and rebuilds showcase charts. Raw data, processed borrower records, predictions,
+and model binaries are Git-ignored.
 
-Key outputs:
+VS Code exposes both commands through **Tasks: Run Task**:
 
-- `reports/validation_report.md`: recruiter-readable case study and overall policy outcome
-- `reports/validation_summary.csv`: configured thresholds, observed values, and statuses
-- `reports/calibration_by_decile.csv`: low-to-high PD backtest
-- `reports/monthly_performance.csv`: monthly calibration and discrimination diagnostics
-- `reports/stability_summary.csv` and `reports/stability_bins.csv`: period-level and bin-level PSI evidence
-- `reports/benchmark_comparison.csv`: incumbent/challenger and recalibration deltas
-- `reports/validation_findings.csv`: warning/fail findings with recommended actions
-- `reports/model_limitations.csv`: limitations and mitigations
+- `Portfolio: Full Self-Test and Reproduction`
+- `Portfolio: Reproduce Committed Evidence`
+- `Build Public LendingClub Evidence`
 
-This is an educational portfolio case study, not a regulatory approval or production-use
-decision. Thresholds are explicit portfolio assumptions and can be replaced through the
-immutable `ValidationPolicy` configuration.
+## Engineering Controls
+
+- Python packages with explicit public APIs rather than notebook-only logic
+- Behavioural, edge-case, lineage, privacy, and deterministic-report tests
+- GitHub Actions matrix across all three projects
+- CI PostgreSQL 16 integration test for run, metric, finding, benchmark, limitation, and
+  remediation-event persistence
+- Full-portfolio regeneration check with line-ending normalisation and machine-precision
+  tolerance for parallel model output
+- Borrower-level publication deny-list plus safe aggregate report lists
+- PostgreSQL schema and analytical queries for validation governance history
 
 ## Repository Layout
 
@@ -160,137 +159,41 @@ immutable `ValidationPolicy` configuration.
 risk-analytics-portfolio/
   .github/workflows/
   .vscode/
-  docs/
+  docs/assets/
+  scripts/
   projects/
     credit-risk-pd-model/
-      data/
-      reports/
-      scripts/
-      sql/
-      src/credit_risk_pd/
-      tests/
+      data/ reports/ scripts/ sql/ src/ tests/
     ifrs9-ecl-engine/
-      data/
-      reports/
-      scripts/
-      sql/
-      src/ifrs9_ecl_engine/
-      tests/
+      data/ reports/ scripts/ sql/ src/ tests/
     model-validation-framework/
-      data/
-      reports/
-      scripts/
-      sql/
-      src/model_validation/
-      tests/
+      data/ reports/ scripts/ sql/ src/ tests/
 ```
 
-## Quickstart
+## Material Limitations
 
-Clone and open the repository:
-
-```powershell
-git clone https://github.com/sheenwinkle/risk-analytics-portfolio.git
-cd risk-analytics-portfolio
-code .
-```
-
-Create the Python environment for Project 1:
-
-```powershell
-cd projects/credit-risk-pd-model
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
-```
-
-Run the pipeline:
-
-```powershell
-python scripts/run_pipeline.py
-```
-
-Run the tests:
-
-```powershell
-ruff check src tests scripts
-pytest
-```
-
-Create and run the Project 2 environment:
-
-```powershell
-cd ..\ifrs9-ecl-engine
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
-ruff check src tests scripts
-pytest
-python scripts\run_pipeline.py
-python scripts\run_pd_integration.py
-```
-
-Create and run the Project 3 environment:
-
-```powershell
-cd ..\model-validation-framework
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
-ruff check src tests scripts
-pytest
-python scripts\run_validation.py
-```
-
-## VS Code and Codex Workflow
-
-This repository is intended to be developed iteratively with VS Code and Codex CLI:
-
-```powershell
-codex exec -C . -s workspace-write "Improve the Credit Risk PD project by adding one focused, tested enhancement. Keep the change small and update documentation."
-```
-
-Recommended iteration cycle:
-
-1. Create a GitHub issue or short local task.
-2. Ask Codex CLI to implement one focused enhancement.
-3. Run `ruff check src tests scripts` and `pytest` from `projects/credit-risk-pd-model`.
-4. Review the diff in VS Code.
-5. Commit and push to a feature branch.
-6. Open or update a pull request.
-
-Detailed instructions are in [docs/vscode-codex-iteration.md](docs/vscode-codex-iteration.md).
+- LendingClub outcomes are resolved terminal-status proxies, not contractual fixed-horizon
+  Basel or IFRS 9 default labels.
+- Accepted-loan data does not represent all applicants and cannot support reject inference.
+- The ECL engine omits institution-specific accounting policy, contractual cash-flow,
+  collateral, cure, overlay, and disclosure processes.
+- Validation policy thresholds are explicit case-study assumptions, not regulatory cutoffs.
+- Public aggregate results demonstrate analytical workflow, not production approval.
 
 ## Resume Positioning
 
-Suggested one-line project description:
+> Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
+> LendingClub records, covering temporal PD development, recalibration, strategy analysis,
+> IFRS 9 ECL consumption, independent model validation, no-look-ahead remediation testing,
+> deterministic evidence generation, and governance persistence.
 
-> Built a Python and SQL credit risk analytics portfolio covering LendingClub ingestion, probability of default modelling, out-of-time validation, model calibration, scorecard-style WOE/IV screening, PSI monitoring, a runnable IFRS 9 ECL foundation, and an independent-style model validation framework with challenger and governance reporting.
+Detailed resume bullets and interview prompts are in
+[docs/resume-project-description.md](docs/resume-project-description.md). Development setup
+and the optional VS Code/Codex iteration process are documented in
+[docs/vscode-codex-iteration.md](docs/vscode-codex-iteration.md).
 
-Suggested bullet:
+## Next Evidence
 
-> Developed an end-to-end credit risk PD modelling workflow using Python, scikit-learn, and SQL, including LendingClub raw-data preparation, leakage-safe pre-OOT model selection, logistic PD recalibration, fixed approval cutoff scenario analysis, WOE/IV variable screening, permutation importance, and PSI drift monitoring.
-
-Suggested Project 2 bullet:
-
-> Built a runnable IFRS 9 ECL foundation in Python, calculating account-level and portfolio-level expected credit loss from configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration reporting, and a validated bridge from Project 1 synthetic recalibrated PD outputs.
-
-Suggested Project 3 bullet:
-
-> Developed a reusable credit risk model validation framework in Python, independently reperforming AUC, Gini, tie-safe KS, Brier score, calibration deciles, monthly backtesting, PSI, and challenger comparisons; produced deterministic evidence files, PostgreSQL governance schemas, and a documented fail opinion for material PD underestimation.
-
-## Roadmap
-
-Next improvements:
-
-- Run the LendingClub accepted-loans adapter on the user-downloaded public dataset and compare diagnostics with the committed synthetic demo reports.
-- Add public-data WOE/IV interpretation notes once prepared LendingClub reports are generated locally.
-- Add documented SICR policy experiments and management-overlay examples to the IFRS 9 ECL foundation.
-- Extend Project 3 with segment-level backtesting, confidence intervals, feature-level replication, and validation-run persistence.
-
+- Add vintage and segment-level public-data validation with bootstrap confidence intervals.
+- Add documented SICR rebuttal and macroeconomic management-overlay sensitivity.
+- Revisit the pending calibration finding when an additional matured OOT horizon is available.

@@ -8,7 +8,28 @@ This is an educational portfolio case study. It demonstrates model risk methods 
 governance judgement, but it is not a regulatory approval, accounting opinion, or
 production-use decision.
 
-## Candidate Opinion
+Status: complete scoped case study with public-data validation, a synthetic adverse-finding
+remediation exercise, and tested PostgreSQL governance persistence.
+
+## Public LendingClub Opinion
+
+The independently re-performed public-data checks produce an overall **warning** opinion.
+The framework consumes the frozen 225,639-row OOT score contract without importing Project
+1's development code.
+
+| Check | Result | Policy status |
+| --- | ---: | --- |
+| ROC-AUC | 0.699887 | Warning |
+| KS | 0.292493 | Warning |
+| Absolute calibration gap | 0.026335 | Warning |
+| PSI | 0.016656 | Pass |
+| Challenger AUC margin | -0.009411 | Pass |
+
+Review the [public validation report](reports/public_lendingclub/validation_report.md) and
+[source lineage](reports/public_lendingclub/data_lineage.json). The opinion is explicitly
+limited by the accepted-loan population and terminal-outcome target definition.
+
+## Synthetic Governance Candidate
 
 The committed synthetic candidate receives an overall **fail** under the illustrative
 policy because its recalibrated PD underestimates the 2022 observed default rate. The
@@ -27,6 +48,22 @@ The result supports a clear validation judgement: discrimination and score stabi
 acceptable under the configured policy, but calibration requires investigation and fresh
 recalibration before any production-use consideration.
 
+## Remediation and Finding Lifecycle
+
+The committed synthetic failure is carried into a sequential remediation exercise rather
+than overwritten. A fixed three-month rolling logistic recalibrator uses only prior matured
+months for each July-December 2022 validation cohort.
+
+| Evidence | Before | After |
+| --- | ---: | ---: |
+| Absolute calibration gap | 0.064441 (fail) | 0.009218 (pass) |
+| Brier score | 0.130625 | 0.125430 |
+| ROC-AUC | 0.685203 | 0.683521 |
+
+The finding remains `pending_fresh_oot`: passing the sequential retest is remediation
+evidence, but it is not treated as independent closure evidence. See the
+[remediation report](reports/remediation/remediation_report.md).
+
 ## Validation Workflow
 
 ```text
@@ -39,6 +76,8 @@ Project 1 frozen OOT predictions
 -> incumbent/challenger and recalibration comparisons
 -> configurable traffic-light policy
 -> findings, limitations, CSV evidence, and Markdown report
+-> sequential calibration remediation and closure decision
+-> PostgreSQL governance history
 ```
 
 The implementation includes:
@@ -54,6 +93,9 @@ The implementation includes:
 - incumbent versus challenger benchmarking and raw versus recalibrated impact analysis
 - immutable, validated policy thresholds with pass, warning, and fail findings
 - deterministic CSV and Markdown outputs with fixed precision and LF line endings
+- context-specific limitations for synthetic and public LendingClub evidence
+- no-look-ahead rolling remediation with explicit closure status
+- PostgreSQL persistence for runs, metrics, findings, benchmarks, limitations, and finding events
 
 ## Input Contract
 
@@ -93,7 +135,9 @@ The challenger margin is challenger raw AUC minus selected recalibrated incumben
 model-validation-framework/
   data/                  input lineage and privacy notes
   reports/               committed validation evidence
-  scripts/               command-line pipeline
+    public_lendingclub/   safe aggregate public-data validation
+    remediation/         synthetic finding lifecycle evidence
+  scripts/               validation, publication, remediation, and database loaders
   sql/                   PostgreSQL governance schema and queries
   src/model_validation/  validation package
   tests/                 behavioural and reproducibility tests
@@ -108,10 +152,19 @@ Core modules separate validation responsibilities:
 - `benchmarking.py`: incumbent, challenger, and recalibration comparisons
 - `policy.py`: immutable traffic-light thresholds
 - `reporting.py`: policy findings, limitations, CSVs, and Markdown report
+- `remediation.py`: sequential rolling recalibration and closure decision
+- `publication.py`: privacy-safe public aggregate publisher
+- `postgres.py`: transactional governance persistence
 
 ## Quickstart
 
-From the repository root:
+The preferred portfolio-wide run from the repository root is:
+
+```powershell
+.\scripts\setup_and_run.ps1
+```
+
+For a standalone Project 3 environment:
 
 ```powershell
 cd projects\model-validation-framework
@@ -121,6 +174,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install -e .
 python scripts\run_validation.py
+python scripts\run_remediation.py
 ```
 
 Use another compatible score file or output directory:
@@ -138,7 +192,18 @@ ruff check src tests scripts
 python -m pytest -p no:cacheprovider
 python -m compileall -q src tests scripts
 python scripts\run_validation.py
+python scripts\run_remediation.py
 ```
+
+Persist a validation run and remediation lifecycle to PostgreSQL:
+
+```powershell
+$env:MODEL_VALIDATION_DATABASE_URL = "postgresql://user:password@localhost:5432/risk_portfolio"
+python scripts\load_validation_run.py --apply-schema --persist-remediation
+```
+
+The integration test runs against PostgreSQL 16 in GitHub Actions and verifies the inserted
+run, metric, finding, benchmark, limitation, and three finding-event records.
 
 ## Report Outputs
 
@@ -156,25 +221,31 @@ python scripts\run_validation.py
 | `reports/model_limitations.csv` | Limitation and mitigation register |
 | `reports/validation_report.md` | Recruiter-readable validation case study |
 
-The PostgreSQL examples under `sql/` show how validation runs, policy metrics, findings,
-limitations, and challenger results could be retained for governance reporting.
+`reports/public_lendingclub/` contains the same aggregate validation contract for the full
+public-data run. `reports/remediation/` contains monthly sequential retest evidence, a
+summary, finding lifecycle events, and a reviewer-readable report.
+
+The PostgreSQL schema and loader under `sql/` and `scripts/` retain validation runs, policy
+metrics, findings, limitations, challenger results, remediation retests, and closure decisions
+for governance reporting.
 
 ## Limitations
 
-- Project 1 uses synthetic data, so results do not establish live portfolio performance.
+- The public run is an accepted-loan sample and does not represent rejected applicants.
 - `actual_default` is a terminal-outcome proxy, not a fully serviced default-window label.
-- The OOT sample covers one calendar year and does not span a full credit cycle.
+- Neither the public nor synthetic OOT evidence spans a full credit cycle.
 - Validation starts from frozen scores and outcomes; it does not independently rebuild
   features or replicate model estimation.
 - Policy thresholds are illustrative and require institution-specific governance approval.
+- The sequential remediation retest shares historical data with development and therefore
+  cannot close the finding without a fresh independent OOT window.
 
 ## Resume Description
 
-> Built a reusable Python model validation framework for credit risk PD models, independently
-> reperformance-testing AUC, Gini, tie-safe KS, Brier score, calibration deciles, monthly
-> backtesting, PSI stability, and incumbent/challenger performance; implemented explicit
-> governance thresholds, actionable findings, PostgreSQL reporting schemas, deterministic
-> evidence files, and a documented fail opinion for material PD underestimation.
+> Built a reusable Python and PostgreSQL model validation framework that independently
+> re-performed AUC, Gini, tie-safe KS, Brier score, calibration, monthly backtesting, PSI,
+> and challenger analysis on 225,639 public OOT observations; implemented policy opinions,
+> no-look-ahead remediation testing, finding lifecycle persistence, and deterministic evidence.
 
 ## Interview Discussion
 

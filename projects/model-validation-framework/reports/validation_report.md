@@ -72,5 +72,5 @@ Educational portfolio case study. This report is not a regulatory approval, acco
 | --- | --- | --- | --- |
 | synthetic_data | medium | Inputs are synthetic and cannot prove live portfolio performance. | Validate on locally downloaded public LendingClub data before production use. |
 | terminal_outcome_proxy | medium | Observed defaults use a terminal-outcome proxy rather than serviced account history. | Replace with contractual default definitions and observation windows. |
-| one_year_oot_horizon | medium | Out-of-time validation covers one calendar year only. | Extend monitoring across additional vintages when data is available. |
+| limited_oot_horizon | medium | Out-of-time validation covers 2022-01-01 to 2022-12-01. | Extend monitoring across additional vintages when data is available. |
 | score_only_independent_validation | medium | Independent validation consumes scores and outcomes, not full development features. | Add feature-level replication and challenger rebuild testing in a later slice. |

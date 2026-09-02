@@ -27,7 +27,14 @@ Do not turn the repository into a generic machine learning demo.
 
 ## Validation Commands
 
-Run each project's checks from its own directory:
+The preferred repository-wide gate is:
+
+```powershell
+.\scripts\setup_and_run.ps1
+.\.venv\Scripts\python.exe scripts\run_portfolio.py --with-tests --verify-committed
+```
+
+Individual project checks remain available:
 
 ```powershell
 # Project 1
@@ -42,6 +49,7 @@ python scripts/run_pd_integration.py
 # Project 3
 pytest
 python scripts/run_validation.py
+python scripts/run_remediation.py
 ```
 
 ## Mandatory Self-Test Gate
@@ -53,7 +61,8 @@ Every implementation iteration must complete this loop before it is committed or
 3. Run the focused tests while iterating.
 4. Run the complete test suite after implementation.
 5. Run every pipeline affected by the change and inspect the generated artefacts.
-6. Run `git diff --check` and review the final diff for unrelated changes.
+6. For public data, publish only allow-listed aggregate evidence; never publish borrower IDs.
+7. Run `git diff --check` and review the final diff for unrelated changes.
 
 On Windows, prefer the project interpreter explicitly:
 
@@ -82,11 +91,18 @@ Do not commit or push when any required check fails. Fix the failure, rerun the 
 ## Roadmap Order
 
 1. Improve Project 1 until it is strong enough to show recruiters.
-2. Validate the LendingClub adapter on locally downloaded public data.
+2. Maintain the full public LendingClub evidence and privacy-safe publication boundary.
 3. Add PD recalibration and lending threshold strategy analysis.
 4. Build Project 2: IFRS 9 ECL Engine.
 5. Build Project 3: Model Validation Framework.
-6. Extend validation with segment, uncertainty, and feature-level review evidence.
+6. Extend validation with segment, uncertainty, vintage, and feature-level review evidence.
+
+## Governance Rules
+
+- Keep synthetic demo and public-data evidence explicitly labelled.
+- Preserve adverse findings; do not change thresholds to manufacture a pass.
+- A remediation retest does not close a finding without fresh independent OOT evidence.
+- PostgreSQL schema changes require mapping tests and the CI integration test.
 
 ## Resume Audience
 

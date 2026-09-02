@@ -28,9 +28,18 @@ def main() -> None:
         type=Path,
         help="Directory where validation report CSVs are written.",
     )
+    parser.add_argument(
+        "--data-context",
+        choices=("synthetic", "public_lendingclub"),
+        default="synthetic",
+        help="Controls source-appropriate model limitations in the validation opinion.",
+    )
     args = parser.parse_args()
 
-    run_validation_pipeline(Project1OOTPredictionAdapter(args.prediction_path), args.output_dir)
+    run_validation_pipeline(
+        Project1OOTPredictionAdapter(args.prediction_path, data_context=args.data_context),
+        args.output_dir,
+    )
     print(f"Wrote validation reports to {args.output_dir.resolve()}")
 
 

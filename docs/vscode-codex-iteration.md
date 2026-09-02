@@ -1,10 +1,9 @@
 # VS Code and Codex CLI Iteration Guide
 
-This guide is for developing the portfolio from a GitHub repository using VS Code and Codex CLI.
+This guide keeps local development, self-testing, and GitHub review consistent across all
+three portfolio projects.
 
-## 1. Open the GitHub Repository in VS Code
-
-Recommended local workflow:
+## 1. Clone and Open in VS Code
 
 ```powershell
 git clone https://github.com/sheenwinkle/risk-analytics-portfolio.git
@@ -12,193 +11,117 @@ cd risk-analytics-portfolio
 code .
 ```
 
-Alternative VS Code remote repository workflow:
+VS Code's GitHub Repositories extension is useful for browsing, but use a local clone for
+Python environments, pipelines, tests, Codex CLI, commits, and public-data processing.
 
-1. Open VS Code.
-2. Install the official GitHub Repositories extension if VS Code asks for it.
-3. Run `Remote Repositories: Open Remote Repository...` from the Command Palette.
-4. Paste `https://github.com/sheenwinkle/risk-analytics-portfolio`.
-5. When you need to run Python tests or Codex CLI locally, clone the repository instead of only browsing it remotely.
-
-The local clone workflow is better for this project because the pipeline needs a Python environment, generated reports, tests, and Git commits.
-
-## 2. Prepare Python
+## 2. Create the Shared Environment
 
 From the repository root:
 
 ```powershell
-cd projects/credit-risk-pd-model
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
-ruff check src tests scripts
-pytest
+.\scripts\setup_and_run.ps1
 ```
 
-Project 2 uses the same shape:
+This creates `.venv`, installs all three packages and development dependencies, and regenerates
+the deterministic synthetic evidence. The full VS Code self-test task adds tests and committed
+evidence verification. VS Code is configured to discover the shared interpreter and all project
+test directories.
+
+Useful Command Palette tasks:
+
+- `Portfolio: Full Self-Test and Reproduction`
+- `Portfolio: Reproduce Committed Evidence`
+- `Build Public LendingClub Evidence`
+- each project's focused test task
+
+## 3. Run One Focused Codex Iteration
+
+Start Codex CLI from the repository root so it can see the cross-project contracts:
 
 ```powershell
-cd ..\ifrs9-ecl-engine
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
-ruff check src tests scripts
-pytest
-python scripts\run_pipeline.py
-python scripts\run_pd_integration.py
+codex exec -C . -s workspace-write "Improve one documented risk-analytics limitation. Run the relevant baseline tests first, add focused tests, reproduce affected reports, run the full portfolio gate, and review privacy before stopping. Do not commit or push."
 ```
 
-Project 3 is independently installable and consumes Project 1's committed OOT report:
+High-signal prompts are specific about the risk question and evidence contract:
 
-```powershell
-cd ..\model-validation-framework
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-pip install -e .
-ruff check src tests scripts
-pytest
-python scripts\run_validation.py
+```text
+Add vintage-level public PD backtesting. Preserve the terminal-outcome and right-censoring
+limitations, publish aggregates only, and add tests proving no borrower IDs can be released.
 ```
 
-## 3. Use Codex CLI for One Focused Iteration
+```text
+Add an ECL macro sensitivity example with explicit scenario assumptions. Keep it educational,
+test accounting identities, regenerate deterministic evidence, and document limitations.
+```
+
+```text
+Add confidence intervals to Project 3. Preserve the current warning/fail opinions, use a
+deterministic seed, persist the new metrics to PostgreSQL, and extend the integration test.
+```
+
+Avoid prompts such as `make the project better`; they do not define a risk decision,
+acceptance criteria, or evidence boundary.
+
+## 4. Self-Test Before Every Commit
 
 From the repository root:
 
 ```powershell
-codex exec -C . -s workspace-write "Improve the Credit Risk PD project with one focused enhancement. Run the baseline suite first; add focused tests; then run the full suite, pipeline, and git diff --check. Update docs, but do not commit or push."
-```
-
-Good prompts:
-
-```text
-Validate the LendingClub-format end-to-end path after a pipeline contract change. Preserve the terminal-outcome/right-censoring caveat and do not commit raw data.
-```
-
-```text
-Add a focused model validation enhancement that consumes the PD pipeline outputs. Include tests, report outputs, and README documentation.
-```
-
-```text
-Improve Project 3 with one focused validation feature. Establish the baseline first, use public-interface tests, preserve adverse findings, run the validator twice to prove deterministic outputs, and do not commit or push.
-```
-
-```text
-Add LendingClub ingestion diagnostics or documentation improvements without committing raw data. Keep committed demo reports synthetic unless the task explicitly regenerates reports.
-```
-
-Avoid vague prompts such as:
-
-```text
-Make the project better.
-```
-
-## 4. Review Before Committing
-
-After Codex CLI finishes:
-
-```powershell
-git status
-git diff
-cd projects/credit-risk-pd-model
-$pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
-.\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
-.\.venv\Scripts\python.exe scripts\run_pipeline.py
-.\.venv\Scripts\ruff.exe check src tests scripts
-cd ..\ifrs9-ecl-engine
-$pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
-..\credit-risk-pd-model\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
-..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_pipeline.py
-..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_pd_integration.py
-..\credit-risk-pd-model\.venv\Scripts\ruff.exe check src tests scripts
-cd ..\model-validation-framework
-$pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
-..\credit-risk-pd-model\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
-..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_validation.py
-..\credit-risk-pd-model\.venv\Scripts\ruff.exe check src tests scripts
+.\.venv\Scripts\python.exe scripts\run_portfolio.py --with-tests --verify-committed
+.\.venv\Scripts\python.exe -m compileall -q `
+  projects\credit-risk-pd-model\src `
+  projects\ifrs9-ecl-engine\src `
+  projects\model-validation-framework\src `
+  scripts
 git diff --check
+git status --short
 ```
 
-For a local LendingClub public-data run, first download
-`accepted_2007_to_2018Q4.csv.gz` from
-[All Lending Club loan data](https://www.kaggle.com/datasets/wordsforthewise/lending-club)
-and keep it under `projects/credit-risk-pd-model/data/raw/`. Review the dataset terms
-before use.
+The root runner checks all Ruff and pytest suites, regenerates all deterministic synthetic,
+ECL-integration, validation, and remediation reports, then compares them with the committed
+evidence. GitHub Actions repeats this gate on Linux and runs the database integration test
+against PostgreSQL 16.
+
+Review the diff for unrelated files, machine-local paths, credentials, and borrower-level
+records before staging.
+
+## 5. Rebuild the Public Evidence
+
+The complete public workflow is one command:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\prepare_lendingclub_data.py `
-  --input data\raw\accepted_2007_to_2018Q4.csv.gz `
-  --output data\processed\lendingclub_pd.csv `
-  --audit data\processed\lendingclub_ingestion_audit.csv
-.\.venv\Scripts\python.exe scripts\run_pipeline.py --input data\processed\lendingclub_pd.csv --oot-cutoff 2017-01-01
+.\scripts\run_public_lendingclub.ps1
 ```
 
-Optional PD calibration and strategy settings:
+It downloads or reuses the ignored LendingClub accepted-loans file, performs chunked
+ingestion, runs the PD model and independent validation, publishes allow-listed aggregate
+reports, and rebuilds the showcase charts. Expect model fitting to take several minutes.
+
+Never stage files under `data/raw/` or `data/processed/`. The publishers reject CSV files
+with `customer_id`, and borrower-level OOT predictions stay local.
+
+## 6. Pull Request Workflow
+
+Use one branch per coherent evidence improvement:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\run_pipeline.py `
-  --calibration-fraction 0.25 `
-  --lgd 0.45 `
-  --approval-thresholds 0.10 0.15 0.20 0.25 `
-  --classification-threshold 0.15
+git switch -c add-vintage-backtesting
+git add <reviewed-files>
+git commit -m "Add vintage backtesting evidence"
+git push -u origin add-vintage-backtesting
+gh pr create --base main --head add-vintage-backtesting
 ```
 
-Then commit:
+Wait for the Python matrix, portfolio reproduction, and PostgreSQL integration checks. Fix
+failures on the branch and push again; do not merge a red PR.
 
-```powershell
-git add .
-git commit -m "Add focused risk analytics enhancement"
-git push
-```
+## 7. Next High-Impact Iterations
 
-## 5. Pull Request Workflow
+1. Add public segment and vintage backtesting with maturity controls.
+2. Add bootstrap uncertainty intervals to validation metrics.
+3. Add ECL macro sensitivity and management-overlay governance examples.
+4. Add feature-level replication, CSI, and characteristic drift evidence.
+5. Add a fresh OOT closure window when a defensible later-period dataset is available.
 
-Create a branch for each enhancement:
-
-```powershell
-git switch -c add-validation-report
-```
-
-Push and open a PR:
-
-```powershell
-git push -u origin add-validation-report
-gh pr create --base main --head add-validation-report --title "Add validation report generator"
-```
-
-For the current initial portfolio PR:
-
-```powershell
-gh pr view 1 --repo sheenwinkle/risk-analytics-portfolio --web
-```
-
-## 6. Suggested Iteration Backlog
-
-Completed iterations:
-
-- Markdown model report generator.
-- Out-of-time permutation feature importance.
-- Scorecard-style binning, Weight of Evidence, and Information Value screening.
-- LendingClub accepted-loans raw-to-canonical-schema ingestion adapter.
-- Leakage-safe pre-OOT model selection, logistic PD recalibration, and fixed approval cutoff strategy scenarios.
-- IFRS 9 ECL foundation with deterministic synthetic reports and SQL examples.
-- Project 1 synthetic recalibrated PD to Project 2 ECL bridge with leakage controls,
-  explicit account assumptions, constant-hazard term structures, and reproducible reports.
-- Independent-style PD model validation framework with lineage controls, tie-safe metric
-  reperformance, calibration backtesting, PSI, challenger analysis, governance findings,
-  SQL examples, and deterministic reports.
-
-High-impact next tasks:
-
-1. Run and review LendingClub public-data diagnostics locally after downloading the dataset.
-2. Add public-data interpretation notes without committing raw or borrower-level processed data.
-3. Add documented SICR rebuttal, overlay, or macro sensitivity examples to the IFRS 9 ECL foundation.
-4. Extend model validation with segment/vintage tests, uncertainty intervals, and
-   feature-level replication.
-
-Work on one task per branch. The GitHub history should look deliberate and professional.
+Each iteration should improve a hiring manager's ability to inspect a concrete risk decision,
+not merely increase code volume.
