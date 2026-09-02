@@ -1,0 +1,6 @@
+check,metric_value,direction,green_threshold,warning_threshold,status,detail
+auc,0.710412,higher_is_better,0.700000,0.600000,pass,Selected recalibrated model discrimination by ROC AUC.
+ks,0.341611,higher_is_better,0.300000,0.200000,pass,Selected recalibrated model separation by KS statistic.
+absolute_calibration_gap,0.077097,lower_is_better,0.010000,0.030000,fail,Absolute gap between observed default rate and mean recalibrated PD.
+population_stability_index,0.070689,lower_is_better,0.100000,0.250000,pass,PSI comparing current score distribution with the reference period.
+challenger_auc_margin,-0.023896,lower_is_better,0.010000,0.030000,pass,Unselected raw challenger AUC minus selected recalibrated incumbent AUC.

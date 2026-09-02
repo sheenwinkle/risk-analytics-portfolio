@@ -1,0 +1,2 @@
+model_name,score_version,reference_start,reference_end,current_start,current_end,reference_observations,current_observations,requested_bins,effective_bins,binning_method,population_stability_index
+logistic_regression,recalibrated,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,10,10,reference_quantile_midpoint,0.070689

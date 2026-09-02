@@ -52,6 +52,20 @@ python scripts\run_pipeline.py
 python scripts\run_pd_integration.py
 ```
 
+Project 3 is independently installable and consumes Project 1's committed OOT report:
+
+```powershell
+cd ..\model-validation-framework
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e .
+ruff check src tests scripts
+pytest
+python scripts\run_validation.py
+```
+
 ## 3. Use Codex CLI for One Focused Iteration
 
 From the repository root:
@@ -68,6 +82,10 @@ Validate the LendingClub-format end-to-end path after a pipeline contract change
 
 ```text
 Add a focused model validation enhancement that consumes the PD pipeline outputs. Include tests, report outputs, and README documentation.
+```
+
+```text
+Improve Project 3 with one focused validation feature. Establish the baseline first, use public-interface tests, preserve adverse findings, run the validator twice to prove deterministic outputs, and do not commit or push.
 ```
 
 ```text
@@ -97,6 +115,11 @@ $pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
 ..\credit-risk-pd-model\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
 ..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_pipeline.py
 ..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_pd_integration.py
+..\credit-risk-pd-model\.venv\Scripts\ruff.exe check src tests scripts
+cd ..\model-validation-framework
+$pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
+..\credit-risk-pd-model\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
+..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_validation.py
 ..\credit-risk-pd-model\.venv\Scripts\ruff.exe check src tests scripts
 git diff --check
 ```
@@ -166,12 +189,16 @@ Completed iterations:
 - IFRS 9 ECL foundation with deterministic synthetic reports and SQL examples.
 - Project 1 synthetic recalibrated PD to Project 2 ECL bridge with leakage controls,
   explicit account assumptions, constant-hazard term structures, and reproducible reports.
+- Independent-style PD model validation framework with lineage controls, tie-safe metric
+  reperformance, calibration backtesting, PSI, challenger analysis, governance findings,
+  SQL examples, and deterministic reports.
 
 High-impact next tasks:
 
 1. Run and review LendingClub public-data diagnostics locally after downloading the dataset.
 2. Add public-data interpretation notes without committing raw or borrower-level processed data.
 3. Add documented SICR rebuttal, overlay, or macro sensitivity examples to the IFRS 9 ECL foundation.
-4. Add a model validation framework that consumes Project 1 outputs.
+4. Extend model validation with segment/vintage tests, uncertainty intervals, and
+   feature-level replication.
 
 Work on one task per branch. The GitHub history should look deliberate and professional.

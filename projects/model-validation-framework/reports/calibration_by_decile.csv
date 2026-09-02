@@ -1,0 +1,11 @@
+model_name,score_version,decile,observations,defaults,expected_defaults,mean_pd,observed_default_rate,calibration_gap,expected_to_observed_ratio
+logistic_regression,recalibrated,1,100,2,3.200770,0.032008,0.020000,0.012008,1.600385
+logistic_regression,recalibrated,2,99,10,4.703400,0.047509,0.101010,-0.053501,0.470340
+logistic_regression,recalibrated,3,100,10,5.783115,0.057831,0.100000,-0.042169,0.578312
+logistic_regression,recalibrated,4,99,8,6.689084,0.067567,0.080808,-0.013242,0.836136
+logistic_regression,recalibrated,5,99,11,7.834467,0.079136,0.111111,-0.031975,0.712224
+logistic_regression,recalibrated,6,100,17,9.274181,0.092742,0.170000,-0.077258,0.545540
+logistic_regression,recalibrated,7,99,17,10.661184,0.107689,0.171717,-0.064028,0.627128
+logistic_regression,recalibrated,8,100,30,12.468729,0.124687,0.300000,-0.175313,0.415624
+logistic_regression,recalibrated,9,99,31,14.965746,0.151169,0.313131,-0.161962,0.482766
+logistic_regression,recalibrated,10,99,37,20.784434,0.209944,0.373737,-0.163794,0.561741

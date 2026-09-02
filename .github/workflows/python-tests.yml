@@ -13,6 +13,7 @@ jobs:
         project:
           - projects/credit-risk-pd-model
           - projects/ifrs9-ecl-engine
+          - projects/model-validation-framework
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
