@@ -49,6 +49,7 @@ pip install -e .
 ruff check src tests scripts
 pytest
 python scripts\run_pipeline.py
+python scripts\run_pd_integration.py
 ```
 
 ## 3. Use Codex CLI for One Focused Iteration
@@ -95,6 +96,7 @@ cd ..\ifrs9-ecl-engine
 $pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
 ..\credit-risk-pd-model\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
 ..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_pipeline.py
+..\credit-risk-pd-model\.venv\Scripts\python.exe scripts\run_pd_integration.py
 ..\credit-risk-pd-model\.venv\Scripts\ruff.exe check src tests scripts
 git diff --check
 ```
@@ -162,12 +164,14 @@ Completed iterations:
 - LendingClub accepted-loans raw-to-canonical-schema ingestion adapter.
 - Leakage-safe pre-OOT model selection, logistic PD recalibration, and fixed approval cutoff strategy scenarios.
 - IFRS 9 ECL foundation with deterministic synthetic reports and SQL examples.
+- Project 1 synthetic recalibrated PD to Project 2 ECL bridge with leakage controls,
+  explicit account assumptions, constant-hazard term structures, and reproducible reports.
 
 High-impact next tasks:
 
 1. Run and review LendingClub public-data diagnostics locally after downloading the dataset.
 2. Add public-data interpretation notes without committing raw or borrower-level processed data.
-3. Connect Project 1 PD outputs to the IFRS 9 ECL foundation.
+3. Add documented SICR rebuttal, overlay, or macro sensitivity examples to the IFRS 9 ECL foundation.
 4. Add a model validation framework that consumes Project 1 outputs.
 
 Work on one task per branch. The GitHub history should look deliberate and professional.

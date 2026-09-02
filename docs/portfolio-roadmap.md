@@ -32,6 +32,12 @@ Implemented foundation:
 - Monthly scenario term structures for marginal PD, LGD, and EAD
 - 12-month ECL for Stage 1 and lifetime ECL for Stage 2 and Stage 3
 - Explicit base, upside, and downside scenario weighting
+- Project 1 synthetic recalibrated PD output bridge using a latest or requested reporting
+  date cohort
+- Constant-hazard conversion from 12-month cumulative recalibrated PD to monthly marginal
+  PD term structures with explicit scenario hazard multipliers
+- Explicit synthetic account assumptions for EAD, LGD, maturity, EIR, DPD, SICR,
+  credit-impaired/defaulted flags, and prior stage
 - Deterministic synthetic demo pipeline and committed report outputs
 - SQL schema and example portfolio, stage migration, and scenario queries
 
@@ -42,17 +48,17 @@ Implemented outputs:
 - Scenario-weighted portfolio ECL
 - Scenario-level account ECL table
 - Markdown demo report
+- PD integration lineage, account, scenario, portfolio, migration, and Markdown reports
 
 Still planned:
 
-- Connect Project 1 PD outputs to ECL term-structure generation
 - Add documented SICR rebuttal and management-overlay examples
 - Add macroeconomic sensitivity and stress reporting
 - Add model validation and governance artefacts around ECL inputs
 
 Resume angle:
 
-> Built a runnable IFRS 9 ECL foundation calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, and stage migration reporting.
+> Built a runnable IFRS 9 ECL foundation calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration reporting, and a validated bridge from synthetic Project 1 recalibrated PD outputs.
 
 ## Project 3: Model Validation Framework
 
