@@ -6,7 +6,7 @@ Credit Risk Probability of Default Modelling
 
 ## One-Line Version
 
-Built a Python and SQL credit risk analytics portfolio with LendingClub ingestion, leakage-safe PD model selection, PD recalibration, approval strategy scenarios, PSI monitoring, and a synthetic recalibrated-PD bridge into an educational ECL engine.
+Built a Python and SQL credit risk analytics portfolio with LendingClub ingestion, leakage-safe PD model selection, PD recalibration, approval strategy scenarios, an educational ECL engine, and an independent-style model validation framework.
 
 ## Resume Bullets
 
@@ -16,12 +16,19 @@ Built a Python and SQL credit risk analytics portfolio with LendingClub ingestio
 - Designed PostgreSQL schemas and analytical SQL queries for customer, loan, and monthly performance data to support credit risk reporting and model development.
 - Produced portfolio-ready model artefacts, including account-level raw and recalibrated PD predictions, calibration deciles, PSI drift reports, and a saved recalibrated model wrapper.
 - Connected committed synthetic recalibrated out-of-time PD outputs to an educational IFRS 9 ECL engine through validated reporting-date cohort selection, explicit account assumptions, scenario hazard multipliers, and reproducible ECL reports.
+- Built a reusable PD model validation framework that independently reperforms AUC, Gini, tie-safe KS, Brier score, calibration deciles, monthly diagnostics, PSI, and challenger comparisons, then applies explicit policy thresholds and produces actionable findings.
+- Documented an overall fail validation opinion when mean recalibrated PD of 9.69% materially understated the stressed OOT observed default rate of 17.40%, while discrimination, stability, and challenger checks passed.
+- Designed PostgreSQL governance tables and analytical queries for validation runs, policy metrics, findings, limitations, challenger deltas, and metric trends.
 
 ## LinkedIn / GitHub Summary
 
-This project demonstrates a bank-style credit risk analytics workflow for probability of default estimation and educational ECL reporting. It includes a LendingClub raw-data adapter, synthetic demo reports, and Python, scikit-learn, and SQL components to build interpretable and challenger PD models, select candidates on a pre-OOT calibration holdout, evaluate raw and recalibrated PDs on an untouched out-of-time sample, run fixed lending strategy scenarios, monitor feature drift with Population Stability Index, and feed synthetic recalibrated PD outputs into a simplified ECL engine without using future outcomes.
+This portfolio demonstrates a bank-style credit risk workflow from PD development through educational ECL reporting and independent-style model validation. It includes a LendingClub raw-data adapter, leakage-safe pre-OOT selection and recalibration, fixed lending strategy scenarios, PSI monitoring, a synthetic PD-to-ECL bridge, and a separate validation package that consumes frozen OOT scores, reperforms model metrics, tests calibration and stability, benchmarks the challenger, and records policy findings and limitations.
 
 ## Interview Pitch
 
-I built this project to show how I think about credit risk models beyond generic machine learning accuracy. The workflow estimates borrower-level probability of default, evaluates whether the model ranks risk correctly using AUC, Gini, and KS, selects the candidate before OOT evaluation, recalibrates PDs on a later pre-OOT holdout, and monitors population drift using PSI. I also added fixed approval cutoff scenarios and a synthetic PD-to-ECL bridge to show how calibrated PD outputs can feed portfolio risk reporting while keeping future outcomes out of ECL input construction. The ECL bridge uses a constant-hazard lifetime extrapolation for education, not as an IFRS 9 compliance claim.
+I built this portfolio to show how I think about credit risk models beyond generic machine learning accuracy. Project 1 estimates borrower-level PD, selects the candidate before OOT evaluation, recalibrates on a pre-OOT holdout, and monitors drift. Project 2 demonstrates how frozen recalibrated PD can feed a simplified ECL workflow without using future outcomes as inputs. Project 3 then acts as a separate validator: it consumes only frozen scores and outcomes, reperforms metrics, tests calibration and PSI, benchmarks the challenger, and raises a fail opinion because stressed-period default rates materially exceed mean recalibrated PD. The ECL and validation policies are educational assumptions, not compliance or production approval claims.
+
+## Project 3 Standalone Bullet
+
+> Developed a reusable credit risk model validation framework in Python, independently reperforming AUC, Gini, tie-safe KS, Brier score, calibration deciles, monthly backtesting, PSI, and challenger comparisons; implemented explicit governance thresholds, deterministic evidence files, PostgreSQL reporting schemas, and a documented fail opinion for material PD underestimation.
 

@@ -64,22 +64,43 @@ Resume angle:
 
 Goal: create a reusable validation toolkit for credit risk models.
 
-Planned modules:
+Implemented foundation:
 
-- `performance.py`: AUC, Gini, KS, precision, recall
-- `calibration.py`: calibration curves, Brier score, bin-level observed default rates
-- `stability.py`: PSI, CSI, drift reports
-- `benchmarking.py`: incumbent vs challenger model comparisons
-- `reporting.py`: validation summary tables
+- Strict Project 1 OOT score and selected-model lineage adapter
+- Independent tie-safe AUC, Gini, KS, Brier, and portfolio calibration metrics
+- Deterministic low-to-high PD deciles and monthly performance diagnostics
+- Chronological reference/current PSI using reference-derived midpoint bins
+- Selected recalibrated incumbent versus unselected raw challenger comparison
+- Selected raw versus recalibrated impact comparison
+- Frozen, validated traffic-light policy for discrimination, calibration, PSI, and challenger tests
+- Warning/fail findings with recommended actions and a model limitation register
+- Deterministic CSV evidence and recruiter-readable Markdown validation report
+- PostgreSQL validation-run, metric, finding, benchmark, and limitation schemas
+- Behavioural, lineage, edge-case, real-contract, and byte-reproducibility tests
 
-Suggested outputs:
+Implemented outputs:
 
 - Validation report for the PD model from Project 1
 - Model limitation register
 - Monitoring dashboard-ready CSVs
 - Challenger benchmark analysis
 
+Current candidate opinion:
+
+- Overall illustrative policy outcome: fail
+- AUC, KS, PSI, and challenger checks: pass
+- Absolute calibration gap: fail because mean recalibrated PD materially understates the
+  stressed OOT observed default rate
+
+Still planned:
+
+- Segment and vintage-level backtesting
+- Bootstrap confidence intervals and uncertainty reporting
+- Feature-level replication, CSI, and characteristic drift analysis
+- Persisted validation-run loader for the PostgreSQL governance schema
+- Formal issue tracking and closure evidence around validation findings
+
 Resume angle:
 
-> Developed a model validation framework for credit risk models, covering discrimination, calibration, stability, challenger benchmarking, and monitoring thresholds.
+> Developed a reusable credit risk model validation framework covering independent discrimination and calibration reperformance, deterministic backtesting, PSI stability, challenger benchmarking, explicit governance thresholds, actionable findings, and a documented fail opinion for material PD underestimation.
 

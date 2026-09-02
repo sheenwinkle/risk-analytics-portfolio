@@ -1,0 +1,4 @@
+model_name,score_version,score_column,observations,defaults,observed_default_rate,mean_predicted_pd,calibration_gap,absolute_calibration_gap,roc_auc,gini,ks,brier_score
+logistic_regression,raw,logistic_regression_pd,994,173,0.174044,0.415976,0.241932,0.241932,0.710412,0.420825,0.341611,0.193814
+logistic_regression,recalibrated,recalibrated_pd,994,173,0.174044,0.096947,-0.077097,0.077097,0.710412,0.420825,0.341611,0.140704
+random_forest,raw,random_forest_pd,994,173,0.174044,0.399374,0.225330,0.225330,0.686517,0.373033,0.303253,0.188192

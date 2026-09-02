@@ -10,7 +10,7 @@ The repository is built around a candidate profile that combines economics, comp
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Implemented | Credit Risk Analyst, Risk Analytics Analyst, Model Validation Analyst | PD model pipeline, pre-OOT model selection, PD recalibration, approval strategy scenarios, WOE/IV screening, permutation importance, PSI monitoring, SQL schema |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Implemented foundation plus PD bridge | Credit Risk Analyst, ECL Analyst, Portfolio Risk Analyst | Staging policy, monthly PD/LGD/EAD term structures, Project 1 recalibrated PD integration, scenario weighting, stage migration reports |
-| [Model Validation Framework](projects/model-validation-framework) | Planned | Model Risk Analyst, Validation Analyst, Quant Risk Analyst | Backtesting, benchmarking, calibration, drift monitoring, validation report |
+| [Model Validation Framework](projects/model-validation-framework) | Implemented foundation | Model Risk Analyst, Validation Analyst, Quant Risk Analyst | Independent score reperformance, calibration backtesting, PSI, challenger benchmarking, policy findings, SQL governance schema |
 
 ## Project 1: Credit Risk PD Modelling
 
@@ -118,6 +118,42 @@ Key outputs:
 - `reports/pd_integration/stage_migration.csv`: PD-integrated stage migration summary
 - `reports/pd_integration/pd_integration_report.md`: recruiter-readable bridge report
 
+## Project 3: Model Validation Framework
+
+The third project consumes only Project 1's frozen OOT score contract and performs an
+independent-style review without importing model-development internals:
+
+```text
+Project 1 frozen OOT scores
+-> schema and selected-model lineage audit
+-> AUC, Gini, tie-safe KS, Brier, and calibration reperformance
+-> deterministic calibration deciles and monthly diagnostics
+-> reference-period PSI stability analysis
+-> incumbent/challenger and recalibration comparisons
+-> illustrative traffic-light policy
+-> findings, limitations, SQL governance design, and validation report
+```
+
+The synthetic candidate receives an overall **fail** because its recalibrated mean PD is
+9.69% against a 17.40% observed default rate. AUC (0.710), KS (0.342), PSI (0.071), and
+the challenger test pass. Preserving the calibration finding demonstrates validation
+judgement rather than presenting every model as acceptable.
+
+Key outputs:
+
+- `reports/validation_report.md`: recruiter-readable case study and overall policy outcome
+- `reports/validation_summary.csv`: configured thresholds, observed values, and statuses
+- `reports/calibration_by_decile.csv`: low-to-high PD backtest
+- `reports/monthly_performance.csv`: monthly calibration and discrimination diagnostics
+- `reports/stability_summary.csv` and `reports/stability_bins.csv`: period-level and bin-level PSI evidence
+- `reports/benchmark_comparison.csv`: incumbent/challenger and recalibration deltas
+- `reports/validation_findings.csv`: warning/fail findings with recommended actions
+- `reports/model_limitations.csv`: limitations and mitigations
+
+This is an educational portfolio case study, not a regulatory approval or production-use
+decision. Thresholds are explicit portfolio assumptions and can be replaced through the
+immutable `ValidationPolicy` configuration.
+
 ## Repository Layout
 
 ```text
@@ -141,6 +177,12 @@ risk-analytics-portfolio/
       src/ifrs9_ecl_engine/
       tests/
     model-validation-framework/
+      data/
+      reports/
+      scripts/
+      sql/
+      src/model_validation/
+      tests/
 ```
 
 ## Quickstart
@@ -192,6 +234,20 @@ python scripts\run_pipeline.py
 python scripts\run_pd_integration.py
 ```
 
+Create and run the Project 3 environment:
+
+```powershell
+cd ..\model-validation-framework
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e .
+ruff check src tests scripts
+pytest
+python scripts\run_validation.py
+```
+
 ## VS Code and Codex Workflow
 
 This repository is intended to be developed iteratively with VS Code and Codex CLI:
@@ -215,7 +271,7 @@ Detailed instructions are in [docs/vscode-codex-iteration.md](docs/vscode-codex-
 
 Suggested one-line project description:
 
-> Built a Python and SQL credit risk analytics portfolio covering LendingClub ingestion, probability of default modelling, out-of-time validation, model calibration, scorecard-style WOE/IV screening, permutation importance, PSI monitoring, and a runnable IFRS 9 ECL foundation with a synthetic recalibrated-PD integration bridge.
+> Built a Python and SQL credit risk analytics portfolio covering LendingClub ingestion, probability of default modelling, out-of-time validation, model calibration, scorecard-style WOE/IV screening, PSI monitoring, a runnable IFRS 9 ECL foundation, and an independent-style model validation framework with challenger and governance reporting.
 
 Suggested bullet:
 
@@ -225,6 +281,10 @@ Suggested Project 2 bullet:
 
 > Built a runnable IFRS 9 ECL foundation in Python, calculating account-level and portfolio-level expected credit loss from configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration reporting, and a validated bridge from Project 1 synthetic recalibrated PD outputs.
 
+Suggested Project 3 bullet:
+
+> Developed a reusable credit risk model validation framework in Python, independently reperforming AUC, Gini, tie-safe KS, Brier score, calibration deciles, monthly backtesting, PSI, and challenger comparisons; produced deterministic evidence files, PostgreSQL governance schemas, and a documented fail opinion for material PD underestimation.
+
 ## Roadmap
 
 Next improvements:
@@ -232,5 +292,5 @@ Next improvements:
 - Run the LendingClub accepted-loans adapter on the user-downloaded public dataset and compare diagnostics with the committed synthetic demo reports.
 - Add public-data WOE/IV interpretation notes once prepared LendingClub reports are generated locally.
 - Add documented SICR policy experiments and management-overlay examples to the IFRS 9 ECL foundation.
-- Build the reusable model validation framework and validation report.
+- Extend Project 3 with segment-level backtesting, confidence intervals, feature-level replication, and validation-run persistence.
 

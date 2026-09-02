@@ -1,0 +1,13 @@
+model_name,score_version,period,observations,defaults,expected_defaults,mean_pd,observed_default_rate,calibration_gap,expected_to_observed_ratio,roc_auc,ks,discrimination_status
+logistic_regression,recalibrated,2022-01,74,15,7.458898,0.100796,0.202703,-0.101907,0.497260,0.754802,0.477966,available
+logistic_regression,recalibrated,2022-02,76,16,7.554032,0.099395,0.210526,-0.111131,0.472127,0.679167,0.366667,available
+logistic_regression,recalibrated,2022-03,93,17,9.650203,0.103766,0.182796,-0.079030,0.567659,0.746130,0.533282,available
+logistic_regression,recalibrated,2022-04,95,17,9.650394,0.101583,0.178947,-0.077364,0.567670,0.712670,0.390649,available
+logistic_regression,recalibrated,2022-05,66,11,5.578017,0.084515,0.166667,-0.082151,0.507092,0.763636,0.618182,available
+logistic_regression,recalibrated,2022-06,70,14,6.982665,0.099752,0.200000,-0.100248,0.498762,0.739796,0.410714,available
+logistic_regression,recalibrated,2022-07,65,12,6.368521,0.097977,0.184615,-0.086638,0.530710,0.751572,0.448113,available
+logistic_regression,recalibrated,2022-08,110,16,10.007918,0.090981,0.145455,-0.054473,0.625495,0.732713,0.457447,available
+logistic_regression,recalibrated,2022-09,83,12,7.301408,0.087969,0.144578,-0.056610,0.608451,0.690141,0.356808,available
+logistic_regression,recalibrated,2022-10,81,11,7.425497,0.091673,0.135802,-0.044130,0.675045,0.725974,0.466234,available
+logistic_regression,recalibrated,2022-11,86,16,9.316943,0.108337,0.186047,-0.077710,0.582309,0.592857,0.248214,available
+logistic_regression,recalibrated,2022-12,95,16,9.070613,0.095480,0.168421,-0.072941,0.566913,0.617880,0.208861,available
