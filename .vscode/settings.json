@@ -1,0 +1,11 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/projects/credit-risk-pd-model/.venv/Scripts/python.exe",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "projects/credit-risk-pd-model/tests"
+  ],
+  "python.analysis.extraPaths": [
+    "projects/credit-risk-pd-model/src"
+  ]
+}
+

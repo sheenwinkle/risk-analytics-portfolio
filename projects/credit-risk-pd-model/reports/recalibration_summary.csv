@@ -1,0 +1,3 @@
+model,score_type,evaluation_sample,recalibration_fit_sample,recalibration_fit_intercept,recalibration_fit_slope,calibration_intercept,calibration_slope,brier_score,log_loss,mean_pd,observed_default_rate
+logistic_regression,raw,out_of_time,pre_oot_calibration_holdout,-2.067923249033817,0.7949139242594121,-1.3438910820701608,1.0865322911764863,0.19381358481953753,0.5707496080941761,0.4159760652818677,0.17404426559356137
+logistic_regression,recalibrated,out_of_time,pre_oot_calibration_holdout,-2.067923249033817,0.7949139242594121,1.482399341315977,1.3666856336529432,0.14070444559497225,0.4523377650342746,0.09694679073502797,0.17404426559356137

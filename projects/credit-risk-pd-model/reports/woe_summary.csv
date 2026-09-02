@@ -1,0 +1,12 @@
+rank,feature,feature_type,bins,information_value,iv_band
+1,credit_utilisation,numeric,5,0.2128918765167092,medium
+2,interest_rate,numeric,5,0.15618863054747045,medium
+3,debt_to_income,numeric,5,0.11459926831950337,medium
+4,delinquencies_2y,numeric,3,0.10308935297188372,medium
+5,loan_amount,numeric,5,0.08925593842655645,weak
+6,loan_to_income,numeric,5,0.08511193796561957,weak
+7,home_ownership,categorical,4,0.08228846536103954,weak
+8,annual_income,numeric,5,0.051430014796989075,weak
+9,purpose,categorical,6,0.02350216475428762,weak
+10,age,numeric,5,0.019107152914663885,not_predictive
+11,employment_length,numeric,5,0.009835433722465628,not_predictive

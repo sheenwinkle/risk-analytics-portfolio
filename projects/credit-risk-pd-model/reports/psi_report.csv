@@ -1,0 +1,10 @@
+feature,psi,status
+interest_rate,0.346921525821978,material_shift
+credit_utilisation,0.02290149716432176,stable
+annual_income,0.016887023783331453,stable
+employment_length,0.012574620631668495,stable
+loan_amount,0.011307908578715371,stable
+delinquencies_2y,0.009233806658173575,stable
+debt_to_income,0.00912268732713335,stable
+age,0.008158291123058003,stable
+loan_to_income,0.0075709314999344805,stable
