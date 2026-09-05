@@ -1,3 +1,5 @@
+import json
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -45,8 +47,52 @@ def test_pipeline_creates_outputs(tmp_path):
     assert "recalibration_summary" in outputs
     assert "approval_strategy" in outputs
     assert "model_selection_audit" in outputs
+    assert "model_development_sample" in outputs
+    assert "model_development_spec" in outputs
+    assert "model_parameter_reference" in outputs
     for path in outputs.values():
         assert path.exists()
+
+    development_sample = pd.read_csv(outputs["model_development_sample"])
+    assert development_sample.columns.tolist() == [
+        "customer_id",
+        "observation_date",
+        "sample_role",
+        *NUMERIC_FEATURES,
+        *CATEGORICAL_FEATURES,
+        "actual_default",
+    ]
+    assert set(development_sample["sample_role"]) == {
+        "model_development",
+        "calibration_holdout",
+    }
+    role_dates = development_sample.groupby("sample_role")["observation_date"].agg(
+        ["min", "max"]
+    )
+    assert (
+        role_dates.loc["model_development", "max"]
+        < role_dates.loc["calibration_holdout", "min"]
+    )
+
+    specification = json.loads(outputs["model_development_spec"].read_text(encoding="utf-8"))
+    assert specification["contract_version"] == "1.0"
+    assert specification["numeric_features"] == NUMERIC_FEATURES
+    assert specification["categorical_features"] == CATEGORICAL_FEATURES
+    assert set(specification["candidate_models"]) == {
+        "logistic_regression",
+        "random_forest",
+    }
+
+    parameter_reference = pd.read_csv(outputs["model_parameter_reference"])
+    assert set(parameter_reference["model"]) == {
+        "logistic_regression",
+        "random_forest",
+    }
+    assert set(parameter_reference["parameter_type"]) == {
+        "standardized_coefficient",
+        "impurity_importance",
+    }
+    assert not parameter_reference.duplicated(["model", "feature_name"]).any()
 
     predictions = pd.read_csv(outputs["predictions"])
     assert {

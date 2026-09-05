@@ -53,7 +53,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, discounting, scenarios, migration, Project 1 bridge | ECL, Portfolio Risk, Credit Risk |
-| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent metrics, confidence intervals, vintage/segment backtesting, PSI/CSI drift, policy opinion, remediation lifecycle, PostgreSQL persistence | Model Risk, Validation, Quant Risk |
+| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent candidate rebuild, metrics, confidence intervals, vintage/segment backtesting, PSI/CSI drift, policy opinion, remediation lifecycle | Model Risk, Validation, Quant Risk |
 
 ## Project 1: Credit Risk PD Modelling
 
@@ -110,6 +110,10 @@ reconciles the derived loan-to-income feature and reperforms AUC, Gini, tie-safe
 score, calibration, monthly and quarterly monitoring, PSI, feature-level CSI, challenger
 tests, and 95% confidence intervals without importing development code.
 
+It also rebuilds the logistic baseline and random-forest challenger from a governed pre-OOT
+extract. Both synthetic holdout AUCs reproduce exactly, model selection is unchanged, and all
+19 transformed coefficients/importances per candidate reconcile within `1e-8`.
+
 The public LendingClub model receives an overall **warning**: AUC, KS, and calibration are
 near or within warning thresholds, while score PSI, feature CSI, and challenger checks pass.
 Maximum available CSI is `0.077926` for `credit_utilisation`; unavailable borrower age is
@@ -132,6 +136,7 @@ Evidence:
 
 - [Public validation summary](projects/model-validation-framework/reports/public_lendingclub/README.md)
 - [Synthetic validation report](projects/model-validation-framework/reports/validation_report.md)
+- [Independent model replication](projects/model-validation-framework/reports/replication/model_replication_report.md)
 - [Remediation and lifecycle report](projects/model-validation-framework/reports/remediation/remediation_report.md)
 - [PostgreSQL schema](projects/model-validation-framework/sql/schema.sql)
 
@@ -172,6 +177,7 @@ VS Code exposes both commands through **Tasks: Run Task**:
 - Full-portfolio regeneration check with line-ending normalisation and machine-precision
   tolerance for parallel model output
 - Borrower-level publication deny-list plus safe aggregate report lists
+- Git-ignored development extracts with committed aggregate-only replication evidence
 - PostgreSQL schema and analytical queries for validation governance history
 
 ## Repository Layout
@@ -206,9 +212,9 @@ risk-analytics-portfolio/
 
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
 > LendingClub records, covering temporal PD development, recalibration, vintage maturity,
-> IFRS 9 ECL consumption, independent validation with confidence intervals and segment
-> backtesting, score/feature drift, no-look-ahead remediation, and PostgreSQL governance
-> persistence.
+> IFRS 9 ECL consumption, independent candidate re-estimation, validation with confidence
+> intervals and segment backtesting, score/feature drift, no-look-ahead remediation, and
+> PostgreSQL governance persistence.
 
 Detailed resume bullets and interview prompts are in
 [docs/resume-project-description.md](docs/resume-project-description.md). Development setup
@@ -217,6 +223,6 @@ and the optional VS Code/Codex iteration process are documented in
 
 ## Next Evidence
 
-- Independently re-estimate development candidates and compare parameter/importance stability.
+- Add a pre-OOT credit decision strategy backtest with challenger policy comparisons.
 - Add documented SICR rebuttal and macroeconomic management-overlay sensitivity.
 - Revisit the pending calibration finding when an additional matured OOT horizon is available.

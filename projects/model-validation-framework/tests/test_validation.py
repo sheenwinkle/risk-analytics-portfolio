@@ -525,9 +525,9 @@ def test_run_validation_result_exposes_static_limitations(tmp_path) -> None:
         "synthetic_data",
         "terminal_outcome_proxy",
         "limited_oot_horizon",
-        "no_model_reestimation",
+        "replication_scope",
     ]
-    assert limitations["severity"].tolist() == ["medium", "medium", "medium", "medium"]
+    assert limitations["severity"].tolist() == ["medium", "medium", "medium", "low"]
 
 
 def test_run_validation_pipeline_writes_exact_deterministic_outputs_with_lf_endings(tmp_path) -> None:

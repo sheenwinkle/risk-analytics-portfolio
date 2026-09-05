@@ -1,17 +1,17 @@
 # Credit Risk Model Validation Framework
 
-Independent-style validation of the frozen out-of-time PD scores produced by
-[Project 1](../credit-risk-pd-model). The validator consumes only the frozen
-`reports/oot_predictions.csv` contract and does not import model-development code. The
-contract contains frozen scores, outcomes, model inputs, and two non-sensitive business
-segment fields.
+Independent-style validation of the PD model produced by
+[Project 1](../credit-risk-pd-model). Score validation consumes the frozen
+`reports/oot_predictions.csv` contract, while a separate replication workflow rebuilds both
+development candidates from a governed pre-OOT extract. Neither path imports Project 1
+model-development code.
 
 This is an educational portfolio case study. It demonstrates model risk methods and
 governance judgement, but it is not a regulatory approval, accounting opinion, or
 production-use decision.
 
-Status: complete scoped case study with public-data validation, a synthetic adverse-finding
-remediation exercise, and tested PostgreSQL governance persistence.
+Status: complete scoped case study with independent model replication, public-data validation,
+a synthetic adverse-finding remediation exercise, and tested PostgreSQL governance persistence.
 
 ## Public LendingClub Opinion
 
@@ -45,6 +45,23 @@ two-row `wedding` segment are marked `limited_sample` rather than treated as rel
 Review the [public validation report](reports/public_lendingclub/validation_report.md) and
 [source lineage](reports/public_lendingclub/data_lineage.json). The opinion is explicitly
 limited by the accepted-loan population and terminal-outcome target definition.
+
+## Independent Model Replication
+
+Project 3 independently reconstructs the preprocessing pipelines, logistic baseline, and
+random-forest challenger from Project 1's machine-readable development contract. On the
+committed synthetic evidence, both holdout AUCs reproduce exactly, the selected logistic
+model is unchanged, and all 19 transformed coefficients/importances reconcile within the
+`1e-8` tolerance.
+
+| Candidate | Reference AUC | Replicated AUC | Maximum parameter delta | Status |
+| --- | ---: | ---: | ---: | --- |
+| Logistic regression | 0.670004 | 0.670004 | 0.000000 | Pass |
+| Random forest | 0.642407 | 0.642407 | 0.000000 | Pass |
+
+Only aggregate reconciliation tables are committed. The borrower-level development extract
+is generated locally under Project 1's Git-ignored `models/validation_inputs/` directory.
+See the [replication report](reports/replication/model_replication_report.md).
 
 ## Synthetic Governance Candidate
 
@@ -100,6 +117,11 @@ Project 1 frozen OOT predictions
 -> findings, limitations, CSV evidence, and Markdown report
 -> sequential calibration remediation and closure decision
 -> PostgreSQL governance history
+
+Project 1 governed pre-OOT development extract and machine-readable specification
+-> independent preprocessing and candidate reconstruction
+-> calibration-holdout AUC and model-selection reconciliation
+-> logistic coefficient and random-forest importance stability evidence
 ```
 
 The implementation includes:
@@ -116,6 +138,8 @@ The implementation includes:
 - CSI for all model inputs using reference-derived numeric bins, category unions, and explicit
   missing buckets; all-missing characteristics remain visible as unavailable
 - independent row-level reproduction of `loan_to_income` from frozen loan amount and income
+- independent re-estimation of both development candidates without importing Project 1 code
+- holdout AUC, selected-model, coefficient, and feature-importance reconciliation
 - selected-model lineage checks covering both logistic regression and random forest
 - incumbent versus challenger benchmarking and raw versus recalibrated impact analysis
 - immutable, validated policy thresholds with pass, warning, and fail findings
@@ -172,6 +196,7 @@ model-validation-framework/
   data/                  input lineage and privacy notes
   reports/               committed validation evidence
     public_lendingclub/   safe aggregate public-data validation
+    replication/          aggregate independent model-rebuild evidence
     remediation/         synthetic finding lifecycle evidence
   scripts/               validation, publication, remediation, and database loaders
   sql/                   PostgreSQL governance schema and queries
@@ -182,6 +207,7 @@ model-validation-framework/
 Core modules separate validation responsibilities:
 
 - `validation.py`: adapter, input contract, orchestration, and public result dataclass
+- `replication.py`: governed development adapter, independent model rebuild, and reconciliation
 - `metrics.py`: discrimination and portfolio calibration metrics
 - `calibration.py`: deterministic deciles and monthly backtesting
 - `diagnostics.py`: confidence intervals, vintage backtesting, and segment reliability
@@ -212,6 +238,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install -e .
 python scripts\run_validation.py
+python scripts\run_model_replication.py
 python scripts\run_remediation.py
 ```
 
@@ -230,6 +257,7 @@ ruff check src tests scripts
 python -m pytest -p no:cacheprovider
 python -m compileall -q src tests scripts
 python scripts\run_validation.py
+python scripts\run_model_replication.py
 python scripts\run_remediation.py
 ```
 
@@ -264,6 +292,10 @@ benchmark, limitation, and three finding-event records.
 | `reports/validation_findings.csv` | Warning/fail findings and recommended actions |
 | `reports/model_limitations.csv` | Limitation and mitigation register |
 | `reports/validation_report.md` | Recruiter-readable validation case study |
+| `reports/replication/model_replication_summary.csv` | Holdout AUC and selected-model reconciliation |
+| `reports/replication/parameter_stability_summary.csv` | Coefficient/importance stability statistics |
+| `reports/replication/parameter_stability_detail.csv` | Feature-level reference and replicated values |
+| `reports/replication/model_replication_report.md` | Recruiter-readable independent rebuild opinion |
 
 `reports/public_lendingclub/` contains the same aggregate validation contract for the full
 public-data run. `reports/remediation/` contains monthly sequential retest evidence, a
@@ -280,8 +312,8 @@ challenger results, remediation retests, and closure decisions for governance re
 - Published issue-quarter resolution quantifies severe recent-vintage right-censoring but does
   not correct it; 2018 resolved-sample rates should not be read as mature cohort performance.
 - Neither the public nor synthetic OOT evidence spans a full credit cycle.
-- Validation reconciles frozen model inputs and the derived loan-to-income feature, but does
-  not independently re-estimate development candidates.
+- Candidate replication validates reproducibility from a governed extract, not the production
+  scoring service implementation or deployment controls.
 - Policy thresholds are illustrative and require institution-specific governance approval.
 - The sequential remediation retest shares historical data with development and therefore
   cannot close the finding without a fresh independent OOT window.
@@ -291,8 +323,9 @@ challenger results, remediation retests, and closure decisions for governance re
 > Built a reusable Python and PostgreSQL model validation framework that independently
 > re-performed AUC, Gini, tie-safe KS, Brier score, calibration, monthly backtesting, PSI,
 > CSI, challenger comparisons, confidence intervals, and segment/vintage diagnostics on
-> 225,639 public OOT observations; implemented policy opinions, no-look-ahead remediation,
-> deterministic evidence, and PostgreSQL governance persistence.
+> 225,639 public OOT observations; independently rebuilt two development candidates and
+> reconciled 19 fitted parameters per model; implemented policy opinions, no-look-ahead
+> remediation, deterministic evidence, and PostgreSQL governance persistence.
 
 ## Interview Discussion
 

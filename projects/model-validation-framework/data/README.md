@@ -7,6 +7,12 @@ input is the committed synthetic score contract from Project 1:
 ../credit-risk-pd-model/reports/oot_predictions.csv
 ```
 
+Independent candidate replication additionally reads a local development bundle generated
+under `../credit-risk-pd-model/models/validation_inputs/`. The bundle contains the pre-OOT
+development/calibration roles, a machine-readable model specification, and fitted parameter
+references. The root `.gitignore` excludes the entire bundle; only aggregate replication
+results are committed under `reports/replication/`.
+
 The separately labelled `reports/public_lendingclub/` evidence was generated from the local,
 ignored public OOT contract using `data_context=public_lendingclub`. Its committed source
 lineage records only aggregate counts, dates, dataset metadata, and source hashes.
@@ -40,6 +46,7 @@ and inconsistent derived loan-to-income values.
 - Raw LendingClub data and locally prepared borrower-level files remain excluded by the root
   `.gitignore` rules.
 - Candidate reports under `reports/` are derived evidence, not source observations.
+- Independent replication reports contain model-level and feature-parameter aggregates only.
 - Vintage, segment, and characteristic-stability reports contain aggregate counts and metrics only.
 - The validation pipeline writes deterministic files without timestamps or local paths.
 - The public publisher uses an explicit aggregate allow-list and rejects CSV files containing

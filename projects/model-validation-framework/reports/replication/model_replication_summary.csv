@@ -1,0 +1,3 @@
+model,reference_calibration_auc,replicated_calibration_auc,auc_absolute_delta,auc_tolerance,reference_selected,replicated_selected,selection_matches,status
+logistic_regression,0.6700044209,0.6700044209,0.0000000000,0.0000000100,True,True,True,pass
+random_forest,0.6424071618,0.6424071618,0.0000000000,0.0000000100,False,False,True,pass

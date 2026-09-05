@@ -228,14 +228,14 @@ def build_model_limitations(
                 "mitigation": "Extend monitoring across additional vintages when data is available.",
             },
             {
-                "limitation": "no_model_reestimation",
-                "severity": "medium",
+                "limitation": "replication_scope",
+                "severity": "low",
                 "description": (
-                    "Independent validation reconciles frozen model inputs and derived "
-                    "loan-to-income, but does not re-estimate development candidates."
+                    "Candidate re-estimation uses a governed pre-OOT extract and independently "
+                    "reconciles selection and fitted parameters, but is not a production-code review."
                 ),
                 "mitigation": (
-                    "Rebuild model candidates from governed development data before production approval."
+                    "Add implementation testing against the production scoring service before approval."
                 ),
             },
         ]
