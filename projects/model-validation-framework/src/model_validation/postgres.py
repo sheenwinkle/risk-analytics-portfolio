@@ -50,6 +50,8 @@ class ValidationRunMetadata:
 class ValidationPersistenceRecords:
     run: dict[str, object]
     metrics: tuple[dict[str, object], ...]
+    uncertainty: tuple[dict[str, object], ...]
+    group_performance: tuple[dict[str, object], ...]
     findings: tuple[dict[str, object], ...]
     benchmarks: tuple[dict[str, object], ...]
     limitations: tuple[dict[str, object], ...]
@@ -110,6 +112,36 @@ def build_persistence_records(
         }
         for _, row in result.validation_findings.iterrows()
     )
+    uncertainty = tuple(
+        {
+            key: _python_value(row[key])
+            for key in (
+                "metric",
+                "estimate",
+                "lower_bound",
+                "upper_bound",
+                "confidence_level",
+                "method",
+                "observations",
+                "defaults",
+            )
+        }
+        for _, row in result.metric_uncertainty.iterrows()
+    )
+    group_performance = (
+        *_group_performance_records(
+            result.vintage_performance,
+            group_type="vintage",
+            dimension_column=None,
+            value_column="vintage_quarter",
+        ),
+        *_group_performance_records(
+            result.segment_performance,
+            group_type="segment",
+            dimension_column="segment_dimension",
+            value_column="segment_value",
+        ),
+    )
     benchmarks = tuple(
         {
             key: _python_value(row[key])
@@ -147,6 +179,8 @@ def build_persistence_records(
     return ValidationPersistenceRecords(
         run=run,
         metrics=metrics,
+        uncertainty=uncertainty,
+        group_performance=group_performance,
         findings=findings,
         benchmarks=benchmarks,
         limitations=limitations,
@@ -184,6 +218,12 @@ def persist_validation_result(
         validation_run_id = int(inserted[0])
 
         _insert_metrics(cursor, validation_run_id, records.metrics)
+        _insert_uncertainty(cursor, validation_run_id, records.uncertainty)
+        _insert_group_performance(
+            cursor,
+            validation_run_id,
+            records.group_performance,
+        )
         _insert_findings(cursor, validation_run_id, records.findings)
         _insert_benchmarks(cursor, validation_run_id, records.benchmarks)
         _insert_limitations(cursor, validation_run_id, records.limitations)
@@ -305,6 +345,57 @@ def _insert_findings(
     )
 
 
+def _insert_uncertainty(
+    cursor: Cursor,
+    validation_run_id: int,
+    records: tuple[dict[str, object], ...],
+) -> None:
+    cursor.executemany(
+        """
+        INSERT INTO model_validation_uncertainty (
+            validation_run_id, metric, estimate, lower_bound, upper_bound,
+            confidence_level, method, observations, defaults
+        ) VALUES (
+            %(validation_run_id)s, %(metric)s, %(estimate)s, %(lower_bound)s,
+            %(upper_bound)s, %(confidence_level)s, %(method)s, %(observations)s,
+            %(defaults)s
+        )
+        """,
+        _with_run_id(records, validation_run_id),
+    )
+
+
+def _insert_group_performance(
+    cursor: Cursor,
+    validation_run_id: int,
+    records: tuple[dict[str, object], ...],
+) -> None:
+    cursor.executemany(
+        """
+        INSERT INTO model_validation_group_performance (
+            validation_run_id, group_type, group_dimension, group_value,
+            observations, portfolio_share, defaults, non_defaults,
+            expected_defaults, mean_pd, observed_default_rate,
+            observed_default_rate_lower, observed_default_rate_upper,
+            calibration_gap, calibration_gap_lower, calibration_gap_upper,
+            expected_to_observed_ratio, roc_auc, roc_auc_lower, roc_auc_upper,
+            ks, discrimination_status, reliability_status, calibration_signal
+        ) VALUES (
+            %(validation_run_id)s, %(group_type)s, %(group_dimension)s,
+            %(group_value)s, %(observations)s, %(portfolio_share)s, %(defaults)s,
+            %(non_defaults)s, %(expected_defaults)s, %(mean_pd)s,
+            %(observed_default_rate)s, %(observed_default_rate_lower)s,
+            %(observed_default_rate_upper)s, %(calibration_gap)s,
+            %(calibration_gap_lower)s, %(calibration_gap_upper)s,
+            %(expected_to_observed_ratio)s, %(roc_auc)s, %(roc_auc_lower)s,
+            %(roc_auc_upper)s, %(ks)s, %(discrimination_status)s,
+            %(reliability_status)s, %(calibration_signal)s
+        )
+        """,
+        _with_run_id(records, validation_run_id),
+    )
+
+
 def _insert_benchmarks(
     cursor: Cursor,
     validation_run_id: int,
@@ -357,6 +448,52 @@ def _with_run_id(
     validation_run_id: int,
 ) -> list[dict[str, object]]:
     return [dict(record, validation_run_id=validation_run_id) for record in records]
+
+
+def _group_performance_records(
+    frame: pd.DataFrame,
+    *,
+    group_type: str,
+    dimension_column: str | None,
+    value_column: str,
+) -> tuple[dict[str, object], ...]:
+    metric_columns = (
+        "observations",
+        "portfolio_share",
+        "defaults",
+        "non_defaults",
+        "expected_defaults",
+        "mean_pd",
+        "observed_default_rate",
+        "observed_default_rate_lower",
+        "observed_default_rate_upper",
+        "calibration_gap",
+        "calibration_gap_lower",
+        "calibration_gap_upper",
+        "expected_to_observed_ratio",
+        "roc_auc",
+        "roc_auc_lower",
+        "roc_auc_upper",
+        "ks",
+        "discrimination_status",
+        "reliability_status",
+        "calibration_signal",
+    )
+    records = []
+    for _, row in frame.iterrows():
+        records.append(
+            {
+                "group_type": group_type,
+                "group_dimension": (
+                    str(row[dimension_column])
+                    if dimension_column is not None
+                    else "vintage_quarter"
+                ),
+                "group_value": str(row[value_column]),
+                **{column: _python_value(row[column]) for column in metric_columns},
+            }
+        )
+    return tuple(records)
 
 
 def _date(value: object) -> date:

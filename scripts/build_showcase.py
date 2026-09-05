@@ -66,6 +66,22 @@ def main() -> None:
         / "public_lendingclub"
         / "validation_summary.csv"
     )
+    vintage_resolution_path = (
+        REPO_ROOT
+        / "projects"
+        / "credit-risk-pd-model"
+        / "reports"
+        / "public_lendingclub"
+        / "vintage_resolution.csv"
+    )
+    vintage_performance_path = (
+        REPO_ROOT
+        / "projects"
+        / "model-validation-framework"
+        / "reports"
+        / "public_lendingclub"
+        / "vintage_performance.csv"
+    )
 
     outputs = (
         _build_calibration_chart(calibration_path, output_dir / "public_pd_calibration.png"),
@@ -83,6 +99,11 @@ def main() -> None:
             output_dir / "public_validation_opinion.png",
             overall_status="WARNING",
             decision="AUC, KS, and calibration require monitoring; stability checks pass",
+        ),
+        _build_vintage_backtest_chart(
+            vintage_resolution_path,
+            vintage_performance_path,
+            output_dir / "public_vintage_backtest.png",
         ),
     )
     for output in outputs:
@@ -253,6 +274,130 @@ def _build_validation_chart(
     figure.tight_layout()
     _save(figure, output_path)
     return output_path
+
+
+def _build_vintage_backtest_chart(
+    resolution_path: Path,
+    performance_path: Path,
+    output_path: Path,
+) -> Path:
+    resolution_rows = _read_csv(resolution_path)
+    performance_rows = _read_csv(performance_path)
+    resolution_x = list(range(len(resolution_rows)))
+    resolution = [float(row["resolution_rate"]) for row in resolution_rows]
+    resolution_labels = [row["vintage_quarter"] for row in resolution_rows]
+    performance_x = list(range(len(performance_rows)))
+    performance_labels = [row["vintage_quarter"] for row in performance_rows]
+    observed = [float(row["observed_default_rate"]) for row in performance_rows]
+    observed_lower = [
+        float(row["observed_default_rate_lower"]) for row in performance_rows
+    ]
+    observed_upper = [
+        float(row["observed_default_rate_upper"]) for row in performance_rows
+    ]
+    predicted = [float(row["mean_pd"]) for row in performance_rows]
+
+    figure, (resolution_axis, performance_axis) = plt.subplots(
+        2,
+        1,
+        figsize=(9.2, 7.0),
+        dpi=160,
+        gridspec_kw={"height_ratios": [1, 1.35]},
+    )
+    figure.suptitle(
+        "Public LendingClub vintage maturity and OOT backtest",
+        x=0.08,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.08,
+        0.925,
+        "Resolution denominator includes unresolved raw statuses; default-rate intervals are Wilson 95% CIs",
+        color=MUTED,
+        fontsize=9,
+    )
+
+    resolution_axis.plot(
+        resolution_x,
+        resolution,
+        color=TEAL,
+        linewidth=2.2,
+        marker="o",
+        markersize=3.5,
+    )
+    resolution_axis.fill_between(resolution_x, 0, resolution, color=TEAL, alpha=0.08)
+    resolution_axis.set_title("Raw-loan outcome resolution by issue quarter", loc="left", fontsize=11)
+    resolution_axis.set_ylabel("Resolved share")
+    resolution_axis.set_ylim(0, 1.05)
+    resolution_axis.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    _set_quarter_ticks(resolution_axis, resolution_labels)
+    _style_time_axis(resolution_axis)
+
+    lower_errors = [value - lower for value, lower in zip(observed, observed_lower, strict=True)]
+    upper_errors = [upper - value for value, upper in zip(observed, observed_upper, strict=True)]
+    performance_axis.errorbar(
+        performance_x,
+        observed,
+        yerr=[lower_errors, upper_errors],
+        color=BLUE,
+        linewidth=2.0,
+        marker="s",
+        markersize=4.5,
+        capsize=3,
+        label="Observed default rate (95% CI)",
+    )
+    performance_axis.plot(
+        performance_x,
+        predicted,
+        color=AMBER,
+        linewidth=2.2,
+        marker="o",
+        markersize=4.5,
+        label="Mean recalibrated PD",
+    )
+    performance_axis.fill_between(
+        performance_x,
+        observed,
+        predicted,
+        color=RED,
+        alpha=0.08,
+        label="Calibration gap",
+    )
+    performance_axis.set_title(
+        "Frozen-score out-of-time performance by issue quarter",
+        loc="left",
+        fontsize=11,
+    )
+    performance_axis.set_ylabel("Rate")
+    performance_axis.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    performance_axis.set_ylim(
+        0,
+        max([*predicted, *observed_upper]) * 1.18,
+    )
+    _set_quarter_ticks(performance_axis, performance_labels, maximum_ticks=8)
+    _style_time_axis(performance_axis)
+    performance_axis.legend(frameon=False, ncol=3, loc="upper left", fontsize=8.5)
+
+    figure.subplots_adjust(left=0.08, right=0.98, top=0.86, bottom=0.09, hspace=0.47)
+    _save(figure, output_path)
+    return output_path
+
+
+def _set_quarter_ticks(axis: plt.Axes, labels: list[str], *, maximum_ticks: int = 12) -> None:
+    if not labels:
+        return
+    stride = max(1, (len(labels) + maximum_ticks - 1) // maximum_ticks)
+    positions = list(range(0, len(labels), stride))
+    if positions[-1] != len(labels) - 1:
+        positions.append(len(labels) - 1)
+    axis.set_xticks(positions, [labels[position] for position in positions], rotation=35)
+
+
+def _style_time_axis(axis: plt.Axes) -> None:
+    axis.grid(axis="y", color=GRID, linewidth=0.8)
+    axis.spines[["top", "right"]].set_visible(False)
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:

@@ -26,6 +26,7 @@ python scripts/prepare_lendingclub_data.py `
   --input data/raw/accepted_2007_to_2018Q4.csv.gz `
   --output data/processed/lendingclub_pd.csv `
   --audit data/processed/lendingclub_ingestion_audit.csv `
+  --vintage-resolution data/processed/lendingclub_vintage_resolution.csv `
   --chunk-size 100000
 ```
 
@@ -42,8 +43,10 @@ so the canonical `age` column is retained as missing rather than inferred.
 
 This target is an eventual terminal-outcome proxy, not a Basel or IFRS 9 fixed-horizon PD
 definition. Removing unresolved loans prevents active accounts from being labelled non-default,
-but it does not eliminate right-censoring or selection bias in recent vintages. Public-data
-results should remain exploratory until vintage and maturity controls are implemented.
+but it creates right-censoring and selection bias in recent vintages. The optional vintage
+output retains unresolved statuses in the denominator and reports issue-quarter resolution;
+the full run falls from `48.4%` resolved in 2017Q1 to `3.9%` in 2018Q4. This control quantifies
+the limitation but does not turn the target into a fixed-horizon default definition.
 
 Project 2's PD integration bridge may consume the committed synthetic `reports/oot_predictions.csv`
 output, but it uses only `customer_id`, `observation_date`, and `recalibrated_pd`. It does
@@ -81,4 +84,5 @@ Keep raw data out of the repository. Commit only:
 The public-report publisher uses an explicit allow-list, rejects CSV files containing a
 `customer_id` column, and never publishes `oot_predictions.csv`. The committed lineage file
 records the source URL, licence, raw-file hash, input count, and resolved-output count.
+It also publishes the aggregate `vintage_resolution.csv`; no borrower identifiers are included.
 

@@ -2,4 +2,4 @@ limitation,severity,description,mitigation
 accepted_loan_selection_bias,medium,Public LendingClub data contains accepted loans rather than all applications.,Do not generalise approval-strategy results to the full applicant population.
 terminal_outcome_proxy,medium,Observed defaults use a terminal-outcome proxy rather than serviced account history.,Replace with contractual default definitions and observation windows.
 limited_oot_horizon,medium,Out-of-time validation covers 2017-01-01 to 2018-12-01.,Extend monitoring across additional vintages when data is available.
-score_only_independent_validation,medium,"Independent validation consumes scores and outcomes, not full development features.",Add feature-level replication and challenger rebuild testing in a later slice.
+limited_feature_replication,medium,"Independent validation consumes frozen scores, outcomes, and two business segmentation fields rather than the full development feature set.",Add feature-level replication and challenger rebuild testing in a later slice.

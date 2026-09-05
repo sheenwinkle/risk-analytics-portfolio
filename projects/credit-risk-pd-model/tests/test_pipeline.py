@@ -49,8 +49,14 @@ def test_pipeline_creates_outputs(tmp_path):
         assert path.exists()
 
     predictions = pd.read_csv(outputs["predictions"])
-    assert {"selected_model_raw_pd", "recalibrated_pd"}.issubset(predictions.columns)
+    assert {
+        "selected_model_raw_pd",
+        "recalibrated_pd",
+        "home_ownership",
+        "purpose",
+    }.issubset(predictions.columns)
     assert predictions["recalibrated_pd"].between(0, 1).all()
+    assert predictions[["home_ownership", "purpose"]].notna().all().all()
 
     recalibration = pd.read_csv(outputs["recalibration_summary"])
     assert {

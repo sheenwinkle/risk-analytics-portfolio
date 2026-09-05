@@ -1,8 +1,10 @@
 check,status,detail
 row_count,pass,994 rows loaded
-required_columns,pass,"customer_id, observation_date, actual_default, selected_model, selected_model_raw_pd, logistic_regression_pd, recalibrated_pd, random_forest_pd"
+required_columns,pass,"customer_id, observation_date, home_ownership, purpose, actual_default, selected_model, selected_model_raw_pd, logistic_regression_pd, recalibrated_pd, random_forest_pd"
 customer_id,pass,unique non-empty customer IDs
 observation_date,pass,2022-01-01 to 2022-12-01
+home_ownership,pass,non-empty business segment category
+purpose,pass,non-empty business segment category
 actual_default,pass,binary observed default flag with both classes present
 selected_model,pass,one supported selected model: logistic_regression
 selected_model_raw_pd,pass,matches selected model raw PD row-by-row

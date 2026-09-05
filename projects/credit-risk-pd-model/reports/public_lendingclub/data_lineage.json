@@ -19,6 +19,7 @@
     "recalibration_summary.csv",
     "woe_bins.csv",
     "woe_summary.csv",
+    "vintage_resolution.csv",
     "ingestion_audit.csv"
   ],
   "raw_file": "accepted_2007_to_2018Q4.csv.gz",

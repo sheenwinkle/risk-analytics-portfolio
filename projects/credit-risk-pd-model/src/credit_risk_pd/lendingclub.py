@@ -23,6 +23,16 @@ RAW_COLUMNS = [
 ]
 
 DEFAULT_CHUNK_SIZE = 100_000
+VINTAGE_RESOLUTION_COLUMNS = (
+    "vintage_quarter",
+    "input_rows",
+    "resolved_rows",
+    "unresolved_rows",
+    "resolution_rate",
+    "defaults",
+    "non_defaults",
+    "resolved_default_rate",
+)
 
 NON_DEFAULT_STATUSES = {
     "fully paid",
@@ -43,6 +53,7 @@ class LendingClubPreparationResult:
     output_path: Path
     audit_path: Path
     audit: dict[str, object]
+    vintage_resolution_path: Path | None = None
 
 
 def prepare_lendingclub_data(
@@ -52,6 +63,7 @@ def prepare_lendingclub_data(
     *,
     max_rows: int | None = None,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
+    vintage_resolution_path: str | Path | None = None,
 ) -> LendingClubPreparationResult:
     """Prepare a user-downloaded LendingClub accepted-loans file for the PD pipeline."""
     if max_rows is not None and max_rows < 1:
@@ -62,6 +74,9 @@ def prepare_lendingclub_data(
     input_path = Path(input_path)
     output_path = Path(output_path)
     audit_path = Path(audit_path)
+    vintage_path = (
+        Path(vintage_resolution_path) if vintage_resolution_path is not None else None
+    )
 
     header = pd.read_csv(input_path, nrows=0, compression="infer")
     _validate_raw_columns(header.columns)
@@ -78,8 +93,15 @@ def prepare_lendingclub_data(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     audit_path.parent.mkdir(parents=True, exist_ok=True)
+    if vintage_path is not None:
+        vintage_path.parent.mkdir(parents=True, exist_ok=True)
     output_temp_path = output_path.with_name(f".{output_path.name}.tmp")
     audit_temp_path = audit_path.with_name(f".{audit_path.name}.tmp")
+    vintage_temp_path = (
+        vintage_path.with_name(f".{vintage_path.name}.tmp")
+        if vintage_path is not None
+        else None
+    )
 
     seen_customer_ids: set[str] = set()
     input_rows = 0
@@ -91,14 +113,19 @@ def prepare_lendingclub_data(
     chunks_processed = 0
     observation_date_min: pd.Timestamp | None = None
     observation_date_max: pd.Timestamp | None = None
+    vintage_chunks: list[pd.DataFrame] = []
 
     try:
         output_temp_path.unlink(missing_ok=True)
         audit_temp_path.unlink(missing_ok=True)
+        if vintage_temp_path is not None:
+            vintage_temp_path.unlink(missing_ok=True)
         wrote_header = False
 
         for raw_chunk in chunks:
             chunks_processed += 1
+            if vintage_path is not None:
+                vintage_chunks.append(build_lendingclub_vintage_resolution(raw_chunk))
             prepared_chunk, chunk_audit = transform_lendingclub_accepted_loans(
                 raw_chunk,
                 input_path=input_path,
@@ -162,18 +189,83 @@ def prepare_lendingclub_data(
             "chunk_size": chunk_size,
         }
         pd.DataFrame([audit]).to_csv(audit_temp_path, index=False, lineterminator="\n")
+        if vintage_temp_path is not None:
+            _combine_vintage_resolution(vintage_chunks).to_csv(
+                vintage_temp_path,
+                index=False,
+                lineterminator="\n",
+            )
         output_temp_path.replace(output_path)
         audit_temp_path.replace(audit_path)
+        if vintage_temp_path is not None and vintage_path is not None:
+            vintage_temp_path.replace(vintage_path)
     except Exception:
         output_temp_path.unlink(missing_ok=True)
         audit_temp_path.unlink(missing_ok=True)
+        if vintage_temp_path is not None:
+            vintage_temp_path.unlink(missing_ok=True)
         raise
 
     return LendingClubPreparationResult(
         output_path=output_path,
         audit_path=audit_path,
         audit=audit,
+        vintage_resolution_path=vintage_path,
     )
+
+
+def build_lendingclub_vintage_resolution(raw: pd.DataFrame) -> pd.DataFrame:
+    """Summarise resolved and unresolved raw loan statuses by issue quarter."""
+    _validate_raw_columns(raw.columns)
+    issue_date = _parse_issue_date(raw["issue_d"])
+    mapped_default = raw["loan_status"].map(_map_default_status)
+    working = pd.DataFrame(
+        {
+            "issue_date": issue_date,
+            "resolved": mapped_default.notna(),
+            "default": mapped_default.eq(1),
+        }
+    ).dropna(subset=["issue_date"])
+    if working.empty:
+        return pd.DataFrame(columns=VINTAGE_RESOLUTION_COLUMNS)
+
+    working["vintage_quarter"] = working["issue_date"].dt.to_period("Q").astype(str)
+    counts = (
+        working.groupby("vintage_quarter", as_index=False, sort=True)
+        .agg(
+            input_rows=("resolved", "size"),
+            resolved_rows=("resolved", "sum"),
+            defaults=("default", "sum"),
+        )
+    )
+    return _finalise_vintage_resolution(counts)
+
+
+def _combine_vintage_resolution(chunks: list[pd.DataFrame]) -> pd.DataFrame:
+    non_empty = [chunk for chunk in chunks if not chunk.empty]
+    if not non_empty:
+        return pd.DataFrame(columns=VINTAGE_RESOLUTION_COLUMNS)
+    counts = (
+        pd.concat(non_empty, ignore_index=True)
+        .groupby("vintage_quarter", as_index=False, sort=True)[
+            ["input_rows", "resolved_rows", "defaults"]
+        ]
+        .sum()
+    )
+    return _finalise_vintage_resolution(counts)
+
+
+def _finalise_vintage_resolution(counts: pd.DataFrame) -> pd.DataFrame:
+    result = counts.copy()
+    for column in ("input_rows", "resolved_rows", "defaults"):
+        result[column] = result[column].astype(int)
+    result["unresolved_rows"] = result["input_rows"] - result["resolved_rows"]
+    result["resolution_rate"] = result["resolved_rows"] / result["input_rows"]
+    result["non_defaults"] = result["resolved_rows"] - result["defaults"]
+    result["resolved_default_rate"] = result["defaults"].div(
+        result["resolved_rows"].where(result["resolved_rows"].ne(0))
+    )
+    return result.loc[:, VINTAGE_RESOLUTION_COLUMNS]
 
 
 def transform_lendingclub_accepted_loans(

@@ -12,6 +12,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--source-reports", type=Path, required=True)
     parser.add_argument("--ingestion-audit", type=Path, required=True)
+    parser.add_argument("--vintage-resolution", type=Path, required=True)
     parser.add_argument("--raw-input", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser.parse_args()
@@ -22,6 +23,7 @@ def main() -> None:
     publication = publish_public_lendingclub_run(
         source_report_dir=args.source_reports,
         ingestion_audit_path=args.ingestion_audit,
+        vintage_resolution_path=args.vintage_resolution,
         raw_input_path=args.raw_input,
         output_dir=args.output_dir,
     )

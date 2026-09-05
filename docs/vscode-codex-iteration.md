@@ -45,8 +45,8 @@ codex exec -C . -s workspace-write "Improve one documented risk-analytics limita
 High-signal prompts are specific about the risk question and evidence contract:
 
 ```text
-Add vintage-level public PD backtesting. Preserve the terminal-outcome and right-censoring
-limitations, publish aggregates only, and add tests proving no borrower IDs can be released.
+Evaluate a fixed 12-month outcome label or survival-analysis extension. Preserve unresolved
+loans without leakage, publish aggregates only, and test maturity-window edge cases.
 ```
 
 ```text
@@ -55,8 +55,8 @@ test accounting identities, regenerate deterministic evidence, and document limi
 ```
 
 ```text
-Add confidence intervals to Project 3. Preserve the current warning/fail opinions, use a
-deterministic seed, persist the new metrics to PostgreSQL, and extend the integration test.
+Add characteristic stability analysis to Project 3. Rebuild selected features independently,
+persist CSI results to PostgreSQL, and distinguish data drift from score drift in the report.
 ```
 
 Avoid prompts such as `make the project better`; they do not define a risk decision,
@@ -117,10 +117,10 @@ failures on the branch and push again; do not merge a red PR.
 
 ## 7. Next High-Impact Iterations
 
-1. Add public segment and vintage backtesting with maturity controls.
-2. Add bootstrap uncertainty intervals to validation metrics.
-3. Add ECL macro sensitivity and management-overlay governance examples.
-4. Add feature-level replication, CSI, and characteristic drift evidence.
+1. Add ECL macro sensitivity and management-overlay governance examples.
+2. Add feature-level replication, CSI, and characteristic drift evidence.
+3. Evaluate survival methods or a fixed-horizon label for unresolved public outcomes.
+4. Add reject-inference sensitivity for the accepted-only population.
 5. Add a fresh OOT closure window when a defensible later-period dataset is available.
 
 Each iteration should improve a hiring manager's ability to inspect a concrete risk decision,

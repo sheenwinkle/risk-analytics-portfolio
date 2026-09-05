@@ -15,7 +15,7 @@ This project builds a practical workflow:
 Data checks -> feature engineering -> out-of-time split -> baseline model -> challenger model
 -> pre-OOT calibration holdout model selection -> logistic PD recalibration
 -> fixed lending approval cutoff scenarios -> WOE/IV screening -> permutation importance
--> PSI monitoring -> report outputs
+-> PSI monitoring -> raw-status vintage maturity audit -> report outputs
 ```
 
 ## Public LendingClub Evidence
@@ -32,9 +32,11 @@ ignored.
 | Selected model | Random forest |
 | OOT ROC-AUC / Gini / KS | 0.6999 / 0.3998 / 0.2925 |
 | Raw to recalibrated Brier score | 0.2085 -> 0.1547 |
+| Raw status resolution, 2017Q1 -> 2018Q4 | 48.4% -> 3.9% |
 
 Review the [public aggregate model report](reports/public_lendingclub/model_report.md),
 [ingestion audit](reports/public_lendingclub/ingestion_audit.csv), and
+[vintage maturity report](reports/public_lendingclub/vintage_resolution.csv), and
 [data lineage record](reports/public_lendingclub/data_lineage.json). These results are an
 exploratory terminal-outcome case study, not a Basel-compliant fixed-horizon PD estimate.
 
@@ -60,6 +62,7 @@ It demonstrates:
 - Scorecard-style Weight of Evidence and Information Value variable screening
 - Model-agnostic permutation importance evaluated on the out-of-time sample
 - Population Stability Index for monitoring drift
+- Quarterly resolved/unresolved status denominators to expose maturity and right-censoring
 - SQL schema design for credit risk data
 
 ## Repository Structure
@@ -128,6 +131,7 @@ python scripts/prepare_lendingclub_data.py `
   --input data/raw/accepted_2007_to_2018Q4.csv.gz `
   --output data/processed/lendingclub_pd.csv `
   --audit data/processed/lendingclub_ingestion_audit.csv `
+  --vintage-resolution data/processed/lendingclub_vintage_resolution.csv `
   --chunk-size 100000
 ```
 
@@ -174,8 +178,12 @@ The pipeline writes:
 - `reports/feature_importance.csv`: model-agnostic permutation importance for the selected model on the out-of-time sample
 - `reports/psi_report.csv`: population drift indicators
 - `reports/model_report.md`: markdown summary of model performance, recalibration, strategy scenarios, Information Value, feature importance, and PSI monitoring
-- `reports/oot_predictions.csv`: account-level out-of-time actuals, selected raw PD, and recalibrated PD; Project 2's ECL bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`
+- `reports/oot_predictions.csv`: account-level out-of-time actuals, selected/raw/recalibrated PDs, and non-sensitive `home_ownership`/`purpose` segments; Project 2's ECL bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`
 - `models/<selected_model>_recalibrated.joblib`: selected base model plus fitted logistic recalibrator with `predict_proba`
+
+Public-data preparation additionally writes `lendingclub_vintage_resolution.csv`, which keeps
+unresolved statuses in each issue-quarter denominator. The publisher commits this aggregate
+table as `reports/public_lendingclub/vintage_resolution.csv` but never publishes account rows.
 
 ## Model Evaluation
 
@@ -212,8 +220,9 @@ Borrower age is not disclosed by LendingClub, so `age` is retained as missing.
 
 Target limitation: this mapping is a terminal-outcome PD proxy, not a Basel or IFRS 9
 fixed-horizon default definition. Excluding unresolved loans prevents active accounts from
-being labelled non-default, but recent vintages can still have right-censoring and selection
-bias. Treat public-data results as exploratory unless vintage and maturity controls are added.
+being labelled non-default, but it creates strong maturity selection in recent vintages. The
+published denominator audit quantifies the issue: resolution falls from `48.4%` in 2017Q1 to
+`3.9%` in 2018Q4. That evidence makes the bias visible; it does not correct or eliminate it.
 
 Project 2 can consume the committed synthetic `reports/oot_predictions.csv` through a
 separate PD-to-ECL bridge. That bridge treats `recalibrated_pd` as a 12-month cumulative PD
@@ -227,7 +236,7 @@ under `data/raw/` and processed files under `data/processed/`, both of which are
 
 ## Resume Bullets
 
-- Built an end-to-end Python credit risk PD workflow over 2.26 million public LendingClub records, retaining 1.35 million resolved outcomes through chunked ingestion, leakage-safe temporal model selection, recalibration, WOE/IV screening, permutation importance, strategy scenarios, and PSI monitoring.
+- Built an end-to-end Python credit risk PD workflow over 2.26 million public LendingClub records, retaining 1.35 million resolved outcomes through chunked ingestion, leakage-safe temporal model selection, recalibration, WOE/IV screening, permutation importance, strategy scenarios, PSI, and vintage maturity monitoring.
 - Selected a random forest challenger before OOT evaluation and achieved 0.6999 ROC-AUC on 225,639 untouched 2017-2018 observations; logistic recalibration reduced Brier score from 0.2085 to 0.1547.
 - Designed SQL schemas and analytics queries for loan, customer, and performance data to support credit risk reporting and model development.
 
@@ -240,6 +249,7 @@ under `data/raw/` and processed files under `data/processed/`, both of which are
 - How WOE sign convention and Information Value support scorecard-style variable screening
 - How permutation importance supports model-agnostic validation review
 - How PSI can detect portfolio drift before model performance deteriorates
+- Why resolved-only terminal outcomes create recent-vintage right-censoring and how to expose it
 - Why logistic regression is still common in regulated risk modelling
 - How this project's recalibrated synthetic OOT PD outputs can feed an educational ECL
   bridge without leaking future outcomes

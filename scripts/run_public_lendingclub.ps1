@@ -14,6 +14,7 @@ $Project3 = Join-Path $RepoRoot "projects\model-validation-framework"
 $RawFile = Join-Path $Project1 "data\raw\accepted_2007_to_2018Q4.csv.gz"
 $PreparedFile = Join-Path $Project1 "data\processed\lendingclub_pd.csv"
 $AuditFile = Join-Path $Project1 "data\processed\lendingclub_ingestion_audit.csv"
+$VintageResolutionFile = Join-Path $Project1 "data\processed\lendingclub_vintage_resolution.csv"
 $PublicRun = Join-Path $Project1 "data\processed\public_run"
 $PublicReports = Join-Path $Project1 "reports\public_lendingclub"
 $PublicValidation = Join-Path $PublicRun "validation"
@@ -33,6 +34,7 @@ if ($ForceDownload) {
     --input $RawFile `
     --output $PreparedFile `
     --audit $AuditFile `
+    --vintage-resolution $VintageResolutionFile `
     --chunk-size 100000
 
 & $VenvPython (Join-Path $Project1 "scripts\run_pipeline.py") `
@@ -44,6 +46,7 @@ if ($ForceDownload) {
 & $VenvPython (Join-Path $Project1 "scripts\publish_public_run.py") `
     --source-reports (Join-Path $PublicRun "reports") `
     --ingestion-audit $AuditFile `
+    --vintage-resolution $VintageResolutionFile `
     --raw-input $RawFile `
     --output-dir $PublicReports
 

@@ -20,6 +20,7 @@ Core deliverables:
 - Calibration table
 - Population Stability Index monitoring
 - Privacy-safe publication of aggregate public-data evidence and lineage metadata
+- Raw-status vintage resolution denominators for maturity and right-censoring review
 - Clean README and resume bullets
 
 Current evidence:
@@ -27,6 +28,7 @@ Current evidence:
 - 2,260,701 raw accepted-loan rows audited and 1,348,099 resolved outcomes retained
 - 225,639 untouched 2017-2018 OOT observations
 - Selected random forest ROC-AUC 0.6999; recalibration reduced Brier score from 0.2085 to 0.1547
+- Status resolution falls from 48.4% in 2017Q1 to 3.9% in 2018Q4, exposing recent-vintage censoring
 
 ## Project 2: IFRS 9 ECL Engine
 
@@ -76,13 +78,16 @@ Complete scoped case study:
 - Strict Project 1 OOT score and selected-model lineage adapter
 - Independent tie-safe AUC, Gini, KS, Brier, and portfolio calibration metrics
 - Deterministic low-to-high PD deciles and monthly performance diagnostics
+- DeLong, Wilson, normal-mean, and paired calibration-gap confidence intervals
+- Quarterly vintage and home-ownership/purpose segment backtests with reliability flags
 - Chronological reference/current PSI using reference-derived midpoint bins
 - Selected recalibrated incumbent versus unselected raw challenger comparison
 - Selected raw versus recalibrated impact comparison
 - Frozen, validated traffic-light policy for discrimination, calibration, PSI, and challenger tests
 - Warning/fail findings with recommended actions and a model limitation register
 - Deterministic CSV evidence and recruiter-readable Markdown validation report
-- PostgreSQL validation-run, metric, finding, benchmark, and limitation schemas
+- PostgreSQL validation-run, metric, uncertainty, grouped-performance, finding, benchmark,
+  and limitation schemas
 - Transactional PostgreSQL loader and PostgreSQL 16 integration test
 - Full public LendingClub OOT validation with context-specific limitations
 - No-look-ahead rolling calibration remediation and finding lifecycle events
@@ -96,6 +101,7 @@ Implemented outputs:
 - Challenger benchmark analysis
 - Public-data warning opinion and safe aggregate publication
 - Sequential remediation retest and pending-fresh-OOT closure decision
+- Public vintage maturity, segment performance, and statistical uncertainty evidence
 
 Current candidate opinion:
 
@@ -109,6 +115,8 @@ Public LendingClub opinion:
 - Overall illustrative policy outcome: warning
 - AUC 0.699887, KS 0.292493, and absolute calibration gap 0.026335: warning
 - PSI 0.016656 and challenger margin -0.009411: pass
+- AUC 95% CI 0.697369-0.702405; calibration-gap 95% CI 0.024716-0.027955
+- 2017Q1 to 2018Q4 raw status resolution declines from 48.4% to 3.9%
 
 Remediation evidence:
 
@@ -117,13 +125,12 @@ Remediation evidence:
 
 Potential extensions:
 
-- Segment and vintage-level backtesting
-- Bootstrap confidence intervals and uncertainty reporting
 - Feature-level replication, CSI, and characteristic drift analysis
-- Vintage maturity controls and reject-inference discussion for the public PD target
+- Formal fixed-horizon label construction or survival analysis for unresolved outcomes
+- Reject-inference sensitivity for the accepted-only applicant population
 - ECL model validation and overlay governance
 
 Resume angle:
 
-> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, deterministic backtesting, PSI stability, challenger benchmarking, explicit governance thresholds, public-data validation, and no-look-ahead remediation lifecycle evidence.
+> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, statistical uncertainty, vintage and segment backtesting, PSI stability, challenger benchmarking, explicit governance thresholds, public-data validation, and no-look-ahead remediation lifecycle evidence.
 

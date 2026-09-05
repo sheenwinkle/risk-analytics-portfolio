@@ -20,6 +20,21 @@ def _write_source_reports(report_dir) -> None:
             path.write_text("# Aggregate model report\n", encoding="utf-8")
 
 
+def _write_vintage_resolution(path) -> None:
+    pd.DataFrame(
+        {
+            "vintage_quarter": ["2017Q1"],
+            "input_rows": [100],
+            "resolved_rows": [80],
+            "unresolved_rows": [20],
+            "resolution_rate": [0.8],
+            "defaults": [16],
+            "non_defaults": [64],
+            "resolved_default_rate": [0.2],
+        }
+    ).to_csv(path, index=False)
+
+
 def test_publish_public_run_copies_only_aggregate_evidence_and_writes_lineage(tmp_path):
     report_dir = tmp_path / "source_reports"
     _write_source_reports(report_dir)
@@ -41,6 +56,8 @@ def test_publish_public_run_copies_only_aggregate_evidence_and_writes_lineage(tm
             }
         ]
     ).to_csv(audit_path, index=False)
+    vintage_path = tmp_path / "vintage_resolution.csv"
+    _write_vintage_resolution(vintage_path)
 
     output_dir = tmp_path / "published"
     output_dir.mkdir()
@@ -51,6 +68,7 @@ def test_publish_public_run_copies_only_aggregate_evidence_and_writes_lineage(tm
     publication = publish_public_lendingclub_run(
         report_dir,
         audit_path,
+        vintage_path,
         raw_input,
         output_dir,
     )
@@ -58,6 +76,7 @@ def test_publish_public_run_copies_only_aggregate_evidence_and_writes_lineage(tm
     published_names = {path.name for path in publication.published_paths}
     assert published_names == {
         *SAFE_AGGREGATE_REPORTS,
+        "vintage_resolution.csv",
         "ingestion_audit.csv",
         "data_lineage.json",
     }
@@ -91,11 +110,44 @@ def test_publish_public_run_rejects_report_with_customer_identifier(tmp_path):
             }
         ]
     ).to_csv(audit_path, index=False)
+    vintage_path = tmp_path / "vintage_resolution.csv"
+    _write_vintage_resolution(vintage_path)
 
     with pytest.raises(ValueError, match="cannot include customer_id"):
         publish_public_lendingclub_run(
             report_dir,
             audit_path,
+            vintage_path,
+            raw_input,
+            tmp_path / "published",
+        )
+
+
+def test_publish_public_run_rejects_vintage_report_with_customer_identifier(tmp_path):
+    report_dir = tmp_path / "source_reports"
+    _write_source_reports(report_dir)
+    raw_input = tmp_path / "accepted.csv.gz"
+    raw_input.write_bytes(b"fixture")
+    audit_path = tmp_path / "audit.csv"
+    pd.DataFrame(
+        [
+            {
+                "input_path": str(raw_input),
+                "input_rows": 1,
+                "output_rows": 1,
+                "observation_date_min": "2018-01-01",
+                "observation_date_max": "2018-01-01",
+            }
+        ]
+    ).to_csv(audit_path, index=False)
+    vintage_path = tmp_path / "vintage_resolution.csv"
+    pd.DataFrame({"customer_id": ["PRIVATE-1"]}).to_csv(vintage_path, index=False)
+
+    with pytest.raises(ValueError, match="cannot include customer_id"):
+        publish_public_lendingclub_run(
+            report_dir,
+            audit_path,
+            vintage_path,
             raw_input,
             tmp_path / "published",
         )
