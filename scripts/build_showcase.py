@@ -90,6 +90,22 @@ def main() -> None:
         / "public_lendingclub"
         / "characteristic_stability_summary.csv"
     )
+    strategy_comparison_path = (
+        REPO_ROOT
+        / "projects"
+        / "credit-risk-pd-model"
+        / "reports"
+        / "public_lendingclub"
+        / "strategy_oot_comparison.csv"
+    )
+    strategy_impact_path = (
+        REPO_ROOT
+        / "projects"
+        / "credit-risk-pd-model"
+        / "reports"
+        / "public_lendingclub"
+        / "strategy_incremental_impact.csv"
+    )
 
     outputs = (
         _build_calibration_chart(calibration_path, output_dir / "public_pd_calibration.png"),
@@ -114,6 +130,11 @@ def main() -> None:
         _build_characteristic_stability_chart(
             characteristic_stability_path,
             output_dir / "public_feature_stability.png",
+        ),
+        _build_strategy_chart(
+            strategy_comparison_path,
+            strategy_impact_path,
+            output_dir / "public_strategy_backtest.png",
         ),
     )
     for output in outputs:
@@ -224,6 +245,137 @@ def _build_ecl_chart(input_path: Path, output_path: Path) -> Path:
             fontweight="bold",
         )
     figure.tight_layout()
+    _save(figure, output_path)
+    return output_path
+
+
+def _build_strategy_chart(
+    comparison_path: Path,
+    impact_path: Path,
+    output_path: Path,
+) -> Path:
+    comparison = {row["policy"]: row for row in _read_csv(comparison_path)}
+    if set(comparison) != {"incumbent", "challenger"}:
+        raise ValueError("Strategy showcase requires incumbent and challenger rows")
+    impact_rows = _read_csv(impact_path)
+    if len(impact_rows) != 1:
+        raise ValueError("Strategy showcase requires one incremental-impact row")
+    impact = impact_rows[0]
+
+    approval_rates = [
+        float(comparison["incumbent"]["approval_rate"]),
+        float(comparison["challenger"]["approval_rate"]),
+    ]
+    expected_increment = float(impact["incremental_expected_credit_contribution_proxy"])
+    realized_increment = float(impact["incremental_realized_credit_contribution_proxy"])
+    realized_lower = float(impact["realized_contribution_ci_lower"])
+    realized_upper = float(impact["realized_contribution_ci_upper"])
+    contribution_values = [expected_increment / 1_000_000, realized_increment / 1_000_000]
+    realized_error = [
+        (realized_increment - realized_lower) / 1_000_000,
+        (realized_upper - realized_increment) / 1_000_000,
+    ]
+
+    figure, (approval_axis, contribution_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(9.4, 4.9),
+        dpi=160,
+        gridspec_kw={"width_ratios": [0.9, 1.25]},
+    )
+    figure.suptitle(
+        "Public LendingClub credit policy backtest",
+        x=0.07,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.07,
+        0.91,
+        "Pre-OOT selected 20% max-PD challenger | frozen 2017-2018 OOT evaluation",
+        color=MUTED,
+        fontsize=9,
+    )
+
+    approval_bars = approval_axis.bar(
+        ["Incumbent\n15% cutoff", "Challenger\n20% cutoff"],
+        approval_rates,
+        color=[BLUE, TEAL],
+        width=0.62,
+    )
+    approval_axis.set_title("Approval rate", loc="left", fontsize=11, pad=12)
+    approval_axis.set_ylim(0, max(approval_rates) * 1.28)
+    approval_axis.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    approval_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    approval_axis.set_axisbelow(True)
+    approval_axis.spines[["top", "right"]].set_visible(False)
+    for bar, value in zip(approval_bars, approval_rates, strict=True):
+        approval_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + 0.018,
+            f"{value:.1%}",
+            ha="center",
+            color=TEXT,
+            fontweight="bold",
+        )
+
+    contribution_bars = contribution_axis.bar(
+        ["Expected\ncontribution", "Realised\ncontribution"],
+        contribution_values,
+        color=[AMBER, TEAL],
+        width=0.62,
+    )
+    contribution_axis.errorbar(
+        1,
+        contribution_values[1],
+        yerr=[[realized_error[0]], [realized_error[1]]],
+        color=TEXT,
+        capsize=5,
+        linewidth=1.4,
+        zorder=3,
+    )
+    contribution_axis.axhline(0, color=TEXT, linewidth=0.9)
+    contribution_axis.set_title("Incremental credit contribution proxy", loc="left", fontsize=11, pad=12)
+    contribution_axis.set_ylabel("USD millions")
+    contribution_axis.set_ylim(0, max(contribution_values) * 1.32)
+    contribution_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    contribution_axis.set_axisbelow(True)
+    contribution_axis.spines[["top", "right"]].set_visible(False)
+    for bar, value in zip(contribution_bars, contribution_values, strict=True):
+        contribution_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + max(contribution_values) * 0.065,
+            f"+${value:.1f}m",
+            ha="center",
+            color=TEXT,
+            fontweight="bold",
+        )
+    contribution_axis.text(
+        1,
+        contribution_values[1] - max(contribution_values) * 0.15,
+        (
+            f"95% CI {realized_lower / 1_000_000:.1f}-"
+            f"{realized_upper / 1_000_000:.1f}m"
+        ),
+        ha="center",
+        color="white",
+        fontsize=8,
+        fontweight="bold",
+    )
+
+    figure.text(
+        0.07,
+        0.025,
+        (
+            f"+{int(float(impact['incremental_approved_accounts'])):,} approvals | "
+            f"+${float(impact['incremental_approved_exposure']) / 1_000_000:.1f}m exposure | "
+            "retrospective accepted-loan sample; not causal"
+        ),
+        color=MUTED,
+        fontsize=8.5,
+    )
+    figure.subplots_adjust(left=0.07, right=0.98, top=0.79, bottom=0.18, wspace=0.34)
     _save(figure, output_path)
     return output_path
 

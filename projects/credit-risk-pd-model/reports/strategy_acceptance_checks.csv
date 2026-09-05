@@ -1,0 +1,6 @@
+check,metric_value,threshold,direction,confidence_lower,confidence_upper,status,detail
+pre_oot_selection_constraints,1.0000000000,1.0000000000,must_equal,,,pass,Growth challenger met both pre-OOT risk constraints.
+oot_approval_uplift,0.1076458753,0.0000000000,higher_is_better,,,pass,Challenger must approve a larger share of the OOT cohort.
+oot_expected_credit_contribution,94978.0742788357,0.0000000000,higher_is_better,,,pass,Simplified expected interest less ECL must increase.
+oot_bad_rate_increase,0.0246504312,0.0300000000,lower_is_better,,,pass,Approved bad-rate deterioration must remain within risk appetite.
+oot_realized_credit_contribution,-139578.2356690000,0.0000000000,higher_is_better,-279981.2763867250,-8511.8982069502,fail,Paired marginal-cohort bootstrap interval must be entirely above zero.

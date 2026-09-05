@@ -17,6 +17,7 @@ from credit_risk_pd.data import (
     make_out_of_time_split,
     make_temporal_calibration_split,
 )
+from credit_risk_pd.decision_strategy import run_decision_strategy_backtest
 from credit_risk_pd.features import (
     CATEGORICAL_FEATURES,
     NUMERIC_FEATURES,
@@ -128,6 +129,7 @@ def run_pd_modelling_workflow(
     )
     calibration_raw_scores = trained_models[best_model_name].predict_proba(x_calibration)[:, 1]
     recalibrator = LogisticPDRecalibrator().fit(calibration_raw_scores, y_calibration)
+    calibration_recalibrated_scores = recalibrator.transform(calibration_raw_scores)
     recalibrated_scores = recalibrator.transform(best_raw_scores)
     predictions["selected_model"] = best_model_name
     predictions["selected_model_raw_pd"] = best_raw_scores.to_numpy()
@@ -175,6 +177,26 @@ def run_pd_modelling_workflow(
         thresholds=config.approval_thresholds,
         lgd=config.lgd,
     )
+    decision_strategy = run_decision_strategy_backtest(
+        calibration_pd=calibration_recalibrated_scores,
+        calibration_target=y_calibration,
+        calibration_exposure=calibration_holdout["loan_amount"],
+        calibration_interest_rate=calibration_holdout["interest_rate"],
+        oot_pd=recalibrated_scores,
+        oot_target=y_oot,
+        oot_exposure=oot["loan_amount"],
+        oot_interest_rate=oot["interest_rate"],
+        candidate_cutoffs=config.approval_thresholds,
+        incumbent_cutoff=config.strategy_incumbent_cutoff,
+        max_bad_rate=config.strategy_max_bad_rate,
+        max_expected_loss_rate=config.strategy_max_expected_loss_rate,
+        max_cutoff_increase=config.strategy_max_cutoff_increase,
+        max_bad_rate_increase=config.strategy_max_bad_rate_increase,
+        lgd=config.lgd,
+        bootstrap_repetitions=config.strategy_bootstrap_repetitions,
+        confidence_level=config.strategy_confidence_level,
+        random_state=config.random_state,
+    )
     psi_df = psi_report(x_model_development, x_oot, NUMERIC_FEATURES)
     woe_bins_df, woe_summary_df = calculate_woe_iv(
         x_model_development,
@@ -193,6 +215,11 @@ def run_pd_modelling_workflow(
     calibration_file = output_path / "calibration_table.csv"
     recalibration_file = output_path / "recalibration_summary.csv"
     strategy_file = output_path / "approval_strategy.csv"
+    strategy_selection_file = output_path / "strategy_selection_audit.csv"
+    strategy_comparison_file = output_path / "strategy_oot_comparison.csv"
+    strategy_impact_file = output_path / "strategy_incremental_impact.csv"
+    strategy_checks_file = output_path / "strategy_acceptance_checks.csv"
+    strategy_decision_file = output_path / "strategy_governance_decision.csv"
     selection_file = output_path / "model_selection_audit.csv"
     predictions_file = output_path / "oot_predictions.csv"
     psi_file = output_path / "psi_report.csv"
@@ -205,6 +232,36 @@ def run_pd_modelling_workflow(
     calibration_df.to_csv(calibration_file, index=False)
     recalibration_df.to_csv(recalibration_file, index=False)
     strategy_df.to_csv(strategy_file, index=False)
+    decision_strategy.strategy_selection_audit.to_csv(
+        strategy_selection_file,
+        index=False,
+        float_format="%.10f",
+        lineterminator="\n",
+    )
+    decision_strategy.strategy_oot_comparison.to_csv(
+        strategy_comparison_file,
+        index=False,
+        float_format="%.10f",
+        lineterminator="\n",
+    )
+    decision_strategy.strategy_incremental_impact.to_csv(
+        strategy_impact_file,
+        index=False,
+        float_format="%.10f",
+        lineterminator="\n",
+    )
+    decision_strategy.strategy_acceptance_checks.to_csv(
+        strategy_checks_file,
+        index=False,
+        float_format="%.10f",
+        lineterminator="\n",
+    )
+    decision_strategy.strategy_governance_decision.to_csv(
+        strategy_decision_file,
+        index=False,
+        float_format="%.10f",
+        lineterminator="\n",
+    )
     selection_df.to_csv(selection_file, index=False)
     predictions.to_csv(predictions_file, index=False)
     psi_df.to_csv(psi_file, index=False)
@@ -237,6 +294,11 @@ def run_pd_modelling_workflow(
         "calibration": calibration_file,
         "recalibration_summary": recalibration_file,
         "approval_strategy": strategy_file,
+        "strategy_selection_audit": strategy_selection_file,
+        "strategy_oot_comparison": strategy_comparison_file,
+        "strategy_incremental_impact": strategy_impact_file,
+        "strategy_acceptance_checks": strategy_checks_file,
+        "strategy_governance_decision": strategy_decision_file,
         "model_selection_audit": selection_file,
         "predictions": predictions_file,
         "psi": psi_file,

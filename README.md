@@ -51,7 +51,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 
 | Project | Status | Main evidence | Target roles |
 | --- | --- | --- | --- |
-| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
+| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, champion-challenger strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, discounting, scenarios, migration, Project 1 bridge | ECL, Portfolio Risk, Credit Risk |
 | [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent candidate rebuild, metrics, confidence intervals, vintage/segment backtesting, PSI/CSI drift, policy opinion, remediation lifecycle | Model Risk, Validation, Quant Risk |
 
@@ -83,6 +83,15 @@ Public aggregate evidence:
 
 The committed synthetic run remains the fast, deterministic CI fixture for cross-project
 tests. It intentionally includes a stressed 2022 OOT period.
+
+The strategy layer selects a controlled 20% max-PD growth challenger on pre-OOT evidence and
+freezes it before evaluation. On public OOT data it adds 35,876 approvals and a USD 17.0 million
+realised credit-contribution proxy uplift (95% paired-bootstrap interval: 16.1-18.0 million).
+On the synthetic stress OOT, the same change adds 107 approvals but reduces realised
+contribution by 0.14 million currency units (95% interval: -0.28m to -0.01m), so the governance decision
+retains the incumbent. These are retrospective accepted-loan backtests, not causal A/B tests.
+
+![Public credit policy backtest](docs/assets/public_strategy_backtest.png)
 
 ## Project 2: IFRS 9 ECL Engine
 
@@ -171,6 +180,7 @@ VS Code exposes both commands through **Tasks: Run Task**:
 
 - Python packages with explicit public APIs rather than notebook-only logic
 - Behavioural, edge-case, lineage, privacy, and deterministic-report tests
+- Pre-OOT strategy selection, frozen OOT evaluation, and paired marginal-cohort uncertainty
 - GitHub Actions matrix across all three projects
 - CI PostgreSQL 16 integration test for run, metric uncertainty, grouped performance,
   characteristic drift, finding, benchmark, limitation, and remediation-event persistence
@@ -211,7 +221,8 @@ risk-analytics-portfolio/
 ## Resume Positioning
 
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
-> LendingClub records, covering temporal PD development, recalibration, vintage maturity,
+> LendingClub records, covering temporal PD development, recalibration, credit strategy,
+> vintage maturity,
 > IFRS 9 ECL consumption, independent candidate re-estimation, validation with confidence
 > intervals and segment backtesting, score/feature drift, no-look-ahead remediation, and
 > PostgreSQL governance persistence.
@@ -223,6 +234,5 @@ and the optional VS Code/Codex iteration process are documented in
 
 ## Next Evidence
 
-- Add a pre-OOT credit decision strategy backtest with challenger policy comparisons.
 - Add documented SICR rebuttal and macroeconomic management-overlay sensitivity.
 - Revisit the pending calibration finding when an additional matured OOT horizon is available.
