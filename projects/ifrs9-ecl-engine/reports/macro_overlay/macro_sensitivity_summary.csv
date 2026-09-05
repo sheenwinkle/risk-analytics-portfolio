@@ -1,0 +1,5 @@
+case_id,description,is_baseline,modelled_ecl,change_vs_baseline,change_pct_vs_baseline,gross_exposure,coverage_ratio
+baseline,"Modelled 60% base, 15% upside, and 25% downside weights",True,27996.918137,0.000000,0.000000,554000.000000,0.050536
+downside_weight_plus_10pp,Shift 10 percentage points from base to downside,False,30199.359988,2202.441851,0.078667,554000.000000,0.054511
+downside_severity_plus_10pct,Increase downside scenario ECL severity by 10 percent,False,29136.168370,1139.250233,0.040692,554000.000000,0.052592
+combined_downside,Combine the downside weight and severity sensitivities,False,31794.310314,3797.392178,0.135636,554000.000000,0.057390

@@ -79,9 +79,9 @@ git status --short
 ```
 
 The root runner checks all Ruff and pytest suites, regenerates all deterministic synthetic,
-ECL-integration, model-replication, validation, and remediation reports, then compares them
-with the committed evidence. GitHub Actions repeats this gate on Linux and runs the database
-integration test against PostgreSQL 16.
+ECL-integration, macro/overlay governance, model-replication, validation, and remediation
+reports, then compares them with the committed evidence. GitHub Actions repeats this gate on
+Linux and runs the database integration test against PostgreSQL 16.
 
 Review the diff for unrelated files, machine-local paths, credentials, and borrower-level
 records before staging.
@@ -118,7 +118,7 @@ failures on the branch and push again; do not merge a red PR.
 
 ## 7. Next High-Impact Iterations
 
-1. Add ECL macro sensitivity and management-overlay governance examples.
+1. Add documented SICR rebuttal decisions and contractual cash-flow sensitivity.
 2. Evaluate survival methods or a fixed-horizon label for unresolved public outcomes.
 3. Add reject-inference sensitivity for the accepted-only population.
 4. Add a fresh OOT closure window when a defensible later-period dataset is available.

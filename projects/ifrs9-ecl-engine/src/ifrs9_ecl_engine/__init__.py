@@ -1,4 +1,14 @@
 from ifrs9_ecl_engine.engine import ECLResult, StagingPolicy, run_ecl_engine
+from ifrs9_ecl_engine.governance import (
+    MacroOverlayAnalysisResult,
+    MacroSensitivityCase,
+    MacroSensitivityResult,
+    ManagementOverlay,
+    OverlayEvaluationResult,
+    analyse_macro_sensitivity,
+    evaluate_management_overlays,
+    run_macro_overlay_analysis,
+)
 from ifrs9_ecl_engine.pd_integration import (
     PDBridgeInputs,
     PDIntegrationConfig,
@@ -16,15 +26,23 @@ from ifrs9_ecl_engine.pd_integration import (
 
 __all__ = [
     "ECLResult",
+    "MacroOverlayAnalysisResult",
+    "MacroSensitivityCase",
+    "MacroSensitivityResult",
+    "ManagementOverlay",
+    "OverlayEvaluationResult",
     "PDBridgeInputs",
     "PDIntegrationConfig",
     "PDIntegrationPipelineOutput",
     "PDScenarioAssumption",
     "StagingPolicy",
+    "analyse_macro_sensitivity",
     "build_ecl_inputs_from_pd_snapshot",
     "build_synthetic_account_assumptions",
+    "evaluate_management_overlays",
     "read_pd_predictions",
     "run_ecl_engine",
+    "run_macro_overlay_analysis",
     "run_pd_ecl_integration",
     "run_pd_integration_pipeline",
     "select_evenly_spaced_pd_sample",
