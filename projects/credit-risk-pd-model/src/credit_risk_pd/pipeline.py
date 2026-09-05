@@ -72,6 +72,7 @@ def run_pd_modelling_workflow(
             config.date_col: oot[config.date_col],
             "home_ownership": oot["home_ownership"].fillna("other").astype(str),
             "purpose": oot["purpose"].fillna("other").astype(str),
+            **{feature: x_oot[feature] for feature in NUMERIC_FEATURES},
             "actual_default": y_oot,
         }
     )
@@ -275,4 +276,3 @@ def _require_binary_sample(target: pd.Series, sample_name: str) -> None:
         raise ValueError(
             f"{sample_name} sample must contain both default and non-default observations."
         )
-

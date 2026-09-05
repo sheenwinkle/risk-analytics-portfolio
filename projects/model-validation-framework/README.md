@@ -3,7 +3,8 @@
 Independent-style validation of the frozen out-of-time PD scores produced by
 [Project 1](../credit-risk-pd-model). The validator consumes only the frozen
 `reports/oot_predictions.csv` contract and does not import model-development code. The
-contract contains frozen scores, outcomes, and two non-sensitive business segment fields.
+contract contains frozen scores, outcomes, model inputs, and two non-sensitive business
+segment fields.
 
 This is an educational portfolio case study. It demonstrates model risk methods and
 governance judgement, but it is not a regulatory approval, accounting opinion, or
@@ -25,12 +26,15 @@ The framework consumes the frozen 225,639-row OOT score contract without importi
 | Absolute calibration gap | 0.026335 | Warning |
 | PSI | 0.016656 | Pass |
 | Challenger AUC margin | -0.009411 | Pass |
+| Maximum available CSI | 0.077926 (`credit_utilisation`) | Pass |
 
 The selected model's AUC has a DeLong 95% confidence interval of `0.697369-0.702405`, which
 straddles the illustrative `0.70` pass threshold and supports retaining the warning opinion.
 The observed default rate is `0.212920` (`0.211236-0.214614`, Wilson 95% CI), while the
 recalibrated mean PD is `0.239255` (`0.238715-0.239795`). The paired calibration-gap interval
 is `0.024716-0.027955`, confirming portfolio over-prediction rather than sampling noise.
+All ten available characteristics remain below the illustrative `0.10` CSI threshold;
+borrower `age` is reported as `not_available` because the source field is entirely missing.
 
 Quarterly maturity evidence changes the interpretation of recent results. Raw status
 resolution declines from `48.4%` in 2017Q1 to `3.9%` in 2018Q4; the corresponding resolved
@@ -56,6 +60,7 @@ model as acceptable.
 | Absolute calibration gap | 0.077097 | **Fail** | Mean PD 9.69% versus observed default rate 17.40% |
 | PSI | 0.070689 | Pass | Limited score-distribution movement between 2022 halves |
 | Challenger AUC margin | -0.023896 | Pass | Random forest challenger does not outperform the incumbent |
+| Maximum available CSI | 0.070946 | Pass | Credit utilisation has the largest input shift |
 
 The result supports a clear validation judgement: discrimination and score stability are
 acceptable under the configured policy, but calibration requires investigation and fresh
@@ -82,12 +87,14 @@ evidence, but it is not treated as independent closure evidence. See the
 ```text
 Project 1 frozen OOT predictions
 -> schema and model-lineage audit
+-> numeric feature validation and loan-to-income lineage reconciliation
 -> independent discrimination and calibration metrics
 -> DeLong, Wilson, and paired normal confidence intervals
 -> low-to-high PD calibration deciles
 -> monthly and quarterly vintage performance diagnostics
 -> home-ownership and purpose segment backtests
 -> reference-period PSI stability analysis
+-> numeric/categorical characteristic stability analysis
 -> incumbent/challenger and recalibration comparisons
 -> configurable traffic-light policy
 -> findings, limitations, CSV evidence, and Markdown report
@@ -106,14 +113,17 @@ The implementation includes:
 - chronological reference/current score samples split by distinct observation dates
 - PSI bins derived only from the reference sample, with midpoint boundaries that do not
   split tied reference scores
+- CSI for all model inputs using reference-derived numeric bins, category unions, and explicit
+  missing buckets; all-missing characteristics remain visible as unavailable
+- independent row-level reproduction of `loan_to_income` from frozen loan amount and income
 - selected-model lineage checks covering both logistic regression and random forest
 - incumbent versus challenger benchmarking and raw versus recalibrated impact analysis
 - immutable, validated policy thresholds with pass, warning, and fail findings
 - deterministic CSV and Markdown outputs with fixed precision and LF line endings
 - context-specific limitations for synthetic and public LendingClub evidence
 - no-look-ahead rolling remediation with explicit closure status
-- PostgreSQL persistence for runs, metric uncertainty, grouped performance, findings,
-  benchmarks, limitations, and finding events
+- PostgreSQL persistence for runs, metric uncertainty, grouped performance, characteristic
+  summaries/bins, findings, benchmarks, limitations, and finding events
 
 ## Input Contract
 
@@ -125,6 +135,11 @@ The default input is `../credit-risk-pd-model/reports/oot_predictions.csv`.
 | `observation_date` | Parseable date with at least two distinct dates |
 | `home_ownership` | Non-empty business segment category |
 | `purpose` | Non-empty business segment category |
+| `age`, `annual_income` | Finite numeric model inputs when present; missingness retained |
+| `debt_to_income`, `credit_utilisation` | Finite numeric model inputs when present |
+| `delinquencies_2y`, `loan_amount`, `interest_rate` | Finite numeric model inputs when present |
+| `employment_length` | Finite numeric model input when present; missingness retained |
+| `loan_to_income` | Finite when present and matches `loan_amount / max(annual_income, 1)` row-by-row |
 | `actual_default` | Binary 0/1 outcome with both classes represented |
 | `selected_model` | Exactly one supported model across the file |
 | `selected_model_raw_pd` | Row-level match to the selected model's raw PD |
@@ -145,6 +160,7 @@ They are portfolio assumptions for this case study, not universal regulatory cut
 | KS | >= 0.30 | >= 0.20 and < 0.30 | < 0.20 |
 | Absolute calibration gap | <= 0.01 | > 0.01 and <= 0.03 | > 0.03 |
 | PSI | <= 0.10 | > 0.10 and <= 0.25 | > 0.25 |
+| Maximum CSI | <= 0.10 | > 0.10 and <= 0.25 | > 0.25 |
 | Challenger AUC margin | <= 0.01 | > 0.01 and <= 0.03 | > 0.03 |
 
 The challenger margin is challenger raw AUC minus selected recalibrated incumbent AUC.
@@ -170,6 +186,7 @@ Core modules separate validation responsibilities:
 - `calibration.py`: deterministic deciles and monthly backtesting
 - `diagnostics.py`: confidence intervals, vintage backtesting, and segment reliability
 - `stability.py`: chronological reference/current PSI
+- `characteristic_stability.py`: numeric/categorical CSI and missingness drift
 - `benchmarking.py`: incumbent, challenger, and recalibration comparisons
 - `policy.py`: immutable traffic-light thresholds
 - `reporting.py`: policy findings, limitations, CSVs, and Markdown report
@@ -224,8 +241,8 @@ python scripts\load_validation_run.py --apply-schema --persist-remediation
 ```
 
 The integration test runs against PostgreSQL 16 in GitHub Actions and verifies the inserted
-run, metric, uncertainty, grouped-performance, finding, benchmark, limitation, and three
-finding-event records.
+run, metric, uncertainty, grouped-performance, characteristic summary/bin, finding,
+benchmark, limitation, and three finding-event records.
 
 ## Report Outputs
 
@@ -238,6 +255,8 @@ finding-event records.
 | `reports/monthly_performance.csv` | Monthly calibration and discrimination diagnostics |
 | `reports/vintage_performance.csv` | Quarterly calibration, discrimination, and reliability |
 | `reports/segment_performance.csv` | Home-ownership and purpose backtests with reliability flags |
+| `reports/characteristic_stability_summary.csv` | Feature-level CSI, missingness, availability, and status |
+| `reports/characteristic_stability_bins.csv` | Reference/current feature distributions and CSI contributions |
 | `reports/stability_summary.csv` | Period definitions, bin method, and total PSI |
 | `reports/stability_bins.csv` | Reference/current distribution and PSI contribution by bin |
 | `reports/benchmark_comparison.csv` | Challenger and recalibration deltas |
@@ -251,8 +270,8 @@ public-data run. `reports/remediation/` contains monthly sequential retest evide
 summary, finding lifecycle events, and a reviewer-readable report.
 
 The PostgreSQL schema and loader under `sql/` and `scripts/` retain validation runs, policy
-metrics, confidence intervals, grouped backtests, findings, limitations, challenger results,
-remediation retests, and closure decisions for governance reporting.
+metrics, confidence intervals, grouped backtests, characteristic drift, findings, limitations,
+challenger results, remediation retests, and closure decisions for governance reporting.
 
 ## Limitations
 
@@ -261,8 +280,8 @@ remediation retests, and closure decisions for governance reporting.
 - Published issue-quarter resolution quantifies severe recent-vintage right-censoring but does
   not correct it; 2018 resolved-sample rates should not be read as mature cohort performance.
 - Neither the public nor synthetic OOT evidence spans a full credit cycle.
-- Validation starts from frozen scores, outcomes, and two segment fields; it does not
-  independently rebuild the full feature set or replicate model estimation.
+- Validation reconciles frozen model inputs and the derived loan-to-income feature, but does
+  not independently re-estimate development candidates.
 - Policy thresholds are illustrative and require institution-specific governance approval.
 - The sequential remediation retest shares historical data with development and therefore
   cannot close the finding without a fresh independent OOT window.
@@ -271,9 +290,9 @@ remediation retests, and closure decisions for governance reporting.
 
 > Built a reusable Python and PostgreSQL model validation framework that independently
 > re-performed AUC, Gini, tie-safe KS, Brier score, calibration, monthly backtesting, PSI,
-> challenger comparisons, confidence intervals, and segment/vintage diagnostics on 225,639
-> public OOT observations; implemented policy opinions, no-look-ahead remediation, deterministic
-> evidence, and PostgreSQL finding lifecycle persistence.
+> CSI, challenger comparisons, confidence intervals, and segment/vintage diagnostics on
+> 225,639 public OOT observations; implemented policy opinions, no-look-ahead remediation,
+> deterministic evidence, and PostgreSQL governance persistence.
 
 ## Interview Discussion
 

@@ -115,6 +115,70 @@ CREATE TABLE IF NOT EXISTS model_validation_group_performance (
     CHECK (ks IS NULL OR (ks >= 0 AND ks <= 1))
 );
 
+CREATE TABLE IF NOT EXISTS model_validation_characteristic_summary (
+    validation_run_id BIGINT NOT NULL REFERENCES model_validation_run(validation_run_id),
+    feature_name TEXT NOT NULL,
+    feature_type TEXT NOT NULL CHECK (feature_type IN ('numeric', 'categorical')),
+    reference_start DATE NOT NULL,
+    reference_end DATE NOT NULL,
+    current_start DATE NOT NULL,
+    current_end DATE NOT NULL,
+    reference_observations INTEGER NOT NULL CHECK (reference_observations > 0),
+    current_observations INTEGER NOT NULL CHECK (current_observations > 0),
+    reference_missing_rate NUMERIC NOT NULL CHECK (
+        reference_missing_rate >= 0 AND reference_missing_rate <= 1
+    ),
+    current_missing_rate NUMERIC NOT NULL CHECK (
+        current_missing_rate >= 0 AND current_missing_rate <= 1
+    ),
+    missing_rate_delta NUMERIC NOT NULL CHECK (
+        missing_rate_delta >= -1 AND missing_rate_delta <= 1
+    ),
+    requested_bins INTEGER CHECK (requested_bins > 0),
+    effective_bins INTEGER NOT NULL CHECK (effective_bins > 0),
+    binning_method TEXT NOT NULL CHECK (
+        binning_method IN (
+            'reference_quantile_midpoint', 'reference_missing_indicator',
+            'all_missing', 'category_union'
+        )
+    ),
+    availability_status TEXT NOT NULL CHECK (
+        availability_status IN ('available', 'reference_all_missing', 'all_missing')
+    ),
+    characteristic_stability_index NUMERIC NOT NULL CHECK (
+        characteristic_stability_index >= 0
+    ),
+    stability_status TEXT NOT NULL CHECK (
+        stability_status IN (
+            'stable', 'moderate_shift', 'material_shift', 'not_available'
+        )
+    ),
+    PRIMARY KEY (validation_run_id, feature_name),
+    CHECK (reference_start <= reference_end),
+    CHECK (reference_end < current_start),
+    CHECK (current_start <= current_end)
+);
+
+CREATE TABLE IF NOT EXISTS model_validation_characteristic_bin (
+    validation_run_id BIGINT NOT NULL,
+    feature_name TEXT NOT NULL,
+    feature_type TEXT NOT NULL CHECK (feature_type IN ('numeric', 'categorical')),
+    bin TEXT NOT NULL,
+    bin_label TEXT NOT NULL,
+    lower_bound NUMERIC,
+    upper_bound NUMERIC,
+    category_value TEXT,
+    reference_observations INTEGER NOT NULL CHECK (reference_observations >= 0),
+    current_observations INTEGER NOT NULL CHECK (current_observations >= 0),
+    reference_share NUMERIC NOT NULL CHECK (reference_share >= 0 AND reference_share <= 1),
+    current_share NUMERIC NOT NULL CHECK (current_share >= 0 AND current_share <= 1),
+    csi_component NUMERIC NOT NULL CHECK (csi_component >= 0),
+    PRIMARY KEY (validation_run_id, feature_name, bin),
+    FOREIGN KEY (validation_run_id, feature_name)
+        REFERENCES model_validation_characteristic_summary(validation_run_id, feature_name),
+    CHECK (lower_bound IS NULL OR upper_bound IS NULL OR lower_bound < upper_bound)
+);
+
 ALTER TABLE model_validation_finding
     ADD COLUMN IF NOT EXISTS lifecycle_status TEXT NOT NULL DEFAULT 'open';
 
@@ -198,4 +262,9 @@ CREATE INDEX IF NOT EXISTS idx_model_validation_finding_event_finding
 CREATE INDEX IF NOT EXISTS idx_model_validation_group_lookup
     ON model_validation_group_performance (
         group_type, group_dimension, group_value, validation_run_id
+    );
+
+CREATE INDEX IF NOT EXISTS idx_model_validation_characteristic_status
+    ON model_validation_characteristic_summary (
+        stability_status, characteristic_stability_index DESC, validation_run_id
     );

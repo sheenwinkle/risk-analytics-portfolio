@@ -14,10 +14,16 @@ The illustrative policy outcome is **warning**:
 | Absolute calibration gap | 0.026335 | warning |
 | PSI | 0.016656 | pass |
 | Challenger AUC margin | -0.009411 | pass |
+| Maximum available CSI | 0.077926 (`credit_utilisation`) | pass |
 
 The model retains useful rank ordering and stable score distributions, but its AUC, KS, and
 portfolio calibration sit close to or within warning thresholds. The appropriate opinion is
 continued monitoring and calibration review rather than unconditional approval.
+
+Feature-level CSI separates input movement from score movement. All ten available inputs are
+below the `0.10` stability threshold; `age` is explicitly `not_available` because LendingClub
+does not disclose it. See `characteristic_stability_summary.csv` and
+`characteristic_stability_bins.csv` for aggregate details.
 
 ## Statistical and Grouped Evidence
 
@@ -38,8 +44,8 @@ aggregate details.
 
 - OOT cohort: 225,639 resolved accepted loans from 2017-2018
 - Selected model: recalibrated random forest
-- Validation starts from frozen scores, outcomes, and two non-sensitive segments rather than
-  rebuilding development features
+- Validation starts from frozen scores, outcomes, and the full model-input contract; it
+  independently reconciles loan-to-income but does not re-estimate model candidates
 - Public accepted-loan selection bias and terminal-outcome target limitations remain explicit
 - Thresholds are illustrative portfolio policy, not regulatory cutoffs
 

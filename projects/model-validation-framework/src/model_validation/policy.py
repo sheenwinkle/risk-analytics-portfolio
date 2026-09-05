@@ -8,9 +8,10 @@ from dataclasses import dataclass, fields
 class ValidationPolicy:
     """Traffic-light thresholds for independent PD model validation.
 
-    Higher AUC and KS are better. Lower absolute calibration gap, PSI, and challenger
-    AUC margin are better. Green maps to pass, amber maps to warning, and red maps to fail.
-    The challenger margin is challenger raw AUC minus selected recalibrated incumbent AUC.
+    Higher AUC and KS are better. Lower absolute calibration gap, PSI, CSI, and
+    challenger AUC margin are better. Green maps to pass, amber maps to warning, and
+    red maps to fail. The challenger margin is challenger raw AUC minus selected
+    recalibrated incumbent AUC.
     """
 
     auc_green_min: float = 0.70
@@ -21,6 +22,8 @@ class ValidationPolicy:
     absolute_calibration_gap_warning_max: float = 0.03
     psi_green_max: float = 0.10
     psi_warning_max: float = 0.25
+    csi_green_max: float = 0.10
+    csi_warning_max: float = 0.25
     challenger_auc_margin_green_max: float = 0.01
     challenger_auc_margin_warning_max: float = 0.03
 
@@ -39,6 +42,7 @@ class ValidationPolicy:
                 self.absolute_calibration_gap_warning_max,
             ),
             (self.psi_green_max, self.psi_warning_max),
+            (self.csi_green_max, self.csi_warning_max),
             (
                 self.challenger_auc_margin_green_max,
                 self.challenger_auc_margin_warning_max,

@@ -14,6 +14,7 @@ Public/synthetic lending data
 -> vintage maturity and statistical uncertainty checks
 -> IFRS 9 ECL consumption
 -> independent validation opinion
+-> score and input characteristic stability
 -> calibration remediation and finding lifecycle
 -> PostgreSQL governance evidence
 ```
@@ -33,6 +34,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | Raw to recalibrated Brier score | 0.208 -> 0.155 |
 | Selected-model ROC-AUC 95% CI | 0.697 -> 0.702 |
 | Raw status resolution, 2017Q1 -> 2018Q4 | 48.4% -> 3.9% |
+| Maximum available feature CSI | 0.077926 (credit utilisation) |
 | Public independent validation opinion | warning |
 | Synthetic stress-case validation opinion | fail |
 | Sequential remediation calibration gap | 0.064 -> 0.009 |
@@ -40,6 +42,8 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 ![Public LendingClub calibration](docs/assets/public_pd_calibration.png)
 
 ![Public validation opinion](docs/assets/public_validation_opinion.png)
+
+![Public feature stability](docs/assets/public_feature_stability.png)
 
 ![Public vintage maturity and OOT backtest](docs/assets/public_vintage_backtest.png)
 
@@ -49,7 +53,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, discounting, scenarios, migration, Project 1 bridge | ECL, Portfolio Risk, Credit Risk |
-| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent metrics, confidence intervals, vintage/segment backtesting, policy opinion, remediation lifecycle, PostgreSQL persistence | Model Risk, Validation, Quant Risk |
+| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent metrics, confidence intervals, vintage/segment backtesting, PSI/CSI drift, policy opinion, remediation lifecycle, PostgreSQL persistence | Model Risk, Validation, Quant Risk |
 
 ## Project 1: Credit Risk PD Modelling
 
@@ -101,13 +105,16 @@ institution-specific IFRS 9 compliance.
 
 ## Project 3: Model Validation and Remediation
 
-Project 3 consumes frozen scores, outcomes, and two non-sensitive business segmentation
-fields. It independently reperforms AUC, Gini, tie-safe KS, Brier score, calibration, monthly
-and quarterly monitoring, PSI, challenger tests, and 95% confidence intervals.
+Project 3 consumes the frozen score, outcome, and full model-input contract. It independently
+reconciles the derived loan-to-income feature and reperforms AUC, Gini, tie-safe KS, Brier
+score, calibration, monthly and quarterly monitoring, PSI, feature-level CSI, challenger
+tests, and 95% confidence intervals without importing development code.
 
 The public LendingClub model receives an overall **warning**: AUC, KS, and calibration are
-near or within warning thresholds, while PSI and challenger checks pass. The synthetic stress
-candidate receives **fail** for material PD underestimation.
+near or within warning thresholds, while score PSI, feature CSI, and challenger checks pass.
+Maximum available CSI is `0.077926` for `credit_utilisation`; unavailable borrower age is
+reported explicitly rather than silently imputed. The synthetic stress candidate receives
+**fail** for material PD underestimation.
 
 The public AUC is `0.699887` with a DeLong 95% interval of `0.697369-0.702405`.
 Quarterly results also expose outcome immaturity: raw status resolution declines from `48.4%`
@@ -161,7 +168,7 @@ VS Code exposes both commands through **Tasks: Run Task**:
 - Behavioural, edge-case, lineage, privacy, and deterministic-report tests
 - GitHub Actions matrix across all three projects
 - CI PostgreSQL 16 integration test for run, metric uncertainty, grouped performance,
-  finding, benchmark, limitation, and remediation-event persistence
+  characteristic drift, finding, benchmark, limitation, and remediation-event persistence
 - Full-portfolio regeneration check with line-ending normalisation and machine-precision
   tolerance for parallel model output
 - Borrower-level publication deny-list plus safe aggregate report lists
@@ -200,7 +207,8 @@ risk-analytics-portfolio/
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
 > LendingClub records, covering temporal PD development, recalibration, vintage maturity,
 > IFRS 9 ECL consumption, independent validation with confidence intervals and segment
-> backtesting, no-look-ahead remediation, and PostgreSQL governance persistence.
+> backtesting, score/feature drift, no-look-ahead remediation, and PostgreSQL governance
+> persistence.
 
 Detailed resume bullets and interview prompts are in
 [docs/resume-project-description.md](docs/resume-project-description.md). Development setup
@@ -209,6 +217,6 @@ and the optional VS Code/Codex iteration process are documented in
 
 ## Next Evidence
 
-- Add feature-level replication, CSI, and characteristic drift evidence.
+- Independently re-estimate development candidates and compare parameter/importance stability.
 - Add documented SICR rebuttal and macroeconomic management-overlay sensitivity.
 - Revisit the pending calibration finding when an additional matured OOT horizon is available.

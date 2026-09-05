@@ -55,8 +55,9 @@ test accounting identities, regenerate deterministic evidence, and document limi
 ```
 
 ```text
-Add characteristic stability analysis to Project 3. Rebuild selected features independently,
-persist CSI results to PostgreSQL, and distinguish data drift from score drift in the report.
+Independently re-estimate Project 1 candidates from a governed development extract. Compare
+parameters and importance with the frozen model, persist aggregate evidence, and avoid OOT
+model selection.
 ```
 
 Avoid prompts such as `make the project better`; they do not define a risk decision,
@@ -118,7 +119,7 @@ failures on the branch and push again; do not merge a red PR.
 ## 7. Next High-Impact Iterations
 
 1. Add ECL macro sensitivity and management-overlay governance examples.
-2. Add feature-level replication, CSI, and characteristic drift evidence.
+2. Add independent candidate re-estimation and parameter/importance stability evidence.
 3. Evaluate survival methods or a fixed-horizon label for unresolved public outcomes.
 4. Add reject-inference sensitivity for the accepted-only population.
 5. Add a fresh OOT closure window when a defensible later-period dataset is available.

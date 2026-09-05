@@ -155,3 +155,44 @@ SELECT
 FROM model_validation_run
 GROUP BY model_name, validation_quarter
 ORDER BY model_name, validation_quarter;
+
+-- Feature drift and missingness for the latest validation run.
+WITH latest_run AS (
+    SELECT validation_run_id
+    FROM model_validation_run
+    ORDER BY created_at DESC, validation_run_id DESC
+    LIMIT 1
+)
+SELECT
+    feature_name,
+    feature_type,
+    characteristic_stability_index,
+    stability_status,
+    reference_missing_rate,
+    current_missing_rate,
+    missing_rate_delta,
+    availability_status
+FROM model_validation_characteristic_summary
+JOIN latest_run USING (validation_run_id)
+ORDER BY characteristic_stability_index DESC, feature_name;
+
+-- Bin-level drivers for materially shifted characteristics in the latest run.
+WITH latest_run AS (
+    SELECT validation_run_id
+    FROM model_validation_run
+    ORDER BY created_at DESC, validation_run_id DESC
+    LIMIT 1
+)
+SELECT
+    summary.feature_name,
+    bin.bin,
+    bin.bin_label,
+    bin.reference_share,
+    bin.current_share,
+    bin.csi_component
+FROM model_validation_characteristic_summary AS summary
+JOIN latest_run USING (validation_run_id)
+JOIN model_validation_characteristic_bin AS bin
+    USING (validation_run_id, feature_name)
+WHERE summary.stability_status IN ('moderate_shift', 'material_shift')
+ORDER BY summary.feature_name, bin.csi_component DESC, bin.bin;

@@ -1,10 +1,19 @@
 check,status,detail
 row_count,pass,225639 rows loaded
-required_columns,pass,"customer_id, observation_date, home_ownership, purpose, actual_default, selected_model, selected_model_raw_pd, logistic_regression_pd, recalibrated_pd, random_forest_pd"
+required_columns,pass,"customer_id, observation_date, home_ownership, purpose, age, annual_income, debt_to_income, credit_utilisation, delinquencies_2y, loan_amount, interest_rate, employment_length, loan_to_income, actual_default, selected_model, selected_model_raw_pd, logistic_regression_pd, recalibrated_pd, random_forest_pd"
 customer_id,pass,unique non-empty customer IDs
 observation_date,pass,2017-01-01 to 2018-12-01
 home_ownership,pass,non-empty business segment category
 purpose,pass,non-empty business segment category
+age,pass,finite numeric model input when present; missingness retained
+annual_income,pass,finite numeric model input when present; missingness retained
+debt_to_income,pass,finite numeric model input when present; missingness retained
+credit_utilisation,pass,finite numeric model input when present; missingness retained
+delinquencies_2y,pass,finite numeric model input when present; missingness retained
+loan_amount,pass,finite numeric model input when present; missingness retained
+interest_rate,pass,finite numeric model input when present; missingness retained
+employment_length,pass,finite numeric model input when present; missingness retained
+loan_to_income,pass,finite numeric model input when present; independently reproduced from loan_amount / annual_income clipped at 1
 actual_default,pass,binary observed default flag with both classes present
 selected_model,pass,one supported selected model: random_forest
 selected_model_raw_pd,pass,matches selected model raw PD row-by-row

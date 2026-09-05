@@ -1,0 +1,12 @@
+feature_name,feature_type,reference_start,reference_end,current_start,current_end,reference_observations,current_observations,reference_missing_rate,current_missing_rate,missing_rate_delta,requested_bins,effective_bins,binning_method,availability_status,characteristic_stability_index,stability_status
+age,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,1.000000,1.000000,0.000000,10.000000,1,all_missing,all_missing,0.000000,not_available
+annual_income,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.001936,stable
+debt_to_income,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.001081,0.002681,0.001600,10.000000,11,reference_quantile_midpoint,available,0.028690,stable
+credit_utilisation,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000892,0.001314,0.000422,10.000000,11,reference_quantile_midpoint,available,0.077926,stable
+delinquencies_2y,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000000,0.000000,0.000000,10.000000,3,reference_quantile_midpoint,available,0.013963,stable
+loan_amount,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.015062,stable
+interest_rate,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.051512,stable
+employment_length,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.071610,0.087610,0.016000,10.000000,9,reference_quantile_midpoint,available,0.009053,stable
+loan_to_income,numeric,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.026476,stable
+home_ownership,categorical,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000000,0.000000,0.000000,,4,category_union,available,0.003347,stable
+purpose,categorical,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,0.000000,0.000000,0.000000,,13,category_union,available,0.021543,stable

@@ -14,6 +14,8 @@ REPORT_TABLES = (
     "monthly_performance",
     "vintage_performance",
     "segment_performance",
+    "characteristic_stability_summary",
+    "characteristic_stability_bins",
     "stability_summary",
     "stability_bins",
     "benchmark_comparison",
@@ -27,6 +29,7 @@ def build_validation_summary(
     *,
     model_metrics: pd.DataFrame,
     stability_summary: pd.DataFrame,
+    characteristic_stability_summary: pd.DataFrame,
     benchmark_comparison: pd.DataFrame,
     selected_model: str,
     policy: ValidationPolicy,
@@ -42,6 +45,14 @@ def build_validation_summary(
         "auc_delta",
     ].iloc[0]
     psi = stability_summary["population_stability_index"].iloc[0]
+    available_characteristics = characteristic_stability_summary[
+        characteristic_stability_summary["stability_status"].ne("not_available")
+    ]
+    if available_characteristics.empty:
+        raise ValueError("At least one characteristic must be available for CSI policy checks")
+    maximum_csi = available_characteristics.loc[
+        available_characteristics["characteristic_stability_index"].idxmax()
+    ]
 
     rows = [
         {
@@ -103,6 +114,22 @@ def build_validation_summary(
             ),
             "detail": "Unselected raw challenger AUC minus selected recalibrated incumbent AUC.",
         },
+        {
+            "check": "maximum_characteristic_stability_index",
+            "metric_value": float(maximum_csi["characteristic_stability_index"]),
+            "direction": "lower_is_better",
+            "green_threshold": policy.csi_green_max,
+            "warning_threshold": policy.csi_warning_max,
+            "status": policy.status_for_maximum(
+                float(maximum_csi["characteristic_stability_index"]),
+                policy.csi_green_max,
+                policy.csi_warning_max,
+            ),
+            "detail": (
+                "Maximum available feature-level CSI, observed for "
+                f"{maximum_csi['feature_name']}."
+            ),
+        },
     ]
     return pd.DataFrame(rows)
 
@@ -114,6 +141,9 @@ def build_validation_findings(validation_summary: pd.DataFrame) -> pd.DataFrame:
         "absolute_calibration_gap": "Absolute calibration gap",
         "population_stability_index": "Population Stability Index",
         "challenger_auc_margin": "Challenger AUC margin",
+        "maximum_characteristic_stability_index": (
+            "Maximum Characteristic Stability Index"
+        ),
     }
     actions = {
         "auc": "Review rank ordering, reject-inference assumptions, and candidate segmentation.",
@@ -121,6 +151,9 @@ def build_validation_findings(validation_summary: pd.DataFrame) -> pd.DataFrame:
         "absolute_calibration_gap": "Re-estimate calibration on a fresh holdout and review portfolio mix shift.",
         "population_stability_index": "Drill into shifted score bands and compare application mix drivers.",
         "challenger_auc_margin": "Run challenger governance review before retaining the incumbent score.",
+        "maximum_characteristic_stability_index": (
+            "Investigate the most shifted model input, its missingness, and upstream data lineage."
+        ),
     }
     rows = []
     for _, check in validation_summary.iterrows():
@@ -195,13 +228,15 @@ def build_model_limitations(
                 "mitigation": "Extend monitoring across additional vintages when data is available.",
             },
             {
-                "limitation": "limited_feature_replication",
+                "limitation": "no_model_reestimation",
                 "severity": "medium",
                 "description": (
-                    "Independent validation consumes frozen scores, outcomes, and two "
-                    "business segmentation fields rather than the full development feature set."
+                    "Independent validation reconciles frozen model inputs and derived "
+                    "loan-to-income, but does not re-estimate development candidates."
                 ),
-                "mitigation": "Add feature-level replication and challenger rebuild testing in a later slice.",
+                "mitigation": (
+                    "Rebuild model candidates from governed development data before production approval."
+                ),
             },
         ]
     )
@@ -228,6 +263,12 @@ def build_markdown_report(result: object) -> str:
         result.model_metrics["score_version"].eq("recalibrated")
     ].iloc[0]
     stability = result.stability_summary.iloc[0]
+    available_characteristics = result.characteristic_stability_summary[
+        result.characteristic_stability_summary["stability_status"].ne("not_available")
+    ]
+    maximum_csi = available_characteristics.loc[
+        available_characteristics["characteristic_stability_index"].idxmax()
+    ]
     overall_outcome = _overall_policy_outcome(result.validation_summary)
     summary_lines = [
         "# PD Model Validation Case Study",
@@ -261,6 +302,11 @@ def build_markdown_report(result: object) -> str:
             f"{stability['current_start']} to {stability['current_end']}."
         ),
         f"- PSI: {_format_float(stability['population_stability_index'])}.",
+        (
+            "- Maximum available feature CSI: "
+            f"{_format_float(maximum_csi['characteristic_stability_index'])} "
+            f"({maximum_csi['feature_name']})."
+        ),
         f"- Overall policy outcome: **{overall_outcome.upper()}**.",
         "",
         "## Methodology",
@@ -270,6 +316,10 @@ def build_markdown_report(result: object) -> str:
         "- Reviewed rank-based calibration deciles and monthly performance.",
         "- Backtested calibration and discrimination by origination quarter and business segment.",
         "- Measured score drift with reference-period quantile midpoint PSI bins.",
+        (
+            "- Measured numeric and categorical input drift with reference-derived "
+            "bins, unioned categories, and explicit missing-value buckets."
+        ),
         "- Compared the selected recalibrated incumbent with the unselected raw challenger.",
         "",
         "## Policy Checks",
@@ -295,6 +345,10 @@ def build_markdown_report(result: object) -> str:
         "## Stability Summary",
         "",
         _markdown_table(result.stability_summary),
+        "",
+        "## Characteristic Stability Summary",
+        "",
+        _markdown_table(result.characteristic_stability_summary),
         "",
         "## Benchmark Comparison",
         "",

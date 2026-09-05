@@ -178,7 +178,7 @@ The pipeline writes:
 - `reports/feature_importance.csv`: model-agnostic permutation importance for the selected model on the out-of-time sample
 - `reports/psi_report.csv`: population drift indicators
 - `reports/model_report.md`: markdown summary of model performance, recalibration, strategy scenarios, Information Value, feature importance, and PSI monitoring
-- `reports/oot_predictions.csv`: account-level out-of-time actuals, selected/raw/recalibrated PDs, and non-sensitive `home_ownership`/`purpose` segments; Project 2's ECL bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`
+- `reports/oot_predictions.csv`: account-level out-of-time actuals, selected/raw/recalibrated PDs, the complete frozen model-input contract, and non-sensitive segments; Project 2's ECL bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`, while Project 3 independently validates feature lineage and drift
 - `models/<selected_model>_recalibrated.joblib`: selected base model plus fitted logistic recalibrator with `predict_proba`
 
 Public-data preparation additionally writes `lendingclub_vintage_resolution.csv`, which keeps

@@ -82,6 +82,14 @@ def main() -> None:
         / "public_lendingclub"
         / "vintage_performance.csv"
     )
+    characteristic_stability_path = (
+        REPO_ROOT
+        / "projects"
+        / "model-validation-framework"
+        / "reports"
+        / "public_lendingclub"
+        / "characteristic_stability_summary.csv"
+    )
 
     outputs = (
         _build_calibration_chart(calibration_path, output_dir / "public_pd_calibration.png"),
@@ -89,7 +97,6 @@ def main() -> None:
         _build_validation_chart(
             validation_path,
             output_dir / "validation_opinion.png",
-            overall_status="FAIL",
             decision=(
                 "Discrimination and stability pass; calibration requires remediation"
             ),
@@ -97,13 +104,16 @@ def main() -> None:
         _build_validation_chart(
             public_validation_path,
             output_dir / "public_validation_opinion.png",
-            overall_status="WARNING",
-            decision="AUC, KS, and calibration require monitoring; stability checks pass",
+            decision="Policy opinion covers performance, score drift, and input drift",
         ),
         _build_vintage_backtest_chart(
             vintage_resolution_path,
             vintage_performance_path,
             output_dir / "public_vintage_backtest.png",
+        ),
+        _build_characteristic_stability_chart(
+            characteristic_stability_path,
+            output_dir / "public_feature_stability.png",
         ),
     )
     for output in outputs:
@@ -222,7 +232,6 @@ def _build_validation_chart(
     input_path: Path,
     output_path: Path,
     *,
-    overall_status: str,
     decision: str,
 ) -> Path:
     rows = _read_csv(input_path)
@@ -232,15 +241,17 @@ def _build_validation_chart(
         "absolute_calibration_gap": "Absolute calibration gap",
         "population_stability_index": "Population stability index",
         "challenger_auc_margin": "Challenger AUC margin",
+        "maximum_characteristic_stability_index": "Maximum characteristic stability index",
     }
     status_colors = {"pass": TEAL, "warning": AMBER, "fail": RED}
+    overall_status = _overall_status(rows)
 
     figure, axis = plt.subplots(figsize=(8.8, 5.1), dpi=160)
     axis.set_xlim(0, 1)
     axis.set_ylim(0, len(rows) + 1.8)
     axis.axis("off")
     axis.text(0, len(rows) + 1.45, "Independent validation opinion", fontsize=15, color=TEXT)
-    overall_color = status_colors["fail" if overall_status == "FAIL" else "warning"]
+    overall_color = status_colors[overall_status.lower()]
     axis.text(
         0,
         len(rows) + 1.02,
@@ -274,6 +285,86 @@ def _build_validation_chart(
     figure.tight_layout()
     _save(figure, output_path)
     return output_path
+
+
+def _build_characteristic_stability_chart(input_path: Path, output_path: Path) -> Path:
+    rows = _read_csv(input_path)
+    available = [row for row in rows if row["stability_status"] != "not_available"]
+    if not available:
+        raise ValueError("Showcase requires at least one available characteristic CSI")
+    available.sort(key=lambda row: float(row["characteristic_stability_index"]))
+    labels = [row["feature_name"].replace("_", " ") for row in available]
+    values = [float(row["characteristic_stability_index"]) for row in available]
+    status_colors = {
+        "stable": TEAL,
+        "moderate_shift": AMBER,
+        "material_shift": RED,
+    }
+    colors = [status_colors[row["stability_status"]] for row in available]
+    unavailable = [row["feature_name"] for row in rows if row["stability_status"] == "not_available"]
+    period = rows[0]
+
+    figure, axis = plt.subplots(figsize=(9.0, 6.2), dpi=160)
+    bars = axis.barh(labels, values, color=colors, height=0.62)
+    axis.axvline(0.10, color=AMBER, linewidth=1.4, linestyle="--")
+    axis.axvline(0.25, color=RED, linewidth=1.4, linestyle="--")
+    axis.set_title("Public LendingClub feature stability", loc="left", fontsize=15, pad=24)
+    subtitle = (
+        f"CSI: {period['reference_start']} to {period['reference_end']} vs "
+        f"{period['current_start']} to {period['current_end']}"
+    )
+    if unavailable:
+        subtitle += f" | unavailable: {', '.join(unavailable)}"
+    axis.text(
+        0,
+        1.02,
+        subtitle,
+        transform=axis.transAxes,
+        color=MUTED,
+        fontsize=9,
+        va="bottom",
+    )
+    maximum = max(max(values) * 1.20, 0.29)
+    axis.set_xlim(0, maximum)
+    axis.set_xlabel("Characteristic Stability Index (lower is better)")
+    axis.grid(axis="x", color=GRID, linewidth=0.8)
+    axis.set_axisbelow(True)
+    axis.spines[["top", "right", "left"]].set_visible(False)
+    axis.tick_params(axis="y", length=0)
+    for bar, value in zip(bars, values, strict=True):
+        axis.text(
+            value + maximum * 0.012,
+            bar.get_y() + bar.get_height() / 2,
+            f"{value:.3f}",
+            va="center",
+            color=TEXT,
+            fontsize=8.5,
+        )
+    axis.legend(
+        handles=[
+            Rectangle((0, 0), 1, 1, color=TEAL, label="Stable (<=0.10)"),
+            Rectangle((0, 0), 1, 1, color=AMBER, label="Moderate (<=0.25)"),
+            Rectangle((0, 0), 1, 1, color=RED, label="Material (>0.25)"),
+        ],
+        frameon=True,
+        framealpha=0.95,
+        edgecolor="none",
+        ncol=1,
+        loc="upper right",
+        fontsize=8.5,
+    )
+    figure.tight_layout()
+    _save(figure, output_path)
+    return output_path
+
+
+def _overall_status(rows: list[dict[str, str]]) -> str:
+    statuses = {row["status"] for row in rows}
+    if "fail" in statuses:
+        return "FAIL"
+    if "warning" in statuses:
+        return "WARNING"
+    return "PASS"
 
 
 def _build_vintage_backtest_chart(

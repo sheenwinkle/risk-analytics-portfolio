@@ -4,3 +4,4 @@ ks,0.292493,higher_is_better,0.300000,0.200000,warning,Selected recalibrated mod
 absolute_calibration_gap,0.026335,lower_is_better,0.010000,0.030000,warning,Absolute gap between observed default rate and mean recalibrated PD.
 population_stability_index,0.016656,lower_is_better,0.100000,0.250000,pass,PSI comparing current score distribution with the reference period.
 challenger_auc_margin,-0.009411,lower_is_better,0.010000,0.030000,pass,Unselected raw challenger AUC minus selected recalibrated incumbent AUC.
+maximum_characteristic_stability_index,0.077926,lower_is_better,0.100000,0.250000,pass,"Maximum available feature-level CSI, observed for credit_utilisation."
