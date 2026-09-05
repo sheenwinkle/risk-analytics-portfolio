@@ -18,6 +18,9 @@ EXPECTED_REPORT_FILES = {
     "model_metrics.csv",
     "calibration_by_decile.csv",
     "monthly_performance.csv",
+    "metric_uncertainty.csv",
+    "vintage_performance.csv",
+    "segment_performance.csv",
     "stability_summary.csv",
     "stability_bins.csv",
     "benchmark_comparison.csv",
@@ -42,6 +45,8 @@ def _valid_predictions() -> pd.DataFrame:
             {
                 "customer_id": f"C{index:03d}",
                 "observation_date": f"2022-{index:02d}-01",
+                "home_ownership": "rent" if index % 2 else "mortgage",
+                "purpose": "small_business" if index % 3 == 0 else "debt_consolidation",
                 "actual_default": default,
                 "logistic_regression_pd": raw,
                 "selected_model": "logistic_regression",
@@ -68,6 +73,8 @@ def test_run_validation_returns_input_audit_and_metrics_for_project1_predictions
         "required_columns",
         "customer_id",
         "observation_date",
+        "home_ownership",
+        "purpose",
         "actual_default",
         "selected_model",
         "selected_model_raw_pd",
@@ -117,6 +124,14 @@ def test_run_validation_returns_input_audit_and_metrics_for_project1_predictions
         (
             lambda frame: frame.drop(columns=["selected_model_raw_pd"]),
             "missing required columns: selected_model_raw_pd",
+        ),
+        (
+            lambda frame: frame.drop(columns=["home_ownership"]),
+            "missing required columns: home_ownership",
+        ),
+        (
+            lambda frame: frame.assign(purpose=""),
+            "purpose must contain non-empty category values",
         ),
         (
             lambda frame: frame.assign(selected_model=["xgboost"] * len(frame)),
@@ -354,6 +369,8 @@ def test_calibration_deciles_are_stable_when_input_rows_are_reordered(tmp_path) 
             {
                 "customer_id": f"C{index:03d}",
                 "observation_date": "2022-01-01" if index <= 10 else "2022-07-01",
+                "home_ownership": "rent" if index % 2 else "mortgage",
+                "purpose": "small_business" if index % 3 == 0 else "debt_consolidation",
                 "actual_default": 0 if index <= 10 else 1,
                 "logistic_regression_pd": 0.50,
                 "selected_model": "logistic_regression",
@@ -388,6 +405,8 @@ def test_psi_is_zero_for_identical_tied_reference_and_current_distributions(tmp_
             {
                 "customer_id": f"C{index:03d}",
                 "observation_date": date,
+                "home_ownership": "rent" if index % 2 else "mortgage",
+                "purpose": "small_business" if index % 3 == 0 else "debt_consolidation",
                 "actual_default": int(score > 0.50),
                 "logistic_regression_pd": score,
                 "selected_model": "logistic_regression",
@@ -441,7 +460,7 @@ def test_run_validation_result_exposes_static_limitations(tmp_path) -> None:
         "synthetic_data",
         "terminal_outcome_proxy",
         "limited_oot_horizon",
-        "score_only_independent_validation",
+        "limited_feature_replication",
     ]
     assert limitations["severity"].tolist() == ["medium", "medium", "medium", "medium"]
 
@@ -473,6 +492,7 @@ def test_run_validation_pipeline_writes_exact_deterministic_outputs_with_lf_endi
     assert "## Stability Summary" in markdown
     assert "Absolute calibration gap reached fail status" in markdown
     assert "Mean predicted PD:" in markdown
+    assert "| nan |" not in markdown.lower()
 
 
 def test_run_validation_pipeline_is_compatible_with_actual_project1_candidate_report(tmp_path) -> None:

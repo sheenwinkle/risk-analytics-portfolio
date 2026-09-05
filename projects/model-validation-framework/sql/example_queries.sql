@@ -101,6 +101,49 @@ FROM model_validation_benchmark
 JOIN latest_run USING (validation_run_id)
 ORDER BY comparison;
 
+-- Confidence intervals for the latest independent validation run.
+WITH latest_run AS (
+    SELECT validation_run_id
+    FROM model_validation_run
+    ORDER BY created_at DESC, validation_run_id DESC
+    LIMIT 1
+)
+SELECT
+    metric,
+    estimate,
+    lower_bound,
+    upper_bound,
+    confidence_level,
+    method
+FROM model_validation_uncertainty
+JOIN latest_run USING (validation_run_id)
+ORDER BY metric;
+
+-- Material vintage and segment calibration signals for the latest run.
+WITH latest_run AS (
+    SELECT validation_run_id
+    FROM model_validation_run
+    ORDER BY created_at DESC, validation_run_id DESC
+    LIMIT 1
+)
+SELECT
+    group_type,
+    group_dimension,
+    group_value,
+    observations,
+    portfolio_share,
+    mean_pd,
+    observed_default_rate,
+    calibration_gap,
+    calibration_gap_lower,
+    calibration_gap_upper,
+    reliability_status,
+    calibration_signal
+FROM model_validation_group_performance
+JOIN latest_run USING (validation_run_id)
+WHERE calibration_signal IN ('pd_overprediction', 'pd_underprediction')
+ORDER BY ABS(calibration_gap) DESC, group_type, group_dimension, group_value;
+
 -- Validation status history for governance reporting.
 SELECT
     model_name,

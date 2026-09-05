@@ -70,6 +70,8 @@ def run_pd_modelling_workflow(
         {
             config.id_col: oot[config.id_col],
             config.date_col: oot[config.date_col],
+            "home_ownership": oot["home_ownership"].fillna("other").astype(str),
+            "purpose": oot["purpose"].fillna("other").astype(str),
             "actual_default": y_oot,
         }
     )

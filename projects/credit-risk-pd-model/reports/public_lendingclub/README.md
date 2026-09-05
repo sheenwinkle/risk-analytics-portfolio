@@ -14,10 +14,12 @@ accepted-loans file. Kaggle identifies the dataset license as CC0: Public Domain
 - Observation period: June 2007 to December 2018
 - OOT cutoff: 1 January 2017
 - OOT accounts: 225,639
+- Raw status resolution: 48.4% in 2017Q1, declining to 3.9% in 2018Q4
 
 The target remains a resolved terminal-outcome proxy rather than a regulatory fixed-horizon
-default definition. Recent-vintage censoring and accepted-loan selection bias remain material
-limitations.
+default definition. `vintage_resolution.csv` retains unresolved raw statuses in each issue
+quarter's denominator. It shows that recent-vintage censoring and accepted-loan selection bias
+remain material limitations rather than silently treating resolved rows as a complete cohort.
 
 ## Aggregate Result
 
@@ -28,6 +30,11 @@ against an observed default rate of `21.3%`.
 
 The largest decile-level calibration gap was `7.1%` in D10. Credit utilisation had the largest
 PSI at `0.188`, a moderate rather than material shift under the project's disclosed policy.
+
+The resolved-only OOT sample is not maturity-neutral. From 2017Q1 to 2018Q4, outcome resolution
+declines from `48.4%` to `3.9%`, while the resolved-sample default rate falls from `22.9%` to
+`2.4%`. The latter is therefore not presented as genuine credit improvement; it is evidence of
+right-censoring in the terminal-status target.
 
 ## Privacy Boundary
 
@@ -51,6 +58,7 @@ python scripts/prepare_lendingclub_data.py `
   --input data/raw/accepted_2007_to_2018Q4.csv.gz `
   --output data/processed/lendingclub_pd.csv `
   --audit data/processed/lendingclub_ingestion_audit.csv `
+  --vintage-resolution data/processed/lendingclub_vintage_resolution.csv `
   --chunk-size 100000
 
 python scripts/run_pipeline.py `
@@ -62,6 +70,7 @@ python scripts/run_pipeline.py `
 python scripts/publish_public_run.py `
   --source-reports data/processed/public_run/reports `
   --ingestion-audit data/processed/lendingclub_ingestion_audit.csv `
+  --vintage-resolution data/processed/lendingclub_vintage_resolution.csv `
   --raw-input data/raw/accepted_2007_to_2018Q4.csv.gz `
   --output-dir reports/public_lendingclub
 ```

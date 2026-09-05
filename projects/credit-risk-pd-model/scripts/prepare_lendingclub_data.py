@@ -35,6 +35,12 @@ def parse_args() -> argparse.Namespace:
         default=100_000,
         help="Rows processed per chunk to bound memory usage.",
     )
+    parser.add_argument(
+        "--vintage-resolution",
+        type=Path,
+        default=None,
+        help="Optional aggregate raw-status resolution report by issue quarter.",
+    )
     return parser.parse_args()
 
 
@@ -46,9 +52,12 @@ def main() -> None:
         audit_path=args.audit,
         max_rows=args.max_rows,
         chunk_size=args.chunk_size,
+        vintage_resolution_path=args.vintage_resolution,
     )
     print(f"output: {result.output_path}")
     print(f"audit: {result.audit_path}")
+    if result.vintage_resolution_path is not None:
+        print(f"vintage_resolution: {result.vintage_resolution_path}")
 
 
 if __name__ == "__main__":

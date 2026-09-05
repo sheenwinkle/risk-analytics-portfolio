@@ -1,8 +1,9 @@
 # Credit Risk Model Validation Framework
 
 Independent-style validation of the frozen out-of-time PD scores produced by
-[Project 1](../credit-risk-pd-model). The validator consumes only the published
-`reports/oot_predictions.csv` contract and does not import model-development code.
+[Project 1](../credit-risk-pd-model). The validator consumes only the frozen
+`reports/oot_predictions.csv` contract and does not import model-development code. The
+contract contains frozen scores, outcomes, and two non-sensitive business segment fields.
 
 This is an educational portfolio case study. It demonstrates model risk methods and
 governance judgement, but it is not a regulatory approval, accounting opinion, or
@@ -24,6 +25,18 @@ The framework consumes the frozen 225,639-row OOT score contract without importi
 | Absolute calibration gap | 0.026335 | Warning |
 | PSI | 0.016656 | Pass |
 | Challenger AUC margin | -0.009411 | Pass |
+
+The selected model's AUC has a DeLong 95% confidence interval of `0.697369-0.702405`, which
+straddles the illustrative `0.70` pass threshold and supports retaining the warning opinion.
+The observed default rate is `0.212920` (`0.211236-0.214614`, Wilson 95% CI), while the
+recalibrated mean PD is `0.239255` (`0.238715-0.239795`). The paired calibration-gap interval
+is `0.024716-0.027955`, confirming portfolio over-prediction rather than sampling noise.
+
+Quarterly maturity evidence changes the interpretation of recent results. Raw status
+resolution declines from `48.4%` in 2017Q1 to `3.9%` in 2018Q4; the corresponding resolved
+sample is severely right-censored. Segment backtests identify statistically material
+under-prediction for `small_business`, `medical`, and `moving`, while tiny groups such as the
+two-row `wedding` segment are marked `limited_sample` rather than treated as reliable evidence.
 
 Review the [public validation report](reports/public_lendingclub/validation_report.md) and
 [source lineage](reports/public_lendingclub/data_lineage.json). The opinion is explicitly
@@ -70,8 +83,10 @@ evidence, but it is not treated as independent closure evidence. See the
 Project 1 frozen OOT predictions
 -> schema and model-lineage audit
 -> independent discrimination and calibration metrics
+-> DeLong, Wilson, and paired normal confidence intervals
 -> low-to-high PD calibration deciles
--> monthly performance diagnostics
+-> monthly and quarterly vintage performance diagnostics
+-> home-ownership and purpose segment backtests
 -> reference-period PSI stability analysis
 -> incumbent/challenger and recalibration comparisons
 -> configurable traffic-light policy
@@ -84,7 +99,9 @@ The implementation includes:
 
 - tie-safe rank AUC and KS calculations implemented independently of Project 1
 - Brier score, mean PD, observed default rate, signed and absolute calibration gaps
+- DeLong AUC, Wilson default-rate, normal-mean PD/Brier, and paired calibration-gap intervals
 - deterministic rank deciles with `customer_id` tie-breaking
+- quarterly vintage and non-sensitive segment diagnostics with sample-reliability flags
 - monthly AUC and KS reported as unavailable when a month contains only one outcome class
 - chronological reference/current score samples split by distinct observation dates
 - PSI bins derived only from the reference sample, with midpoint boundaries that do not
@@ -95,7 +112,8 @@ The implementation includes:
 - deterministic CSV and Markdown outputs with fixed precision and LF line endings
 - context-specific limitations for synthetic and public LendingClub evidence
 - no-look-ahead rolling remediation with explicit closure status
-- PostgreSQL persistence for runs, metrics, findings, benchmarks, limitations, and finding events
+- PostgreSQL persistence for runs, metric uncertainty, grouped performance, findings,
+  benchmarks, limitations, and finding events
 
 ## Input Contract
 
@@ -105,6 +123,8 @@ The default input is `../credit-risk-pd-model/reports/oot_predictions.csv`.
 | --- | --- |
 | `customer_id` | Unique, non-empty string |
 | `observation_date` | Parseable date with at least two distinct dates |
+| `home_ownership` | Non-empty business segment category |
+| `purpose` | Non-empty business segment category |
 | `actual_default` | Binary 0/1 outcome with both classes represented |
 | `selected_model` | Exactly one supported model across the file |
 | `selected_model_raw_pd` | Row-level match to the selected model's raw PD |
@@ -148,6 +168,7 @@ Core modules separate validation responsibilities:
 - `validation.py`: adapter, input contract, orchestration, and public result dataclass
 - `metrics.py`: discrimination and portfolio calibration metrics
 - `calibration.py`: deterministic deciles and monthly backtesting
+- `diagnostics.py`: confidence intervals, vintage backtesting, and segment reliability
 - `stability.py`: chronological reference/current PSI
 - `benchmarking.py`: incumbent, challenger, and recalibration comparisons
 - `policy.py`: immutable traffic-light thresholds
@@ -203,7 +224,8 @@ python scripts\load_validation_run.py --apply-schema --persist-remediation
 ```
 
 The integration test runs against PostgreSQL 16 in GitHub Actions and verifies the inserted
-run, metric, finding, benchmark, limitation, and three finding-event records.
+run, metric, uncertainty, grouped-performance, finding, benchmark, limitation, and three
+finding-event records.
 
 ## Report Outputs
 
@@ -211,8 +233,11 @@ run, metric, finding, benchmark, limitation, and three finding-event records.
 | --- | --- |
 | `reports/input_audit.csv` | Input and model-lineage checks |
 | `reports/model_metrics.csv` | AUC, Gini, KS, Brier, and portfolio calibration |
+| `reports/metric_uncertainty.csv` | Point estimates and 95% confidence intervals |
 | `reports/calibration_by_decile.csv` | Low-to-high PD decile backtest |
 | `reports/monthly_performance.csv` | Monthly calibration and discrimination diagnostics |
+| `reports/vintage_performance.csv` | Quarterly calibration, discrimination, and reliability |
+| `reports/segment_performance.csv` | Home-ownership and purpose backtests with reliability flags |
 | `reports/stability_summary.csv` | Period definitions, bin method, and total PSI |
 | `reports/stability_bins.csv` | Reference/current distribution and PSI contribution by bin |
 | `reports/benchmark_comparison.csv` | Challenger and recalibration deltas |
@@ -226,16 +251,18 @@ public-data run. `reports/remediation/` contains monthly sequential retest evide
 summary, finding lifecycle events, and a reviewer-readable report.
 
 The PostgreSQL schema and loader under `sql/` and `scripts/` retain validation runs, policy
-metrics, findings, limitations, challenger results, remediation retests, and closure decisions
-for governance reporting.
+metrics, confidence intervals, grouped backtests, findings, limitations, challenger results,
+remediation retests, and closure decisions for governance reporting.
 
 ## Limitations
 
 - The public run is an accepted-loan sample and does not represent rejected applicants.
 - `actual_default` is a terminal-outcome proxy, not a fully serviced default-window label.
+- Published issue-quarter resolution quantifies severe recent-vintage right-censoring but does
+  not correct it; 2018 resolved-sample rates should not be read as mature cohort performance.
 - Neither the public nor synthetic OOT evidence spans a full credit cycle.
-- Validation starts from frozen scores and outcomes; it does not independently rebuild
-  features or replicate model estimation.
+- Validation starts from frozen scores, outcomes, and two segment fields; it does not
+  independently rebuild the full feature set or replicate model estimation.
 - Policy thresholds are illustrative and require institution-specific governance approval.
 - The sequential remediation retest shares historical data with development and therefore
   cannot close the finding without a fresh independent OOT window.
@@ -244,8 +271,9 @@ for governance reporting.
 
 > Built a reusable Python and PostgreSQL model validation framework that independently
 > re-performed AUC, Gini, tie-safe KS, Brier score, calibration, monthly backtesting, PSI,
-> and challenger analysis on 225,639 public OOT observations; implemented policy opinions,
-> no-look-ahead remediation testing, finding lifecycle persistence, and deterministic evidence.
+> challenger comparisons, confidence intervals, and segment/vintage diagnostics on 225,639
+> public OOT observations; implemented policy opinions, no-look-ahead remediation, deterministic
+> evidence, and PostgreSQL finding lifecycle persistence.
 
 ## Interview Discussion
 

@@ -11,6 +11,7 @@ connected model lifecycle rather than presenting unrelated notebooks:
 ```text
 Public/synthetic lending data
 -> PD development and OOT scoring
+-> vintage maturity and statistical uncertainty checks
 -> IFRS 9 ECL consumption
 -> independent validation opinion
 -> calibration remediation and finding lifecycle
@@ -30,6 +31,8 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | 2017-2018 OOT accounts | 225,639 |
 | Selected-model OOT ROC-AUC / Gini / KS | 0.700 / 0.400 / 0.292 |
 | Raw to recalibrated Brier score | 0.208 -> 0.155 |
+| Selected-model ROC-AUC 95% CI | 0.697 -> 0.702 |
+| Raw status resolution, 2017Q1 -> 2018Q4 | 48.4% -> 3.9% |
 | Public independent validation opinion | warning |
 | Synthetic stress-case validation opinion | fail |
 | Sequential remediation calibration gap | 0.064 -> 0.009 |
@@ -38,13 +41,15 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 
 ![Public validation opinion](docs/assets/public_validation_opinion.png)
 
+![Public vintage maturity and OOT backtest](docs/assets/public_vintage_backtest.png)
+
 ## Connected Projects
 
 | Project | Status | Main evidence | Target roles |
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, discounting, scenarios, migration, Project 1 bridge | ECL, Portfolio Risk, Credit Risk |
-| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent metrics, policy opinion, public-data validation, remediation lifecycle, PostgreSQL persistence | Model Risk, Validation, Quant Risk |
+| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent metrics, confidence intervals, vintage/segment backtesting, policy opinion, remediation lifecycle, PostgreSQL persistence | Model Risk, Validation, Quant Risk |
 
 ## Project 1: Credit Risk PD Modelling
 
@@ -70,6 +75,7 @@ Public aggregate evidence:
 - [Model report](projects/credit-risk-pd-model/reports/public_lendingclub/model_report.md)
 - [Data lineage and SHA-256](projects/credit-risk-pd-model/reports/public_lendingclub/data_lineage.json)
 - [Ingestion audit](projects/credit-risk-pd-model/reports/public_lendingclub/ingestion_audit.csv)
+- [Raw-status vintage maturity](projects/credit-risk-pd-model/reports/public_lendingclub/vintage_resolution.csv)
 
 The committed synthetic run remains the fast, deterministic CI fixture for cross-project
 tests. It intentionally includes a stressed 2022 OOT period.
@@ -95,12 +101,20 @@ institution-specific IFRS 9 compliance.
 
 ## Project 3: Model Validation and Remediation
 
-Project 3 consumes only frozen score-and-outcome contracts. It independently reperforms AUC,
-Gini, tie-safe KS, Brier score, calibration, monthly monitoring, PSI, and challenger tests.
+Project 3 consumes frozen scores, outcomes, and two non-sensitive business segmentation
+fields. It independently reperforms AUC, Gini, tie-safe KS, Brier score, calibration, monthly
+and quarterly monitoring, PSI, challenger tests, and 95% confidence intervals.
 
 The public LendingClub model receives an overall **warning**: AUC, KS, and calibration are
 near or within warning thresholds, while PSI and challenger checks pass. The synthetic stress
 candidate receives **fail** for material PD underestimation.
+
+The public AUC is `0.699887` with a DeLong 95% interval of `0.697369-0.702405`.
+Quarterly results also expose outcome immaturity: raw status resolution declines from `48.4%`
+in 2017Q1 to `3.9%` in 2018Q4, so the latest terminal-outcome default rates are not treated as
+comparable mature-vintage estimates. Segment intervals distinguish material calibration
+signals from small-sample noise; for example, `small_business` PD is under-predicted while a
+two-row `wedding` segment is explicitly marked `limited_sample`.
 
 For the synthetic calibration finding, each monthly retest uses a recalibrator fitted only on
 the prior three matured monthly cohorts. Sequential retesting reduces the second-half
@@ -146,8 +160,8 @@ VS Code exposes both commands through **Tasks: Run Task**:
 - Python packages with explicit public APIs rather than notebook-only logic
 - Behavioural, edge-case, lineage, privacy, and deterministic-report tests
 - GitHub Actions matrix across all three projects
-- CI PostgreSQL 16 integration test for run, metric, finding, benchmark, limitation, and
-  remediation-event persistence
+- CI PostgreSQL 16 integration test for run, metric uncertainty, grouped performance,
+  finding, benchmark, limitation, and remediation-event persistence
 - Full-portfolio regeneration check with line-ending normalisation and machine-precision
   tolerance for parallel model output
 - Borrower-level publication deny-list plus safe aggregate report lists
@@ -173,7 +187,8 @@ risk-analytics-portfolio/
 ## Material Limitations
 
 - LendingClub outcomes are resolved terminal-status proxies, not contractual fixed-horizon
-  Basel or IFRS 9 default labels.
+  Basel or IFRS 9 default labels. Published vintage denominators quantify severe recent-cohort
+  right-censoring but cannot remove it.
 - Accepted-loan data does not represent all applicants and cannot support reject inference.
 - The ECL engine omits institution-specific accounting policy, contractual cash-flow,
   collateral, cure, overlay, and disclosure processes.
@@ -183,9 +198,9 @@ risk-analytics-portfolio/
 ## Resume Positioning
 
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
-> LendingClub records, covering temporal PD development, recalibration, strategy analysis,
-> IFRS 9 ECL consumption, independent model validation, no-look-ahead remediation testing,
-> deterministic evidence generation, and governance persistence.
+> LendingClub records, covering temporal PD development, recalibration, vintage maturity,
+> IFRS 9 ECL consumption, independent validation with confidence intervals and segment
+> backtesting, no-look-ahead remediation, and PostgreSQL governance persistence.
 
 Detailed resume bullets and interview prompts are in
 [docs/resume-project-description.md](docs/resume-project-description.md). Development setup
@@ -194,6 +209,6 @@ and the optional VS Code/Codex iteration process are documented in
 
 ## Next Evidence
 
-- Add vintage and segment-level public-data validation with bootstrap confidence intervals.
+- Add feature-level replication, CSI, and characteristic drift evidence.
 - Add documented SICR rebuttal and macroeconomic management-overlay sensitivity.
 - Revisit the pending calibration finding when an additional matured OOT horizon is available.

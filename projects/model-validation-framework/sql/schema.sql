@@ -47,6 +47,74 @@ CREATE TABLE IF NOT EXISTS model_validation_finding (
     recommended_action TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS model_validation_uncertainty (
+    validation_run_id BIGINT NOT NULL REFERENCES model_validation_run(validation_run_id),
+    metric TEXT NOT NULL,
+    estimate NUMERIC NOT NULL,
+    lower_bound NUMERIC,
+    upper_bound NUMERIC,
+    confidence_level NUMERIC NOT NULL CHECK (
+        confidence_level > 0 AND confidence_level < 1
+    ),
+    method TEXT NOT NULL CHECK (
+        method IN ('delong', 'wilson_score', 'normal_mean', 'paired_normal')
+    ),
+    observations INTEGER NOT NULL CHECK (observations > 0),
+    defaults INTEGER NOT NULL CHECK (defaults >= 0 AND defaults <= observations),
+    PRIMARY KEY (validation_run_id, metric),
+    CHECK (lower_bound IS NULL OR upper_bound IS NULL OR lower_bound <= upper_bound)
+);
+
+CREATE TABLE IF NOT EXISTS model_validation_group_performance (
+    validation_run_id BIGINT NOT NULL REFERENCES model_validation_run(validation_run_id),
+    group_type TEXT NOT NULL CHECK (group_type IN ('vintage', 'segment')),
+    group_dimension TEXT NOT NULL,
+    group_value TEXT NOT NULL,
+    observations INTEGER NOT NULL CHECK (observations > 0),
+    portfolio_share NUMERIC NOT NULL CHECK (
+        portfolio_share > 0 AND portfolio_share <= 1
+    ),
+    defaults INTEGER NOT NULL CHECK (defaults >= 0 AND defaults <= observations),
+    non_defaults INTEGER NOT NULL CHECK (
+        non_defaults >= 0 AND defaults + non_defaults = observations
+    ),
+    expected_defaults NUMERIC NOT NULL CHECK (expected_defaults >= 0),
+    mean_pd NUMERIC NOT NULL CHECK (mean_pd >= 0 AND mean_pd <= 1),
+    observed_default_rate NUMERIC NOT NULL CHECK (
+        observed_default_rate >= 0 AND observed_default_rate <= 1
+    ),
+    observed_default_rate_lower NUMERIC NOT NULL,
+    observed_default_rate_upper NUMERIC NOT NULL,
+    calibration_gap NUMERIC NOT NULL,
+    calibration_gap_lower NUMERIC,
+    calibration_gap_upper NUMERIC,
+    expected_to_observed_ratio NUMERIC,
+    roc_auc NUMERIC,
+    roc_auc_lower NUMERIC,
+    roc_auc_upper NUMERIC,
+    ks NUMERIC,
+    discrimination_status TEXT NOT NULL CHECK (
+        discrimination_status IN ('available', 'not_available_single_class')
+    ),
+    reliability_status TEXT NOT NULL CHECK (
+        reliability_status IN ('sufficient', 'limited_sample')
+    ),
+    calibration_signal TEXT NOT NULL CHECK (
+        calibration_signal IN (
+            'pd_overprediction', 'pd_underprediction',
+            'not_statistically_distinct', 'not_available'
+        )
+    ),
+    PRIMARY KEY (validation_run_id, group_type, group_dimension, group_value),
+    CHECK (observed_default_rate_lower <= observed_default_rate_upper),
+    CHECK (
+        calibration_gap_lower IS NULL OR calibration_gap_upper IS NULL
+        OR calibration_gap_lower <= calibration_gap_upper
+    ),
+    CHECK (roc_auc IS NULL OR (roc_auc >= 0 AND roc_auc <= 1)),
+    CHECK (ks IS NULL OR (ks >= 0 AND ks <= 1))
+);
+
 ALTER TABLE model_validation_finding
     ADD COLUMN IF NOT EXISTS lifecycle_status TEXT NOT NULL DEFAULT 'open';
 
@@ -126,3 +194,8 @@ CREATE INDEX IF NOT EXISTS idx_model_validation_finding_status
 
 CREATE INDEX IF NOT EXISTS idx_model_validation_finding_event_finding
     ON model_validation_finding_event (finding_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_model_validation_group_lookup
+    ON model_validation_group_performance (
+        group_type, group_dimension, group_value, validation_run_id
+    );

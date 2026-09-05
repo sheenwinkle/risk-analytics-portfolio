@@ -45,6 +45,14 @@ def test_validation_result_persists_to_real_postgresql_tables():
             "SELECT COUNT(*) FROM model_validation_metric WHERE validation_run_id = %s",
             (validation_run_id,),
         ).fetchone()[0]
+        uncertainty_count = connection.execute(
+            "SELECT COUNT(*) FROM model_validation_uncertainty WHERE validation_run_id = %s",
+            (validation_run_id,),
+        ).fetchone()[0]
+        group_count = connection.execute(
+            "SELECT COUNT(*) FROM model_validation_group_performance WHERE validation_run_id = %s",
+            (validation_run_id,),
+        ).fetchone()[0]
         finding = connection.execute(
             """
             SELECT check_name, status
@@ -107,6 +115,8 @@ def test_validation_result_persists_to_real_postgresql_tables():
         ).fetchone()[0]
 
     assert metric_count == 5
+    assert uncertainty_count == 5
+    assert group_count == len(result.vintage_performance) + len(result.segment_performance)
     assert finding == ("absolute_calibration_gap", "fail")
     assert benchmark_count == 2
     assert finding_lifecycle == "pending_fresh_oot"

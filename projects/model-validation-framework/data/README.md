@@ -17,6 +17,8 @@ lineage records only aggregate counts, dates, dataset metadata, and source hashe
 | --- | --- |
 | `customer_id` | Stable row identifier and deterministic tie-breaker |
 | `observation_date` | OOT period and chronological stability split |
+| `home_ownership` | Non-sensitive business segment for grouped backtesting |
+| `purpose` | Non-sensitive loan-purpose segment for grouped backtesting |
 | `actual_default` | Observed binary outcome for backtesting |
 | `selected_model` | Model-development selection carried into validation |
 | `selected_model_raw_pd` | Selected raw score used for lineage reconciliation |
@@ -24,9 +26,9 @@ lineage records only aggregate counts, dates, dataset metadata, and source hashe
 | `recalibrated_pd` | Selected model score after pre-OOT recalibration |
 | `random_forest_pd` | Random forest raw incumbent/challenger score |
 
-The adapter rejects missing fields, duplicate or blank IDs, invalid dates, one-class samples,
-non-finite/out-of-range PDs, multiple selected models, unsupported model names, and row-level
-selected-score mismatches.
+The adapter rejects missing fields, duplicate or blank IDs, blank segment values, invalid
+dates, one-class samples, non-finite/out-of-range PDs, multiple selected models, unsupported
+model names, and row-level selected-score mismatches.
 
 ## Privacy and Reproducibility
 
@@ -34,6 +36,7 @@ selected-score mismatches.
 - Raw LendingClub data and locally prepared borrower-level files remain excluded by the root
   `.gitignore` rules.
 - Candidate reports under `reports/` are derived evidence, not source observations.
+- Vintage and segment reports contain aggregate counts and metrics only.
 - The validation pipeline writes deterministic files without timestamps or local paths.
 - The public publisher uses an explicit aggregate allow-list and rejects CSV files containing
   a `customer_id` column.

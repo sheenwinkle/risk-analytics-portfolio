@@ -9,6 +9,11 @@ import pandas as pd
 
 from model_validation.benchmarking import build_benchmark_comparison
 from model_validation.calibration import build_calibration_by_decile, build_monthly_performance
+from model_validation.diagnostics import (
+    build_metric_uncertainty,
+    build_segment_performance,
+    build_vintage_performance,
+)
 from model_validation.metrics import PD_SCORE_COLUMNS, RAW_SCORE_COLUMNS, build_model_metrics
 from model_validation.policy import ValidationPolicy
 from model_validation.reporting import (
@@ -22,6 +27,8 @@ from model_validation.stability import build_stability_tables
 REQUIRED_COLUMNS = {
     "customer_id",
     "observation_date",
+    "home_ownership",
+    "purpose",
     "actual_default",
     "selected_model",
     "selected_model_raw_pd",
@@ -34,6 +41,8 @@ AUDIT_CHECK_ORDER = (
     "required_columns",
     "customer_id",
     "observation_date",
+    "home_ownership",
+    "purpose",
     "actual_default",
     "selected_model",
     "selected_model_raw_pd",
@@ -44,6 +53,8 @@ AUDIT_CHECK_ORDER = (
 NORMALIZED_COLUMN_ORDER = (
     "customer_id",
     "observation_date",
+    "home_ownership",
+    "purpose",
     "actual_default",
     "selected_model",
     "selected_model_raw_pd",
@@ -57,8 +68,11 @@ NORMALIZED_COLUMN_ORDER = (
 class ValidationResult:
     input_audit: pd.DataFrame
     model_metrics: pd.DataFrame
+    metric_uncertainty: pd.DataFrame
     calibration_by_decile: pd.DataFrame
     monthly_performance: pd.DataFrame
+    vintage_performance: pd.DataFrame
+    segment_performance: pd.DataFrame
     stability_summary: pd.DataFrame
     stability_bins: pd.DataFrame
     benchmark_comparison: pd.DataFrame
@@ -97,6 +111,11 @@ def run_validation(
 
     input_audit = _build_input_audit(normalized)
     model_metrics = build_model_metrics(normalized, selected_model=selected_model)
+    metric_uncertainty = build_metric_uncertainty(
+        normalized,
+        selected_model=selected_model,
+        score_column="recalibrated_pd",
+    )
     calibration_by_decile = build_calibration_by_decile(
         normalized,
         selected_model=selected_model,
@@ -129,12 +148,25 @@ def run_validation(
         observation_start=normalized["observation_date"].min(),
         observation_end=normalized["observation_date"].max(),
     )
+    vintage_performance = build_vintage_performance(
+        normalized,
+        selected_model=selected_model,
+        score_column="recalibrated_pd",
+    )
+    segment_performance = build_segment_performance(
+        normalized,
+        selected_model=selected_model,
+        score_column="recalibrated_pd",
+    )
 
     return ValidationResult(
         input_audit=input_audit,
         model_metrics=model_metrics,
+        metric_uncertainty=metric_uncertainty,
         calibration_by_decile=calibration_by_decile,
         monthly_performance=monthly_performance,
+        vintage_performance=vintage_performance,
+        segment_performance=segment_performance,
         stability_summary=stability_summary,
         stability_bins=stability_bins,
         benchmark_comparison=benchmark_comparison,
@@ -174,6 +206,10 @@ def _validate_predictions(predictions: pd.DataFrame) -> pd.DataFrame:
     normalized = predictions.loc[:, NORMALIZED_COLUMN_ORDER].copy()
     _validate_customer_id(normalized["customer_id"])
     normalized["observation_date"] = _validated_observation_date(normalized["observation_date"])
+    normalized["home_ownership"] = _validated_segment(
+        normalized["home_ownership"], "home_ownership"
+    )
+    normalized["purpose"] = _validated_segment(normalized["purpose"], "purpose")
     normalized["actual_default"] = _validated_actual_default(normalized["actual_default"])
     normalized["selected_model"] = _validated_selected_model(normalized["selected_model"])
 
@@ -225,6 +261,15 @@ def _validated_actual_default(actual_default: pd.Series) -> pd.Series:
     return values
 
 
+def _validated_segment(values: pd.Series, column: str) -> pd.Series:
+    if values.isna().any():
+        raise ValueError(f"{column} must contain non-empty category values")
+    normalized = values.astype("string").str.strip()
+    if normalized.eq("").any():
+        raise ValueError(f"{column} must contain non-empty category values")
+    return normalized
+
+
 def _validated_selected_model(selected_model: pd.Series) -> pd.Series:
     if selected_model.isna().any():
         raise ValueError("selected_model must contain exactly one supported model")
@@ -257,6 +302,8 @@ def _build_input_audit(predictions: pd.DataFrame) -> pd.DataFrame:
             f"{predictions['observation_date'].min().date()} to "
             f"{predictions['observation_date'].max().date()}"
         ),
+        "home_ownership": "non-empty business segment category",
+        "purpose": "non-empty business segment category",
         "actual_default": "binary observed default flag with both classes present",
         "selected_model": (
             "one supported selected model: " f"{predictions['selected_model'].iloc[0]}"

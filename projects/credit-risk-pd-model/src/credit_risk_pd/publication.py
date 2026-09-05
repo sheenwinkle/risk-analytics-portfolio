@@ -22,6 +22,7 @@ SAFE_AGGREGATE_REPORTS = (
     "woe_summary.csv",
 )
 EXCLUDED_BORROWER_LEVEL_REPORTS = ("oot_predictions.csv",)
+VINTAGE_RESOLUTION_REPORT = "vintage_resolution.csv"
 
 
 @dataclass(frozen=True)
@@ -34,12 +35,14 @@ class PublicRunPublication:
 def publish_public_lendingclub_run(
     source_report_dir: str | Path,
     ingestion_audit_path: str | Path,
+    vintage_resolution_path: str | Path,
     raw_input_path: str | Path,
     output_dir: str | Path,
 ) -> PublicRunPublication:
     """Publish aggregate LendingClub evidence without borrower-level predictions."""
     source_report_dir = Path(source_report_dir)
     ingestion_audit_path = Path(ingestion_audit_path)
+    vintage_resolution_path = Path(vintage_resolution_path)
     raw_input_path = Path(raw_input_path)
     output_dir = Path(output_dir)
 
@@ -47,6 +50,10 @@ def publish_public_lendingclub_run(
         raise FileNotFoundError(f"Raw LendingClub input not found: {raw_input_path}")
     if not ingestion_audit_path.is_file():
         raise FileNotFoundError(f"LendingClub ingestion audit not found: {ingestion_audit_path}")
+    if not vintage_resolution_path.is_file():
+        raise FileNotFoundError(
+            f"LendingClub vintage resolution report not found: {vintage_resolution_path}"
+        )
 
     missing_reports = [
         filename
@@ -60,6 +67,7 @@ def publish_public_lendingclub_run(
         )
 
     _validate_aggregate_reports(source_report_dir)
+    _validate_safe_csv(vintage_resolution_path, VINTAGE_RESOLUTION_REPORT)
     audit = _load_single_row_audit(ingestion_audit_path)
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -70,6 +78,10 @@ def publish_public_lendingclub_run(
         destination = output_dir / filename
         shutil.copyfile(source_report_dir / filename, destination)
         published_paths.append(destination)
+
+    published_vintage_path = output_dir / VINTAGE_RESOLUTION_REPORT
+    shutil.copyfile(vintage_resolution_path, published_vintage_path)
+    published_paths.append(published_vintage_path)
 
     published_audit = audit.copy()
     published_audit.loc[0, "input_path"] = f"data/raw/{raw_input_path.name}"
@@ -89,6 +101,7 @@ def publish_public_lendingclub_run(
         "observation_date_max": str(audit.loc[0, "observation_date_max"]),
         "published_aggregate_reports": [
             *SAFE_AGGREGATE_REPORTS,
+            VINTAGE_RESOLUTION_REPORT,
             published_audit_path.name,
         ],
         "excluded_borrower_level_reports": list(EXCLUDED_BORROWER_LEVEL_REPORTS),
@@ -112,9 +125,15 @@ def _validate_aggregate_reports(source_report_dir: Path) -> None:
     for filename in SAFE_AGGREGATE_REPORTS:
         path = source_report_dir / filename
         if path.suffix == ".csv":
-            columns = pd.read_csv(path, nrows=0).columns
-            if "customer_id" in columns:
-                raise ValueError(f"Aggregate publication cannot include customer_id: {filename}")
+            _validate_safe_csv(path, filename)
+
+
+def _validate_safe_csv(path: Path, published_name: str) -> None:
+    columns = pd.read_csv(path, nrows=0).columns
+    if "customer_id" in columns:
+        raise ValueError(
+            f"Aggregate publication cannot include customer_id: {published_name}"
+        )
 
 
 def _load_single_row_audit(path: Path) -> pd.DataFrame:

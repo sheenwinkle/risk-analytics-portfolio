@@ -33,5 +33,21 @@ def test_build_persistence_records_maps_governance_tables_from_real_candidate_re
         "challenger_auc_margin",
     }
     assert records.findings[0]["check_name"] == "absolute_calibration_gap"
+    assert len(records.uncertainty) == 5
+    assert {record["metric"] for record in records.uncertainty} == {
+        "roc_auc",
+        "observed_default_rate",
+        "mean_predicted_pd",
+        "calibration_gap",
+        "brier_score",
+    }
+    assert all(record["confidence_level"] == 0.95 for record in records.uncertainty)
+    assert len(records.group_performance) == (
+        len(result.vintage_performance) + len(result.segment_performance)
+    )
+    assert {record["group_type"] for record in records.group_performance} == {
+        "vintage",
+        "segment",
+    }
     assert len(records.benchmarks) == 2
     assert len(records.limitations) == 4

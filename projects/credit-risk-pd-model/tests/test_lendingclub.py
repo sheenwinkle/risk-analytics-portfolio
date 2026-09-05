@@ -4,6 +4,7 @@ import pytest
 from credit_risk_pd.config import ModelConfig
 from credit_risk_pd.data import CANONICAL_COLUMNS
 from credit_risk_pd.lendingclub import (
+    build_lendingclub_vintage_resolution,
     prepare_lendingclub_data,
     transform_lendingclub_accepted_loans,
 )
@@ -107,6 +108,29 @@ def test_transform_validates_missing_raw_columns_clearly():
         transform_lendingclub_accepted_loans(raw)
 
 
+def test_vintage_resolution_retains_unresolved_rows_in_denominator():
+    raw = _raw_lendingclub_rows(
+        [
+            {"id": "A", "issue_d": "Jan-2017", "loan_status": "Fully Paid"},
+            {"id": "B", "issue_d": "Feb-2017", "loan_status": "Current"},
+            {"id": "C", "issue_d": "Mar-2017", "loan_status": "Charged Off"},
+            {"id": "D", "issue_d": "Apr-2017", "loan_status": "Current"},
+            {"id": "E", "issue_d": "May-2017", "loan_status": "Default"},
+            {"id": "F", "issue_d": "not-a-date", "loan_status": "Fully Paid"},
+        ]
+    )
+
+    vintage = build_lendingclub_vintage_resolution(raw)
+
+    assert vintage["vintage_quarter"].tolist() == ["2017Q1", "2017Q2"]
+    assert vintage["input_rows"].tolist() == [3, 2]
+    assert vintage["resolved_rows"].tolist() == [2, 1]
+    assert vintage["unresolved_rows"].tolist() == [1, 1]
+    assert vintage["resolution_rate"].tolist() == pytest.approx([2 / 3, 1 / 2])
+    assert vintage["defaults"].tolist() == [1, 1]
+    assert vintage["resolved_default_rate"].tolist() == pytest.approx([1 / 2, 1.0])
+
+
 def test_prepare_lendingclub_data_reads_gzipped_csv_and_writes_audit(tmp_path):
     raw_path = tmp_path / "accepted_2007_to_2018Q4.csv.gz"
     output_path = tmp_path / "processed" / "lendingclub_pd.csv"
@@ -132,6 +156,7 @@ def test_prepare_lendingclub_data_streams_chunks_and_deduplicates_across_them(tm
     raw_path = tmp_path / "accepted.csv.gz"
     output_path = tmp_path / "processed" / "lendingclub_pd.csv"
     audit_path = tmp_path / "processed" / "lendingclub_audit.csv"
+    vintage_path = tmp_path / "processed" / "lendingclub_vintage_resolution.csv"
     raw = _raw_lendingclub_rows(
         [
             {"id": "A", "loan_status": "Fully Paid", "issue_d": "Jan-2017"},
@@ -148,6 +173,7 @@ def test_prepare_lendingclub_data_streams_chunks_and_deduplicates_across_them(tm
         output_path,
         audit_path,
         chunk_size=2,
+        vintage_resolution_path=vintage_path,
     )
 
     prepared = pd.read_csv(result.output_path, dtype={"customer_id": "string"})
@@ -163,6 +189,11 @@ def test_prepare_lendingclub_data_streams_chunks_and_deduplicates_across_them(tm
     assert audit["default_count"] == 1
     assert audit["observation_date_min"] == "2017-01-01"
     assert audit["observation_date_max"] == "2017-03-01"
+    vintage = pd.read_csv(result.vintage_resolution_path)
+    assert vintage["vintage_quarter"].tolist() == ["2017Q1"]
+    assert vintage.loc[0, "input_rows"] == 4
+    assert vintage.loc[0, "resolved_rows"] == 3
+    assert vintage.loc[0, "unresolved_rows"] == 1
 
 
 def test_prepare_lendingclub_data_rejects_non_positive_row_limit(tmp_path):

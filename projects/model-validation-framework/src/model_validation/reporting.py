@@ -9,8 +9,11 @@ from model_validation.policy import ValidationPolicy
 REPORT_TABLES = (
     "input_audit",
     "model_metrics",
+    "metric_uncertainty",
     "calibration_by_decile",
     "monthly_performance",
+    "vintage_performance",
+    "segment_performance",
     "stability_summary",
     "stability_bins",
     "benchmark_comparison",
@@ -192,9 +195,12 @@ def build_model_limitations(
                 "mitigation": "Extend monitoring across additional vintages when data is available.",
             },
             {
-                "limitation": "score_only_independent_validation",
+                "limitation": "limited_feature_replication",
                 "severity": "medium",
-                "description": "Independent validation consumes scores and outcomes, not full development features.",
+                "description": (
+                    "Independent validation consumes frozen scores, outcomes, and two "
+                    "business segmentation fields rather than the full development feature set."
+                ),
                 "mitigation": "Add feature-level replication and challenger rebuild testing in a later slice.",
             },
         ]
@@ -260,7 +266,9 @@ def build_markdown_report(result: object) -> str:
         "## Methodology",
         "",
         "- Reperformed AUC, Gini, tie-safe KS, Brier score, and portfolio calibration.",
+        "- Quantified uncertainty with DeLong, Wilson score, normal-mean, and paired intervals.",
         "- Reviewed rank-based calibration deciles and monthly performance.",
+        "- Backtested calibration and discrimination by origination quarter and business segment.",
         "- Measured score drift with reference-period quantile midpoint PSI bins.",
         "- Compared the selected recalibrated incumbent with the unselected raw challenger.",
         "",
@@ -271,6 +279,18 @@ def build_markdown_report(result: object) -> str:
         "## Calibration by Decile",
         "",
         _markdown_table(result.calibration_by_decile),
+        "",
+        "## Metric Uncertainty",
+        "",
+        _markdown_table(result.metric_uncertainty),
+        "",
+        "## Vintage Performance",
+        "",
+        _markdown_table(result.vintage_performance),
+        "",
+        "## Segment Performance",
+        "",
+        _markdown_table(result.segment_performance),
         "",
         "## Stability Summary",
         "",
@@ -315,6 +335,8 @@ def _markdown_table(frame: pd.DataFrame) -> str:
 
 
 def _markdown_value(value: object) -> str:
+    if pd.isna(value):
+        return "N/A"
     if isinstance(value, float):
         return _format_float(value)
     return str(value)

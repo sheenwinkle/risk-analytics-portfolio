@@ -1,0 +1,6 @@
+model_name,score_version,metric,estimate,lower_bound,upper_bound,confidence_level,method,observations,defaults
+random_forest,recalibrated,roc_auc,0.699887,0.697369,0.702405,0.950000,delong,225639,48043
+random_forest,recalibrated,observed_default_rate,0.212920,0.211236,0.214614,0.950000,wilson_score,225639,48043
+random_forest,recalibrated,mean_predicted_pd,0.239255,0.238715,0.239795,0.950000,normal_mean,225639,48043
+random_forest,recalibrated,calibration_gap,0.026335,0.024716,0.027955,0.950000,paired_normal,225639,48043
+random_forest,recalibrated,brier_score,0.154725,0.153889,0.155561,0.950000,normal_mean,225639,48043
