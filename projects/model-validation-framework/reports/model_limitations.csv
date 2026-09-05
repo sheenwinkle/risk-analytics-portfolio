@@ -2,4 +2,4 @@ limitation,severity,description,mitigation
 synthetic_data,medium,Inputs are synthetic and cannot prove live portfolio performance.,Validate on locally downloaded public LendingClub data before production use.
 terminal_outcome_proxy,medium,Observed defaults use a terminal-outcome proxy rather than serviced account history.,Replace with contractual default definitions and observation windows.
 limited_oot_horizon,medium,Out-of-time validation covers 2022-01-01 to 2022-12-01.,Extend monitoring across additional vintages when data is available.
-limited_feature_replication,medium,"Independent validation consumes frozen scores, outcomes, and two business segmentation fields rather than the full development feature set.",Add feature-level replication and challenger rebuild testing in a later slice.
+no_model_reestimation,medium,"Independent validation reconciles frozen model inputs and derived loan-to-income, but does not re-estimate development candidates.",Rebuild model candidates from governed development data before production approval.

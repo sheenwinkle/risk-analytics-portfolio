@@ -9,6 +9,11 @@ import pandas as pd
 
 from model_validation.benchmarking import build_benchmark_comparison
 from model_validation.calibration import build_calibration_by_decile, build_monthly_performance
+from model_validation.characteristic_stability import (
+    CATEGORICAL_CHARACTERISTICS,
+    NUMERIC_CHARACTERISTICS,
+    build_characteristic_stability_tables,
+)
 from model_validation.diagnostics import (
     build_metric_uncertainty,
     build_segment_performance,
@@ -29,6 +34,7 @@ REQUIRED_COLUMNS = {
     "observation_date",
     "home_ownership",
     "purpose",
+    *NUMERIC_CHARACTERISTICS,
     "actual_default",
     "selected_model",
     "selected_model_raw_pd",
@@ -43,6 +49,7 @@ AUDIT_CHECK_ORDER = (
     "observation_date",
     "home_ownership",
     "purpose",
+    *NUMERIC_CHARACTERISTICS,
     "actual_default",
     "selected_model",
     "selected_model_raw_pd",
@@ -55,6 +62,7 @@ NORMALIZED_COLUMN_ORDER = (
     "observation_date",
     "home_ownership",
     "purpose",
+    *NUMERIC_CHARACTERISTICS,
     "actual_default",
     "selected_model",
     "selected_model_raw_pd",
@@ -73,6 +81,8 @@ class ValidationResult:
     monthly_performance: pd.DataFrame
     vintage_performance: pd.DataFrame
     segment_performance: pd.DataFrame
+    characteristic_stability_summary: pd.DataFrame
+    characteristic_stability_bins: pd.DataFrame
     stability_summary: pd.DataFrame
     stability_bins: pd.DataFrame
     benchmark_comparison: pd.DataFrame
@@ -131,6 +141,15 @@ def run_validation(
         selected_model=selected_model,
         score_column="recalibrated_pd",
     )
+    characteristic_stability_summary, characteristic_stability_bins = (
+        build_characteristic_stability_tables(
+            normalized,
+            numeric_features=NUMERIC_CHARACTERISTICS,
+            categorical_features=CATEGORICAL_CHARACTERISTICS,
+            green_max=active_policy.csi_green_max,
+            warning_max=active_policy.csi_warning_max,
+        )
+    )
     benchmark_comparison = build_benchmark_comparison(
         model_metrics,
         selected_model=selected_model,
@@ -138,6 +157,7 @@ def run_validation(
     validation_summary = build_validation_summary(
         model_metrics=model_metrics,
         stability_summary=stability_summary,
+        characteristic_stability_summary=characteristic_stability_summary,
         benchmark_comparison=benchmark_comparison,
         selected_model=selected_model,
         policy=active_policy,
@@ -167,6 +187,8 @@ def run_validation(
         monthly_performance=monthly_performance,
         vintage_performance=vintage_performance,
         segment_performance=segment_performance,
+        characteristic_stability_summary=characteristic_stability_summary,
+        characteristic_stability_bins=characteristic_stability_bins,
         stability_summary=stability_summary,
         stability_bins=stability_bins,
         benchmark_comparison=benchmark_comparison,
@@ -210,6 +232,9 @@ def _validate_predictions(predictions: pd.DataFrame) -> pd.DataFrame:
         normalized["home_ownership"], "home_ownership"
     )
     normalized["purpose"] = _validated_segment(normalized["purpose"], "purpose")
+    for column in NUMERIC_CHARACTERISTICS:
+        normalized[column] = _validated_characteristic(normalized[column], column)
+    _validate_loan_to_income_lineage(normalized)
     normalized["actual_default"] = _validated_actual_default(normalized["actual_default"])
     normalized["selected_model"] = _validated_selected_model(normalized["selected_model"])
 
@@ -270,6 +295,28 @@ def _validated_segment(values: pd.Series, column: str) -> pd.Series:
     return normalized
 
 
+def _validated_characteristic(values: pd.Series, column: str) -> pd.Series:
+    parsed = pd.to_numeric(values, errors="coerce")
+    if (values.notna() & parsed.isna()).any():
+        raise ValueError(f"{column} must contain numeric values when present")
+    non_missing = parsed.dropna().to_numpy(dtype=float)
+    if not np.isfinite(non_missing).all():
+        raise ValueError(f"{column} must contain finite numeric values when present")
+    return parsed.astype(float)
+
+
+def _validate_loan_to_income_lineage(predictions: pd.DataFrame) -> None:
+    expected = predictions["loan_amount"] / predictions["annual_income"].clip(lower=1)
+    if not np.allclose(
+        predictions["loan_to_income"].to_numpy(dtype=float),
+        expected.to_numpy(dtype=float),
+        rtol=1e-10,
+        atol=1e-10,
+        equal_nan=True,
+    ):
+        raise ValueError("loan_to_income must match the independently derived value")
+
+
 def _validated_selected_model(selected_model: pd.Series) -> pd.Series:
     if selected_model.isna().any():
         raise ValueError("selected_model must contain exactly one supported model")
@@ -304,6 +351,14 @@ def _build_input_audit(predictions: pd.DataFrame) -> pd.DataFrame:
         ),
         "home_ownership": "non-empty business segment category",
         "purpose": "non-empty business segment category",
+        **{
+            feature: "finite numeric model input when present; missingness retained"
+            for feature in NUMERIC_CHARACTERISTICS
+        },
+        "loan_to_income": (
+            "finite numeric model input when present; independently reproduced from "
+            "loan_amount / annual_income clipped at 1"
+        ),
         "actual_default": "binary observed default flag with both classes present",
         "selected_model": (
             "one supported selected model: " f"{predictions['selected_model'].iloc[0]}"

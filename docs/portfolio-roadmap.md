@@ -75,19 +75,20 @@ Goal: create a reusable validation toolkit for credit risk models.
 
 Complete scoped case study:
 
-- Strict Project 1 OOT score and selected-model lineage adapter
+- Strict Project 1 OOT score, full feature, derived-ratio, and selected-model lineage adapter
 - Independent tie-safe AUC, Gini, KS, Brier, and portfolio calibration metrics
 - Deterministic low-to-high PD deciles and monthly performance diagnostics
 - DeLong, Wilson, normal-mean, and paired calibration-gap confidence intervals
 - Quarterly vintage and home-ownership/purpose segment backtests with reliability flags
 - Chronological reference/current PSI using reference-derived midpoint bins
+- Numeric/categorical CSI with missingness drift and explicit unavailable-feature handling
 - Selected recalibrated incumbent versus unselected raw challenger comparison
 - Selected raw versus recalibrated impact comparison
-- Frozen, validated traffic-light policy for discrimination, calibration, PSI, and challenger tests
+- Frozen, validated traffic-light policy for discrimination, calibration, PSI, CSI, and challenger tests
 - Warning/fail findings with recommended actions and a model limitation register
 - Deterministic CSV evidence and recruiter-readable Markdown validation report
-- PostgreSQL validation-run, metric, uncertainty, grouped-performance, finding, benchmark,
-  and limitation schemas
+- PostgreSQL validation-run, metric, uncertainty, grouped-performance, characteristic,
+  finding, benchmark, and limitation schemas
 - Transactional PostgreSQL loader and PostgreSQL 16 integration test
 - Full public LendingClub OOT validation with context-specific limitations
 - No-look-ahead rolling calibration remediation and finding lifecycle events
@@ -102,11 +103,12 @@ Implemented outputs:
 - Public-data warning opinion and safe aggregate publication
 - Sequential remediation retest and pending-fresh-OOT closure decision
 - Public vintage maturity, segment performance, and statistical uncertainty evidence
+- Public feature-stability summary, bin drivers, and recruiter-facing CSI chart
 
 Current candidate opinion:
 
 - Overall illustrative policy outcome: fail
-- AUC, KS, PSI, and challenger checks: pass
+- AUC, KS, PSI, CSI, and challenger checks: pass
 - Absolute calibration gap: fail because mean recalibrated PD materially understates the
   stressed OOT observed default rate
 
@@ -115,6 +117,7 @@ Public LendingClub opinion:
 - Overall illustrative policy outcome: warning
 - AUC 0.699887, KS 0.292493, and absolute calibration gap 0.026335: warning
 - PSI 0.016656 and challenger margin -0.009411: pass
+- Maximum available CSI 0.077926 (`credit_utilisation`): pass; source-missing `age` unavailable
 - AUC 95% CI 0.697369-0.702405; calibration-gap 95% CI 0.024716-0.027955
 - 2017Q1 to 2018Q4 raw status resolution declines from 48.4% to 3.9%
 
@@ -125,12 +128,11 @@ Remediation evidence:
 
 Potential extensions:
 
-- Feature-level replication, CSI, and characteristic drift analysis
+- Independent candidate re-estimation and parameter/importance stability comparison
 - Formal fixed-horizon label construction or survival analysis for unresolved outcomes
 - Reject-inference sensitivity for the accepted-only applicant population
 - ECL model validation and overlay governance
 
 Resume angle:
 
-> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, statistical uncertainty, vintage and segment backtesting, PSI stability, challenger benchmarking, explicit governance thresholds, public-data validation, and no-look-ahead remediation lifecycle evidence.
-
+> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, statistical uncertainty, vintage and segment backtesting, PSI/CSI stability, challenger benchmarking, explicit governance thresholds, public-data validation, and no-look-ahead remediation lifecycle evidence.

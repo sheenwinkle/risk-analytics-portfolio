@@ -10,7 +10,7 @@ from credit_risk_pd.data import (
     generate_synthetic_credit_data,
     make_out_of_time_split,
 )
-from credit_risk_pd.features import split_features_target
+from credit_risk_pd.features import CATEGORICAL_FEATURES, NUMERIC_FEATURES, split_features_target
 from credit_risk_pd.pipeline import run_pd_modelling_workflow
 
 
@@ -52,11 +52,19 @@ def test_pipeline_creates_outputs(tmp_path):
     assert {
         "selected_model_raw_pd",
         "recalibrated_pd",
-        "home_ownership",
-        "purpose",
+        *NUMERIC_FEATURES,
+        *CATEGORICAL_FEATURES,
     }.issubset(predictions.columns)
     assert predictions["recalibrated_pd"].between(0, 1).all()
     assert predictions[["home_ownership", "purpose"]].notna().all().all()
+    expected_loan_to_income = predictions["loan_amount"] / predictions[
+        "annual_income"
+    ].clip(lower=1)
+    np.testing.assert_allclose(
+        predictions["loan_to_income"],
+        expected_loan_to_income,
+        equal_nan=True,
+    )
 
     recalibration = pd.read_csv(outputs["recalibration_summary"])
     assert {
@@ -206,4 +214,3 @@ def _canonical_row(index: int, date: str, default: int) -> dict[str, object]:
         "purpose": "debt_consolidation",
         "default": default,
     }
-

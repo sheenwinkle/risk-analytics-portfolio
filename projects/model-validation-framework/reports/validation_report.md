@@ -13,6 +13,7 @@ Educational portfolio case study. This report is not a regulatory approval, acco
 - Absolute calibration gap: 0.077097.
 - PSI period split: 2022-01-01 to 2022-06-01 versus 2022-07-01 to 2022-12-01.
 - PSI: 0.070689.
+- Maximum available feature CSI: 0.070946 (credit_utilisation).
 - Overall policy outcome: **FAIL**.
 
 ## Methodology
@@ -22,6 +23,7 @@ Educational portfolio case study. This report is not a regulatory approval, acco
 - Reviewed rank-based calibration deciles and monthly performance.
 - Backtested calibration and discrimination by origination quarter and business segment.
 - Measured score drift with reference-period quantile midpoint PSI bins.
+- Measured numeric and categorical input drift with reference-derived bins, unioned categories, and explicit missing-value buckets.
 - Compared the selected recalibrated incumbent with the unselected raw challenger.
 
 ## Policy Checks
@@ -33,6 +35,7 @@ Educational portfolio case study. This report is not a regulatory approval, acco
 | absolute_calibration_gap | 0.077097 | lower_is_better | 0.010000 | 0.030000 | fail | Absolute gap between observed default rate and mean recalibrated PD. |
 | population_stability_index | 0.070689 | lower_is_better | 0.100000 | 0.250000 | pass | PSI comparing current score distribution with the reference period. |
 | challenger_auc_margin | -0.023896 | lower_is_better | 0.010000 | 0.030000 | pass | Unselected raw challenger AUC minus selected recalibrated incumbent AUC. |
+| maximum_characteristic_stability_index | 0.070946 | lower_is_better | 0.100000 | 0.250000 | pass | Maximum available feature-level CSI, observed for credit_utilisation. |
 
 ## Calibration by Decile
 
@@ -89,6 +92,22 @@ Educational portfolio case study. This report is not a regulatory approval, acco
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | logistic_regression | recalibrated | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 10 | 10 | reference_quantile_midpoint | 0.070689 |
 
+## Characteristic Stability Summary
+
+| feature_name | feature_type | reference_start | reference_end | current_start | current_end | reference_observations | current_observations | reference_missing_rate | current_missing_rate | missing_rate_delta | requested_bins | effective_bins | binning_method | availability_status | characteristic_stability_index | stability_status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| age | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.027748 | stable |
+| annual_income | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.024769 | stable |
+| debt_to_income | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.023531 | stable |
+| credit_utilisation | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.070946 | stable |
+| delinquencies_2y | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 3 | reference_quantile_midpoint | available | 0.022525 | stable |
+| loan_amount | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.049986 | stable |
+| interest_rate | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.009826 | stable |
+| employment_length | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.057076 | stable |
+| loan_to_income | numeric | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | 10.000000 | 10 | reference_quantile_midpoint | available | 0.029193 | stable |
+| home_ownership | categorical | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | N/A | 4 | category_union | available | 0.007244 | stable |
+| purpose | categorical | 2022-01-01 | 2022-06-01 | 2022-07-01 | 2022-12-01 | 474 | 520 | 0.000000 | 0.000000 | 0.000000 | N/A | 6 | category_union | available | 0.032061 | stable |
+
 ## Benchmark Comparison
 
 | comparison | baseline_model | baseline_score_version | baseline_score_column | benchmark_model | benchmark_score_version | benchmark_score_column | baseline_auc | benchmark_auc | auc_delta | baseline_ks | benchmark_ks | ks_delta | baseline_absolute_calibration_gap | benchmark_absolute_calibration_gap | absolute_calibration_gap_delta | baseline_brier_score | benchmark_brier_score | brier_score_delta |
@@ -109,4 +128,4 @@ Educational portfolio case study. This report is not a regulatory approval, acco
 | synthetic_data | medium | Inputs are synthetic and cannot prove live portfolio performance. | Validate on locally downloaded public LendingClub data before production use. |
 | terminal_outcome_proxy | medium | Observed defaults use a terminal-outcome proxy rather than serviced account history. | Replace with contractual default definitions and observation windows. |
 | limited_oot_horizon | medium | Out-of-time validation covers 2022-01-01 to 2022-12-01. | Extend monitoring across additional vintages when data is available. |
-| limited_feature_replication | medium | Independent validation consumes frozen scores, outcomes, and two business segmentation fields rather than the full development feature set. | Add feature-level replication and challenger rebuild testing in a later slice. |
+| no_model_reestimation | medium | Independent validation reconciles frozen model inputs and derived loan-to-income, but does not re-estimate development candidates. | Rebuild model candidates from governed development data before production approval. |

@@ -1,0 +1,12 @@
+feature_name,feature_type,reference_start,reference_end,current_start,current_end,reference_observations,current_observations,reference_missing_rate,current_missing_rate,missing_rate_delta,requested_bins,effective_bins,binning_method,availability_status,characteristic_stability_index,stability_status
+age,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.027748,stable
+annual_income,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.024769,stable
+debt_to_income,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.023531,stable
+credit_utilisation,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.070946,stable
+delinquencies_2y,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,3,reference_quantile_midpoint,available,0.022525,stable
+loan_amount,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.049986,stable
+interest_rate,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.009826,stable
+employment_length,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.057076,stable
+loan_to_income,numeric,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,10.000000,10,reference_quantile_midpoint,available,0.029193,stable
+home_ownership,categorical,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,,4,category_union,available,0.007244,stable
+purpose,categorical,2022-01-01,2022-06-01,2022-07-01,2022-12-01,474,520,0.000000,0.000000,0.000000,,6,category_union,available,0.032061,stable

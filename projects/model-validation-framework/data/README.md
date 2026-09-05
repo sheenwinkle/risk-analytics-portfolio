@@ -19,6 +19,9 @@ lineage records only aggregate counts, dates, dataset metadata, and source hashe
 | `observation_date` | OOT period and chronological stability split |
 | `home_ownership` | Non-sensitive business segment for grouped backtesting |
 | `purpose` | Non-sensitive loan-purpose segment for grouped backtesting |
+| `age`, `annual_income`, `debt_to_income`, `credit_utilisation` | Frozen numeric model inputs for characteristic stability |
+| `delinquencies_2y`, `loan_amount`, `interest_rate`, `employment_length` | Frozen numeric model inputs for characteristic stability |
+| `loan_to_income` | Frozen derived input independently reconciled from loan amount and income |
 | `actual_default` | Observed binary outcome for backtesting |
 | `selected_model` | Model-development selection carried into validation |
 | `selected_model_raw_pd` | Selected raw score used for lineage reconciliation |
@@ -28,7 +31,8 @@ lineage records only aggregate counts, dates, dataset metadata, and source hashe
 
 The adapter rejects missing fields, duplicate or blank IDs, blank segment values, invalid
 dates, one-class samples, non-finite/out-of-range PDs, multiple selected models, unsupported
-model names, and row-level selected-score mismatches.
+model names, non-numeric/non-finite feature values when present, selected-score mismatches,
+and inconsistent derived loan-to-income values.
 
 ## Privacy and Reproducibility
 
@@ -36,7 +40,7 @@ model names, and row-level selected-score mismatches.
 - Raw LendingClub data and locally prepared borrower-level files remain excluded by the root
   `.gitignore` rules.
 - Candidate reports under `reports/` are derived evidence, not source observations.
-- Vintage and segment reports contain aggregate counts and metrics only.
+- Vintage, segment, and characteristic-stability reports contain aggregate counts and metrics only.
 - The validation pipeline writes deterministic files without timestamps or local paths.
 - The public publisher uses an explicit aggregate allow-list and rejects CSV files containing
   a `customer_id` column.

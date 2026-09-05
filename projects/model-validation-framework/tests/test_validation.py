@@ -18,6 +18,8 @@ EXPECTED_REPORT_FILES = {
     "model_metrics.csv",
     "calibration_by_decile.csv",
     "monthly_performance.csv",
+    "characteristic_stability_summary.csv",
+    "characteristic_stability_bins.csv",
     "metric_uncertainty.csv",
     "vintage_performance.csv",
     "segment_performance.csv",
@@ -29,6 +31,22 @@ EXPECTED_REPORT_FILES = {
     "model_limitations.csv",
     "validation_report.md",
 }
+
+
+def _validation_features(index: int) -> dict[str, float]:
+    annual_income = 50_000.0 + index * 1_000
+    loan_amount = 5_000.0 + index * 250
+    return {
+        "age": float(25 + index),
+        "annual_income": annual_income,
+        "debt_to_income": 0.10 + index / 100,
+        "credit_utilisation": 0.20 + index / 100,
+        "delinquencies_2y": float(index % 3),
+        "loan_amount": loan_amount,
+        "interest_rate": 0.08 + index / 1_000,
+        "employment_length": float(index % 11),
+        "loan_to_income": loan_amount / annual_income,
+    }
 
 
 def _valid_predictions() -> pd.DataFrame:
@@ -47,6 +65,7 @@ def _valid_predictions() -> pd.DataFrame:
                 "observation_date": f"2022-{index:02d}-01",
                 "home_ownership": "rent" if index % 2 else "mortgage",
                 "purpose": "small_business" if index % 3 == 0 else "debt_consolidation",
+                **_validation_features(index),
                 "actual_default": default,
                 "logistic_regression_pd": raw,
                 "selected_model": "logistic_regression",
@@ -75,6 +94,15 @@ def test_run_validation_returns_input_audit_and_metrics_for_project1_predictions
         "observation_date",
         "home_ownership",
         "purpose",
+        "age",
+        "annual_income",
+        "debt_to_income",
+        "credit_utilisation",
+        "delinquencies_2y",
+        "loan_amount",
+        "interest_rate",
+        "employment_length",
+        "loan_to_income",
         "actual_default",
         "selected_model",
         "selected_model_raw_pd",
@@ -108,6 +136,25 @@ def test_run_validation_returns_input_audit_and_metrics_for_project1_predictions
     assert metrics["defaults"].tolist() == [5, 5, 5]
     assert metrics["roc_auc"].between(0, 1).all()
     assert metrics["ks"].between(0, 1).all()
+    assert result.characteristic_stability_summary["feature_name"].tolist() == [
+        "age",
+        "annual_income",
+        "debt_to_income",
+        "credit_utilisation",
+        "delinquencies_2y",
+        "loan_amount",
+        "interest_rate",
+        "employment_length",
+        "loan_to_income",
+        "home_ownership",
+        "purpose",
+    ]
+    assert result.characteristic_stability_bins.groupby("feature_name")[
+        "reference_observations"
+    ].sum().eq(6).all()
+    assert result.characteristic_stability_bins.groupby("feature_name")[
+        "current_observations"
+    ].sum().eq(6).all()
 
 
 @pytest.mark.parametrize(
@@ -132,6 +179,18 @@ def test_run_validation_returns_input_audit_and_metrics_for_project1_predictions
         (
             lambda frame: frame.assign(purpose=""),
             "purpose must contain non-empty category values",
+        ),
+        (
+            lambda frame: frame.drop(columns=["annual_income"]),
+            "missing required columns: annual_income",
+        ),
+        (
+            lambda frame: frame.assign(annual_income=float("inf")),
+            "annual_income must contain finite numeric values when present",
+        ),
+        (
+            lambda frame: frame.assign(loan_to_income=frame["loan_to_income"] + 0.01),
+            "loan_to_income must match the independently derived value",
         ),
         (
             lambda frame: frame.assign(selected_model=["xgboost"] * len(frame)),
@@ -274,6 +333,8 @@ def test_policy_status_and_findings_are_driven_by_warning_or_fail_checks(tmp_pat
         psi_warning_max=0.001,
         challenger_auc_margin_green_max=-0.01,
         challenger_auc_margin_warning_max=0.0,
+        csi_green_max=0.0,
+        csi_warning_max=0.001,
     )
 
     result = run_validation(Project1OOTPredictionAdapter(prediction_path), policy=strict_policy)
@@ -285,6 +346,7 @@ def test_policy_status_and_findings_are_driven_by_warning_or_fail_checks(tmp_pat
         "absolute_calibration_gap",
         "population_stability_index",
         "challenger_auc_margin",
+        "maximum_characteristic_stability_index",
     }
     assert set(summary["status"]).issubset({"pass", "warning", "fail"})
     assert not result.validation_findings.empty
@@ -371,6 +433,7 @@ def test_calibration_deciles_are_stable_when_input_rows_are_reordered(tmp_path) 
                 "observation_date": "2022-01-01" if index <= 10 else "2022-07-01",
                 "home_ownership": "rent" if index % 2 else "mortgage",
                 "purpose": "small_business" if index % 3 == 0 else "debt_consolidation",
+                **_validation_features(index),
                 "actual_default": 0 if index <= 10 else 1,
                 "logistic_regression_pd": 0.50,
                 "selected_model": "logistic_regression",
@@ -407,6 +470,7 @@ def test_psi_is_zero_for_identical_tied_reference_and_current_distributions(tmp_
                 "observation_date": date,
                 "home_ownership": "rent" if index % 2 else "mortgage",
                 "purpose": "small_business" if index % 3 == 0 else "debt_consolidation",
+                **_validation_features(index),
                 "actual_default": int(score > 0.50),
                 "logistic_regression_pd": score,
                 "selected_model": "logistic_regression",
@@ -443,6 +507,7 @@ def test_monthly_discrimination_is_not_available_for_single_class_periods(tmp_pa
         {"auc_green_min": 0.50, "auc_warning_min": 0.60},
         {"psi_green_max": 0.20, "psi_warning_max": 0.10},
         {"ks_green_min": np.nan},
+        {"csi_green_max": 0.20, "csi_warning_max": 0.10},
     ],
 )
 def test_validation_policy_rejects_incoherent_or_non_finite_thresholds(policy_kwargs) -> None:
@@ -460,7 +525,7 @@ def test_run_validation_result_exposes_static_limitations(tmp_path) -> None:
         "synthetic_data",
         "terminal_outcome_proxy",
         "limited_oot_horizon",
-        "limited_feature_replication",
+        "no_model_reestimation",
     ]
     assert limitations["severity"].tolist() == ["medium", "medium", "medium", "medium"]
 

@@ -52,6 +52,8 @@ class ValidationPersistenceRecords:
     metrics: tuple[dict[str, object], ...]
     uncertainty: tuple[dict[str, object], ...]
     group_performance: tuple[dict[str, object], ...]
+    characteristic_summaries: tuple[dict[str, object], ...]
+    characteristic_bins: tuple[dict[str, object], ...]
     findings: tuple[dict[str, object], ...]
     benchmarks: tuple[dict[str, object], ...]
     limitations: tuple[dict[str, object], ...]
@@ -142,6 +144,49 @@ def build_persistence_records(
             value_column="segment_value",
         ),
     )
+    characteristic_summaries = tuple(
+        {
+            "feature_name": str(row["feature_name"]),
+            "feature_type": str(row["feature_type"]),
+            "reference_start": _date(row["reference_start"]),
+            "reference_end": _date(row["reference_end"]),
+            "current_start": _date(row["current_start"]),
+            "current_end": _date(row["current_end"]),
+            "reference_observations": int(row["reference_observations"]),
+            "current_observations": int(row["current_observations"]),
+            "reference_missing_rate": float(row["reference_missing_rate"]),
+            "current_missing_rate": float(row["current_missing_rate"]),
+            "missing_rate_delta": float(row["missing_rate_delta"]),
+            "requested_bins": (
+                None if pd.isna(row["requested_bins"]) else int(row["requested_bins"])
+            ),
+            "effective_bins": int(row["effective_bins"]),
+            "binning_method": str(row["binning_method"]),
+            "availability_status": str(row["availability_status"]),
+            "characteristic_stability_index": float(
+                row["characteristic_stability_index"]
+            ),
+            "stability_status": str(row["stability_status"]),
+        }
+        for _, row in result.characteristic_stability_summary.iterrows()
+    )
+    characteristic_bins = tuple(
+        {
+            "feature_name": str(row["feature_name"]),
+            "feature_type": str(row["feature_type"]),
+            "bin": str(row["bin"]),
+            "bin_label": str(row["bin_label"]),
+            "lower_bound": _python_value(row["lower_bound"]),
+            "upper_bound": _python_value(row["upper_bound"]),
+            "category_value": _python_value(row["category_value"]),
+            "reference_observations": int(row["reference_observations"]),
+            "current_observations": int(row["current_observations"]),
+            "reference_share": float(row["reference_share"]),
+            "current_share": float(row["current_share"]),
+            "csi_component": float(row["csi_component"]),
+        }
+        for _, row in result.characteristic_stability_bins.iterrows()
+    )
     benchmarks = tuple(
         {
             key: _python_value(row[key])
@@ -181,6 +226,8 @@ def build_persistence_records(
         metrics=metrics,
         uncertainty=uncertainty,
         group_performance=group_performance,
+        characteristic_summaries=characteristic_summaries,
+        characteristic_bins=characteristic_bins,
         findings=findings,
         benchmarks=benchmarks,
         limitations=limitations,
@@ -223,6 +270,16 @@ def persist_validation_result(
             cursor,
             validation_run_id,
             records.group_performance,
+        )
+        _insert_characteristic_summaries(
+            cursor,
+            validation_run_id,
+            records.characteristic_summaries,
+        )
+        _insert_characteristic_bins(
+            cursor,
+            validation_run_id,
+            records.characteristic_bins,
         )
         _insert_findings(cursor, validation_run_id, records.findings)
         _insert_benchmarks(cursor, validation_run_id, records.benchmarks)
@@ -390,6 +447,58 @@ def _insert_group_performance(
             %(expected_to_observed_ratio)s, %(roc_auc)s, %(roc_auc_lower)s,
             %(roc_auc_upper)s, %(ks)s, %(discrimination_status)s,
             %(reliability_status)s, %(calibration_signal)s
+        )
+        """,
+        _with_run_id(records, validation_run_id),
+    )
+
+
+def _insert_characteristic_summaries(
+    cursor: Cursor,
+    validation_run_id: int,
+    records: tuple[dict[str, object], ...],
+) -> None:
+    cursor.executemany(
+        """
+        INSERT INTO model_validation_characteristic_summary (
+            validation_run_id, feature_name, feature_type,
+            reference_start, reference_end, current_start, current_end,
+            reference_observations, current_observations,
+            reference_missing_rate, current_missing_rate, missing_rate_delta,
+            requested_bins, effective_bins, binning_method, availability_status,
+            characteristic_stability_index, stability_status
+        ) VALUES (
+            %(validation_run_id)s, %(feature_name)s, %(feature_type)s,
+            %(reference_start)s, %(reference_end)s, %(current_start)s, %(current_end)s,
+            %(reference_observations)s, %(current_observations)s,
+            %(reference_missing_rate)s, %(current_missing_rate)s, %(missing_rate_delta)s,
+            %(requested_bins)s, %(effective_bins)s, %(binning_method)s,
+            %(availability_status)s, %(characteristic_stability_index)s,
+            %(stability_status)s
+        )
+        """,
+        _with_run_id(records, validation_run_id),
+    )
+
+
+def _insert_characteristic_bins(
+    cursor: Cursor,
+    validation_run_id: int,
+    records: tuple[dict[str, object], ...],
+) -> None:
+    cursor.executemany(
+        """
+        INSERT INTO model_validation_characteristic_bin (
+            validation_run_id, feature_name, feature_type, bin, bin_label,
+            lower_bound, upper_bound, category_value,
+            reference_observations, current_observations,
+            reference_share, current_share, csi_component
+        ) VALUES (
+            %(validation_run_id)s, %(feature_name)s, %(feature_type)s,
+            %(bin)s, %(bin_label)s, %(lower_bound)s, %(upper_bound)s,
+            %(category_value)s, %(reference_observations)s,
+            %(current_observations)s, %(reference_share)s,
+            %(current_share)s, %(csi_component)s
         )
         """,
         _with_run_id(records, validation_run_id),

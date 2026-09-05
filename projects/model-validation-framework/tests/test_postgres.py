@@ -24,13 +24,14 @@ def test_build_persistence_records_maps_governance_tables_from_real_candidate_re
     assert records.run["source_commit_sha"] == "abc123"
     assert records.run["reference_start"].isoformat() == "2022-01-01"
     assert records.run["current_end"].isoformat() == "2022-12-01"
-    assert len(records.metrics) == 5
+    assert len(records.metrics) == 6
     assert {record["check_name"] for record in records.metrics} == {
         "auc",
         "ks",
         "absolute_calibration_gap",
         "population_stability_index",
         "challenger_auc_margin",
+        "maximum_characteristic_stability_index",
     }
     assert records.findings[0]["check_name"] == "absolute_calibration_gap"
     assert len(records.uncertainty) == 5
@@ -49,5 +50,12 @@ def test_build_persistence_records_maps_governance_tables_from_real_candidate_re
         "vintage",
         "segment",
     }
+    assert len(records.characteristic_summaries) == len(
+        result.characteristic_stability_summary
+    )
+    assert len(records.characteristic_bins) == len(result.characteristic_stability_bins)
+    assert {record["feature_name"] for record in records.characteristic_summaries} == set(
+        result.characteristic_stability_summary["feature_name"]
+    )
     assert len(records.benchmarks) == 2
     assert len(records.limitations) == 4

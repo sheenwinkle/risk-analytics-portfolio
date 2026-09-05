@@ -10,6 +10,8 @@ import pandas as pd
 PUBLIC_VALIDATION_FILES = (
     "benchmark_comparison.csv",
     "calibration_by_decile.csv",
+    "characteristic_stability_bins.csv",
+    "characteristic_stability_summary.csv",
     "input_audit.csv",
     "model_limitations.csv",
     "model_metrics.csv",
