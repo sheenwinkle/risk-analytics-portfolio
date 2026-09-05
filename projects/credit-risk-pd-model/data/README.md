@@ -52,6 +52,11 @@ Project 2's PD integration bridge may consume the committed synthetic `reports/o
 output, but it uses only `customer_id`, `observation_date`, and `recalibrated_pd`. It does
 not use `actual_default` or any future outcome to construct ECL inputs.
 
+The decision-strategy workflow uses the pre-OOT calibration holdout to select a controlled
+growth challenger, then freezes the cutoff before OOT evaluation. Its public evidence remains
+conditional on the accepted-loan sample and cannot estimate outcomes for rejected applicants.
+The retrospective comparison is not a randomized A/B test.
+
 ## Expected CSV Schema
 
 If you use a real public dataset, transform it into this schema:
@@ -84,5 +89,5 @@ Keep raw data out of the repository. Commit only:
 The public-report publisher uses an explicit allow-list, rejects CSV files containing a
 `customer_id` column, and never publishes `oot_predictions.csv`. The committed lineage file
 records the source URL, licence, raw-file hash, input count, and resolved-output count.
-It also publishes the aggregate `vintage_resolution.csv`; no borrower identifiers are included.
-
+It also publishes aggregate strategy and `vintage_resolution.csv` evidence; no borrower
+identifiers are included.

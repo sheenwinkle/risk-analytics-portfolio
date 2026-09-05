@@ -1,0 +1,2 @@
+incumbent_cutoff,challenger_cutoff,selection_sample,evaluation_sample,overall_status,decision,rationale,evidence_type,causal_claim
+0.1500000000,0.2000000000,pre_oot_calibration_holdout,out_of_time,fail,retain_incumbent,Acceptance exceptions: oot_realized_credit_contribution.,retrospective_paired_champion_challenger_backtest,not_randomized_not_causal

@@ -74,6 +74,76 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
             "rejected_default_capture_rate",
         ],
     )
+    strategy_selection = _read_csv(
+        reports_path / "strategy_selection_audit.csv",
+        [
+            "selection_sample",
+            "max_pd_cutoff",
+            "incumbent_policy",
+            "approved_accounts",
+            "approval_rate",
+            "approved_default_rate",
+            "expected_loss_rate",
+            "max_bad_rate_constraint",
+            "max_expected_loss_rate_constraint",
+            "eligible_growth_challenger",
+            "selected_challenger",
+        ],
+    )
+    strategy_comparison = _read_csv(
+        reports_path / "strategy_oot_comparison.csv",
+        [
+            "evaluation_sample",
+            "policy",
+            "max_pd_cutoff",
+            "approved_accounts",
+            "approval_rate",
+            "approved_default_rate",
+            "approved_exposure",
+            "expected_loss",
+            "realized_loss_proxy",
+            "expected_credit_contribution_proxy",
+            "realized_credit_contribution_proxy",
+        ],
+    )
+    strategy_impact = _read_csv(
+        reports_path / "strategy_incremental_impact.csv",
+        [
+            "incremental_approved_accounts",
+            "incremental_approval_rate",
+            "incremental_approved_exposure",
+            "incremental_expected_credit_contribution_proxy",
+            "incremental_realized_credit_contribution_proxy",
+            "marginal_observed_default_rate",
+            "realized_contribution_ci_lower",
+            "realized_contribution_ci_upper",
+            "confidence_level",
+        ],
+    )
+    strategy_checks = _read_csv(
+        reports_path / "strategy_acceptance_checks.csv",
+        [
+            "check",
+            "metric_value",
+            "threshold",
+            "direction",
+            "confidence_lower",
+            "confidence_upper",
+            "status",
+            "detail",
+        ],
+    )
+    strategy_decision = _read_csv(
+        reports_path / "strategy_governance_decision.csv",
+        [
+            "incumbent_cutoff",
+            "challenger_cutoff",
+            "overall_status",
+            "decision",
+            "evidence_type",
+            "causal_claim",
+        ],
+    )
     calibration = _read_csv(
         reports_path / "calibration_table.csv",
         [
@@ -122,6 +192,8 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
     top_importance_feature = feature_importance.iloc[0]
     top_iv_feature = woe_summary.iloc[0]
     largest_gap = float(calibration["calibration_gap"].abs().max())
+    decision = strategy_decision.iloc[0]
+    incremental_impact = strategy_impact.iloc[0]
 
     report = "\n".join(
         [
@@ -165,6 +237,12 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                 f"`{top_iv_feature['feature']}` "
                 f"({_format_decimal(top_iv_feature['information_value'])}, "
                 f"{top_iv_feature['iv_band']})."
+            ),
+            (
+                "- Credit decision strategy: "
+                f"`{decision['decision']}` after a pre-OOT selected "
+                f"{_format_percent(decision['challenger_cutoff'])} challenger was evaluated "
+                "on untouched OOT outcomes."
             ),
             "",
             "## Model Performance",
@@ -282,6 +360,87 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
                 ],
             ),
             "",
+            "## Pre-OOT Champion-Challenger Strategy",
+            "",
+            (
+                "The growth challenger is selected only on the pre-OOT calibration holdout "
+                "by maximising approval rate subject to observed bad-rate and expected-loss-rate "
+                "constraints. The cutoff is then frozen before OOT evaluation."
+            ),
+            (
+                "The same pre-OOT holdout supports recalibration and policy development; this "
+                "can make selection evidence optimistic, but it does not contaminate the frozen "
+                "OOT acceptance decision."
+            ),
+            (
+                "This is a retrospective paired champion-challenger backtest, not a randomized "
+                "A/B test, so it quantifies historical policy impact without making a causal claim."
+            ),
+            f"Decision: **{str(decision['decision']).replace('_', ' ').upper()}**.",
+            (
+                f"The challenger produced {_format_integer(incremental_impact['incremental_approved_accounts'])} "
+                "incremental approvals and "
+                f"{_format_integer(incremental_impact['incremental_approved_exposure'])} "
+                "incremental exposure. Expected credit contribution changed by "
+                f"{_format_integer(incremental_impact['incremental_expected_credit_contribution_proxy'])}, "
+                "while the realised contribution proxy changed by "
+                f"{_format_integer(incremental_impact['incremental_realized_credit_contribution_proxy'])} "
+                f"({_format_percent(incremental_impact['confidence_level'])} paired bootstrap "
+                f"interval {_format_integer(incremental_impact['realized_contribution_ci_lower'])} "
+                f"to {_format_integer(incremental_impact['realized_contribution_ci_upper'])})."
+            ),
+            (
+                "Credit contribution is a deliberately simplified one-year proxy: interest "
+                "income less PD x LGD x EAD for expected results, and interest income less "
+                "observed-default x LGD x EAD for realised results. It excludes funding, "
+                "operating costs, prepayment, and timing."
+            ),
+            "",
+            "### Pre-OOT Selection",
+            "",
+            _markdown_table(
+                strategy_selection,
+                [
+                    ("max_pd_cutoff", "Max PD", _format_percent),
+                    ("incumbent_policy", "Incumbent", _format_boolean),
+                    ("approval_rate", "Approval Rate", _format_percent),
+                    ("approved_default_rate", "Observed Bad Rate", _format_percent),
+                    ("expected_loss_rate", "Expected Loss Rate", _format_percent),
+                    ("eligible_growth_challenger", "Eligible", _format_boolean),
+                    ("selected_challenger", "Selected", _format_boolean),
+                ],
+            ),
+            "",
+            "### OOT Policy Comparison",
+            "",
+            _markdown_table(
+                strategy_comparison,
+                [
+                    ("policy", "Policy", str),
+                    ("max_pd_cutoff", "Max PD", _format_percent),
+                    ("approved_accounts", "Approved", _format_integer),
+                    ("approval_rate", "Approval Rate", _format_percent),
+                    ("approved_default_rate", "Observed Bad Rate", _format_percent),
+                    ("approved_exposure", "Approved Exposure", _format_integer),
+                    ("expected_credit_contribution_proxy", "Expected Contribution", _format_integer),
+                    ("realized_credit_contribution_proxy", "Realised Contribution", _format_integer),
+                ],
+            ),
+            "",
+            "### Acceptance Checks",
+            "",
+            _markdown_table(
+                strategy_checks,
+                [
+                    ("check", "Check", str),
+                    ("metric_value", "Value", _format_decimal),
+                    ("threshold", "Threshold", _format_decimal),
+                    ("confidence_lower", "CI Lower", _format_decimal),
+                    ("confidence_upper", "CI Upper", _format_decimal),
+                    ("status", "Status", str),
+                ],
+            ),
+            "",
             "## Feature Importance",
             "",
             (
@@ -338,7 +497,7 @@ def generate_model_report(reports_dir: str | Path = "reports") -> Path:
     )
 
     report_path = reports_path / "model_report.md"
-    report_path.write_text(report, encoding="utf-8")
+    report_path.write_text(report, encoding="utf-8", newline="\n")
     return report_path
 
 

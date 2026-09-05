@@ -135,6 +135,107 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
     pd.DataFrame(
         [
             {
+                "selection_sample": "pre_oot_calibration_holdout",
+                "max_pd_cutoff": 0.15,
+                "incumbent_policy": True,
+                "approved_accounts": 300,
+                "approval_rate": 0.60,
+                "approved_default_rate": 0.07,
+                "expected_loss_rate": 0.04,
+                "max_bad_rate_constraint": 0.09,
+                "max_expected_loss_rate_constraint": 0.05,
+                "eligible_growth_challenger": False,
+                "selected_challenger": False,
+            },
+            {
+                "selection_sample": "pre_oot_calibration_holdout",
+                "max_pd_cutoff": 0.20,
+                "incumbent_policy": False,
+                "approved_accounts": 380,
+                "approval_rate": 0.76,
+                "approved_default_rate": 0.085,
+                "expected_loss_rate": 0.047,
+                "max_bad_rate_constraint": 0.09,
+                "max_expected_loss_rate_constraint": 0.05,
+                "eligible_growth_challenger": True,
+                "selected_challenger": True,
+            },
+        ]
+    ).to_csv(reports_dir / "strategy_selection_audit.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "evaluation_sample": "out_of_time",
+                "policy": "incumbent",
+                "max_pd_cutoff": 0.15,
+                "approved_accounts": 400,
+                "approval_rate": 0.40,
+                "approved_default_rate": 0.08,
+                "approved_exposure": 6_000_000,
+                "expected_loss": 270_000,
+                "realized_loss_proxy": 300_000,
+                "expected_credit_contribution_proxy": 450_000,
+                "realized_credit_contribution_proxy": 420_000,
+            },
+            {
+                "evaluation_sample": "out_of_time",
+                "policy": "challenger",
+                "max_pd_cutoff": 0.20,
+                "approved_accounts": 500,
+                "approval_rate": 0.50,
+                "approved_default_rate": 0.11,
+                "approved_exposure": 7_500_000,
+                "expected_loss": 360_000,
+                "realized_loss_proxy": 480_000,
+                "expected_credit_contribution_proxy": 540_000,
+                "realized_credit_contribution_proxy": 390_000,
+            },
+        ]
+    ).to_csv(reports_dir / "strategy_oot_comparison.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "incremental_approved_accounts": 100,
+                "incremental_approval_rate": 0.10,
+                "incremental_approved_exposure": 1_500_000,
+                "incremental_expected_credit_contribution_proxy": 90_000,
+                "incremental_realized_credit_contribution_proxy": -30_000,
+                "marginal_observed_default_rate": 0.23,
+                "realized_contribution_ci_lower": -55_000,
+                "realized_contribution_ci_upper": -5_000,
+                "confidence_level": 0.95,
+            }
+        ]
+    ).to_csv(reports_dir / "strategy_incremental_impact.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "check": "oot_realized_credit_contribution",
+                "metric_value": -30_000,
+                "threshold": 0,
+                "direction": "higher_is_better",
+                "confidence_lower": -55_000,
+                "confidence_upper": -5_000,
+                "status": "fail",
+                "detail": "Interval must be above zero.",
+            }
+        ]
+    ).to_csv(reports_dir / "strategy_acceptance_checks.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "incumbent_cutoff": 0.15,
+                "challenger_cutoff": 0.20,
+                "overall_status": "fail",
+                "decision": "retain_incumbent",
+                "evidence_type": "retrospective_paired_champion_challenger_backtest",
+                "causal_claim": "not_randomized_not_causal",
+            }
+        ]
+    ).to_csv(reports_dir / "strategy_governance_decision.csv", index=False)
+    pd.DataFrame(
+        [
+            {
                 "bucket": "(0.10, 0.20]",
                 "accounts": 100,
                 "predicted_pd": 0.15,
@@ -197,6 +298,7 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
     report_path = generate_model_report(reports_dir)
 
     assert report_path == reports_dir / "model_report.md"
+    assert b"\r\n" not in report_path.read_bytes()
     report = report_path.read_text(encoding="utf-8")
     assert "# Credit Risk PD Model Report" in report
     assert "Selected model by pre-OOT calibration holdout ROC-AUC: `logistic_regression`" in report
@@ -210,6 +312,11 @@ def test_generate_model_report_summarises_report_csvs(tmp_path):
     assert "| recalibrated | 0.030 | 1.040 | 0.160 | 0.510 | 21.0% | 20.0% |" in report
     assert "## Lending Strategy" in report
     assert "scenario rows, not recommendations" in report
+    assert "## Pre-OOT Champion-Challenger Strategy" in report
+    assert "Decision: **RETAIN INCUMBENT**" in report
+    assert "not a randomized A/B test" in report
+    assert "100 incremental approvals" in report
+    assert "-30000" in report
     assert (
         "| 20.0% | 45.0% | 420 | 42.0% | 10.0% | 6300000 | 567000 | "
         "9.0% | 79.0% |"

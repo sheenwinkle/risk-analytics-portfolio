@@ -18,6 +18,11 @@ SAFE_AGGREGATE_REPORTS = (
     "model_selection_audit.csv",
     "psi_report.csv",
     "recalibration_summary.csv",
+    "strategy_acceptance_checks.csv",
+    "strategy_governance_decision.csv",
+    "strategy_incremental_impact.csv",
+    "strategy_oot_comparison.csv",
+    "strategy_selection_audit.csv",
     "woe_bins.csv",
     "woe_summary.csv",
 )

@@ -50,6 +50,11 @@ def test_pipeline_creates_outputs(tmp_path):
     assert "model_development_sample" in outputs
     assert "model_development_spec" in outputs
     assert "model_parameter_reference" in outputs
+    assert "strategy_selection_audit" in outputs
+    assert "strategy_oot_comparison" in outputs
+    assert "strategy_incremental_impact" in outputs
+    assert "strategy_acceptance_checks" in outputs
+    assert "strategy_governance_decision" in outputs
     for path in outputs.values():
         assert path.exists()
 
@@ -129,6 +134,26 @@ def test_pipeline_creates_outputs(tmp_path):
     assert {"max_pd_cutoff", "lgd", "approval_rate", "expected_loss"}.issubset(
         strategy.columns
     )
+
+    selection_strategy = pd.read_csv(outputs["strategy_selection_audit"])
+    assert selection_strategy["selection_sample"].eq(
+        "pre_oot_calibration_holdout"
+    ).all()
+    assert selection_strategy["selected_challenger"].sum() == 1
+    assert selection_strategy.loc[
+        selection_strategy["selected_challenger"],
+        "max_pd_cutoff",
+    ].item() == pytest.approx(0.20)
+
+    strategy_comparison = pd.read_csv(outputs["strategy_oot_comparison"])
+    assert set(strategy_comparison["policy"]) == {"incumbent", "challenger"}
+    assert strategy_comparison["evaluation_sample"].eq("out_of_time").all()
+    impact = pd.read_csv(outputs["strategy_incremental_impact"]).iloc[0]
+    assert impact["incremental_approved_accounts"] > 0
+    assert impact["realized_contribution_ci_upper"] < 0
+    decision = pd.read_csv(outputs["strategy_governance_decision"]).iloc[0]
+    assert decision["decision"] == "retain_incumbent"
+    assert decision["overall_status"] == "fail"
 
     metrics = pd.read_csv(outputs["metrics"])
     assert metrics["classification_threshold"].eq(ModelConfig().test_threshold).all()

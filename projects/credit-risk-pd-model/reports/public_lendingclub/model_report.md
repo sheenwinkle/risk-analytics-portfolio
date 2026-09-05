@@ -8,6 +8,7 @@
 - Stability: 0 material shift feature(s), 1 moderate shift feature(s); top PSI feature `credit_utilisation` (0.188).
 - Explainability: top out-of-time permutation importance feature `interest_rate` (0.137 mean ROC-AUC decrease after permutation).
 - Scorecard diagnostics: top development-sample Information Value feature `interest_rate` (0.422, strong).
+- Credit decision strategy: `advance_challenger` after a pre-OOT selected 20.0% challenger was evaluated on untouched OOT outcomes.
 
 ## Model Performance
 
@@ -62,6 +63,41 @@ Approval cutoffs are fixed scenario rows, not recommendations. Expected loss is 
 | 15.0% | 45.0% | 65820 | 29.2% | 7.9% | 800339550 | 35205067 | 4.4% | 89.2% |
 | 20.0% | 45.0% | 101696 | 45.1% | 10.7% | 1249726975 | 70570585 | 5.6% | 77.3% |
 | 25.0% | 45.0% | 132575 | 58.8% | 13.0% | 1671065875 | 113188261 | 6.8% | 64.0% |
+
+## Pre-OOT Champion-Challenger Strategy
+
+The growth challenger is selected only on the pre-OOT calibration holdout by maximising approval rate subject to observed bad-rate and expected-loss-rate constraints. The cutoff is then frozen before OOT evaluation.
+The same pre-OOT holdout supports recalibration and policy development; this can make selection evidence optimistic, but it does not contaminate the frozen OOT acceptance decision.
+This is a retrospective paired champion-challenger backtest, not a randomized A/B test, so it quantifies historical policy impact without making a causal claim.
+Decision: **ADVANCE CHALLENGER**.
+The challenger produced 35876 incremental approvals and 449387425 incremental exposure. Expected credit contribution changed by 14651204, while the realised contribution proxy changed by 17032983 (95.0% paired bootstrap interval 16062200 to 18019470).
+Credit contribution is a deliberately simplified one-year proxy: interest income less PD x LGD x EAD for expected results, and interest income less observed-default x LGD x EAD for realised results. It excludes funding, operating costs, prepayment, and timing.
+
+### Pre-OOT Selection
+
+| Max PD | Incumbent | Approval Rate | Observed Bad Rate | Expected Loss Rate | Eligible | Selected |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10.0% | no | 13.7% | 6.1% | 3.2% | no | no |
+| 15.0% | yes | 31.0% | 9.7% | 4.5% | no | no |
+| 20.0% | no | 48.6% | 12.7% | 5.7% | yes | yes |
+| 25.0% | no | 62.1% | 15.0% | 6.7% | no | no |
+
+### OOT Policy Comparison
+
+| Policy | Max PD | Approved | Approval Rate | Observed Bad Rate | Approved Exposure | Expected Contribution | Realised Contribution |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| incumbent | 15.0% | 65820 | 29.2% | 7.9% | 800339550 | 30110272 | 34785775 |
+| challenger | 20.0% | 101696 | 45.1% | 10.7% | 1249726975 | 44761476 | 51818757 |
+
+### Acceptance Checks
+
+| Check | Value | Threshold | CI Lower | CI Upper | Status |
+| --- | --- | --- | --- | --- | --- |
+| pre_oot_selection_constraints | 1.000 | 1.000 | N/A | N/A | pass |
+| oot_approval_uplift | 0.159 | 0.000 | N/A | N/A | pass |
+| oot_expected_credit_contribution | 14651204.194 | 0.000 | N/A | N/A | pass |
+| oot_bad_rate_increase | 0.029 | 0.030 | N/A | N/A | pass |
+| oot_realized_credit_contribution | 17032982.820 | 0.000 | 16062199.822 | 18019469.559 | pass |
 
 ## Feature Importance
 

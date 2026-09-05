@@ -28,6 +28,29 @@ The random forest was selected using the later pre-OOT calibration holdout. On t
 recalibration reduced Brier score from `0.208` to `0.155`; mean recalibrated PD was `23.9%`
 against an observed default rate of `21.3%`.
 
+## Credit Decision Strategy Backtest
+
+The incumbent 15% max-PD cutoff and candidate thresholds were compared on the pre-OOT
+calibration holdout. A controlled 20% challenger was selected because it stayed within the
+illustrative 13% bad-rate, 6% expected-loss-rate, and five-percentage-point cutoff-change
+limits. The rule was frozen before the 2017-2018 OOT evaluation.
+The pre-OOT holdout supports both recalibration and policy development, so its selection
+evidence may be optimistic even though the OOT decision remains untouched.
+
+| OOT evidence | Incumbent | Challenger | Increment |
+| --- | ---: | ---: | ---: |
+| Approved accounts | 65,820 | 101,696 | +35,876 |
+| Approval rate | 29.2% | 45.1% | +15.9 pp |
+| Approved exposure | 800.3m | 1,249.7m | +449.4m |
+| Expected credit contribution proxy | 30.1m | 44.8m | +14.7m |
+| Realised credit contribution proxy | 34.8m | 51.8m | +17.0m |
+
+Amounts in this table are USD.
+The paired marginal-cohort bootstrap interval for incremental realised contribution is
+`16.1m-18.0m`, so the illustrative decision is `advance_challenger`. This is not a randomized
+A/B test or a causal production estimate. The dataset contains only accepted loans, and the
+one-year proxy omits funding, operating costs, prepayment, and cash-flow timing.
+
 The largest decile-level calibration gap was `7.1%` in D10. Credit utilisation had the largest
 PSI at `0.188`, a moderate rather than material shift under the project's disclosed policy.
 

@@ -48,6 +48,48 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_CONFIG.test_threshold,
         help="Fixed threshold for precision, recall, accuracy, and confusion counts.",
     )
+    parser.add_argument(
+        "--strategy-incumbent-cutoff",
+        type=float,
+        default=DEFAULT_CONFIG.strategy_incumbent_cutoff,
+        help="Current max-PD cutoff used as the strategy champion.",
+    )
+    parser.add_argument(
+        "--strategy-max-bad-rate",
+        type=float,
+        default=DEFAULT_CONFIG.strategy_max_bad_rate,
+        help="Pre-OOT bad-rate constraint for growth challengers.",
+    )
+    parser.add_argument(
+        "--strategy-max-expected-loss-rate",
+        type=float,
+        default=DEFAULT_CONFIG.strategy_max_expected_loss_rate,
+        help="Pre-OOT expected-loss-rate constraint for growth challengers.",
+    )
+    parser.add_argument(
+        "--strategy-max-cutoff-increase",
+        type=float,
+        default=DEFAULT_CONFIG.strategy_max_cutoff_increase,
+        help="Maximum max-PD cutoff increase considered for a controlled challenger.",
+    )
+    parser.add_argument(
+        "--strategy-max-bad-rate-increase",
+        type=float,
+        default=DEFAULT_CONFIG.strategy_max_bad_rate_increase,
+        help="Maximum accepted OOT bad-rate increase versus the incumbent.",
+    )
+    parser.add_argument(
+        "--strategy-bootstrap-repetitions",
+        type=int,
+        default=DEFAULT_CONFIG.strategy_bootstrap_repetitions,
+        help="Paired marginal-cohort bootstrap repetitions.",
+    )
+    parser.add_argument(
+        "--strategy-confidence-level",
+        type=float,
+        default=DEFAULT_CONFIG.strategy_confidence_level,
+        help="Confidence level for the paired marginal-cohort interval.",
+    )
     return parser.parse_args()
 
 
@@ -64,6 +106,13 @@ def main() -> None:
             lgd=args.lgd,
             approval_thresholds=tuple(args.approval_thresholds),
             test_threshold=args.classification_threshold,
+            strategy_incumbent_cutoff=args.strategy_incumbent_cutoff,
+            strategy_max_bad_rate=args.strategy_max_bad_rate,
+            strategy_max_expected_loss_rate=args.strategy_max_expected_loss_rate,
+            strategy_max_cutoff_increase=args.strategy_max_cutoff_increase,
+            strategy_max_bad_rate_increase=args.strategy_max_bad_rate_increase,
+            strategy_bootstrap_repetitions=args.strategy_bootstrap_repetitions,
+            strategy_confidence_level=args.strategy_confidence_level,
         ),
     )
     for name, path in outputs.items():
@@ -72,4 +121,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

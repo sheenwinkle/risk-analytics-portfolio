@@ -133,6 +133,13 @@ Independent replication evidence:
 - Nineteen transformed coefficients/importances per model reconcile within `1e-8`
 - Borrower-level development rows remain local; committed evidence is aggregate only
 
+Decision-strategy evidence:
+
+- Controlled 20% max-PD challenger selected only on the pre-OOT calibration holdout
+- Public OOT: 35,876 incremental approvals and USD 17.0m realised contribution proxy uplift
+- Synthetic stress OOT: 107 incremental approvals but 0.14m realised contribution decline
+- Paired marginal-cohort bootstrap intervals drive advance/retain governance decisions
+
 Potential extensions:
 
 - Production scoring-service implementation testing beyond analytical candidate replication

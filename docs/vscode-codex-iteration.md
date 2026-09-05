@@ -118,11 +118,10 @@ failures on the branch and push again; do not merge a red PR.
 
 ## 7. Next High-Impact Iterations
 
-1. Add a pre-OOT credit decision strategy backtest with challenger policy comparisons.
-2. Add ECL macro sensitivity and management-overlay governance examples.
-3. Evaluate survival methods or a fixed-horizon label for unresolved public outcomes.
-4. Add reject-inference sensitivity for the accepted-only population.
-5. Add a fresh OOT closure window when a defensible later-period dataset is available.
+1. Add ECL macro sensitivity and management-overlay governance examples.
+2. Evaluate survival methods or a fixed-horizon label for unresolved public outcomes.
+3. Add reject-inference sensitivity for the accepted-only population.
+4. Add a fresh OOT closure window when a defensible later-period dataset is available.
 
 Each iteration should improve a hiring manager's ability to inspect a concrete risk decision,
 not merely increase code volume.

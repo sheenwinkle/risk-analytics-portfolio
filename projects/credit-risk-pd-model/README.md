@@ -14,6 +14,7 @@ This project builds a practical workflow:
 ```text
 Data checks -> feature engineering -> out-of-time split -> baseline model -> challenger model
 -> pre-OOT calibration holdout model selection -> logistic PD recalibration
+-> pre-OOT champion-challenger policy selection -> frozen OOT strategy backtest
 -> fixed lending approval cutoff scenarios -> WOE/IV screening -> permutation importance
 -> PSI monitoring -> raw-status vintage maturity audit -> report outputs
 ```
@@ -32,6 +33,9 @@ ignored.
 | Selected model | Random forest |
 | OOT ROC-AUC / Gini / KS | 0.6999 / 0.3998 / 0.2925 |
 | Raw to recalibrated Brier score | 0.2085 -> 0.1547 |
+| Pre-OOT selected strategy challenger | 15% -> 20% max PD cutoff |
+| OOT incremental approvals / exposure | 35,876 / USD 449.4 million |
+| OOT realised credit contribution proxy | +USD 17.0 million (95% CI: +16.1m to +18.0m) |
 | Raw status resolution, 2017Q1 -> 2018Q4 | 48.4% -> 3.9% |
 
 Review the [public aggregate model report](reports/public_lendingclub/model_report.md),
@@ -39,6 +43,8 @@ Review the [public aggregate model report](reports/public_lendingclub/model_repo
 [vintage maturity report](reports/public_lendingclub/vintage_resolution.csv), and
 [data lineage record](reports/public_lendingclub/data_lineage.json). These results are an
 exploratory terminal-outcome case study, not a Basel-compliant fixed-horizon PD estimate.
+The strategy evidence is a retrospective accepted-loan backtest, not a randomized A/B test
+or causal estimate. Credit contribution is a simplified one-year interest-less-loss proxy.
 
 ## Why This Project Fits Risk Analytics
 
@@ -59,6 +65,8 @@ It demonstrates:
 - Out-of-time validation to mimic model performance after economic change
 - Logistic recalibration and OOT calibration diagnostics for predicted PD accuracy
 - Fixed max-PD lending approval scenario analysis without optimising on OOT
+- Pre-OOT champion-challenger selection with frozen OOT policy comparison and paired bootstrap
+- Explicit strategy governance decision that can reject uplift when realised loss is adverse
 - Scorecard-style Weight of Evidence and Information Value variable screening
 - Model-agnostic permutation importance evaluated on the out-of-time sample
 - Population Stability Index for monitoring drift
@@ -148,6 +156,10 @@ python scripts/run_pipeline.py `
   --calibration-fraction 0.25 `
   --lgd 0.45 `
   --approval-thresholds 0.10 0.15 0.20 0.25 `
+  --strategy-incumbent-cutoff 0.15 `
+  --strategy-max-bad-rate 0.13 `
+  --strategy-max-expected-loss-rate 0.06 `
+  --strategy-max-cutoff-increase 0.05 `
   --classification-threshold 0.15
 ```
 
@@ -172,6 +184,11 @@ The pipeline writes:
 - `reports/model_selection_audit.csv`: model-development/calibration-holdout dates, counts, and holdout ROC-AUC used for selection
 - `reports/recalibration_summary.csv`: fitted pre-OOT recalibration parameters plus raw vs recalibrated OOT calibration diagnostics
 - `reports/approval_strategy.csv`: fixed max-PD approval scenarios with LGD, approval rate, observed defaults, approved exposure, expected loss, and rejected-default capture; `loan_amount` is the EAD proxy
+- `reports/strategy_selection_audit.csv`: pre-OOT cutoff metrics, risk constraints, eligibility, and frozen challenger selection
+- `reports/strategy_oot_comparison.csv`: incumbent/challenger OOT approvals, exposure, loss, and simplified expected/realised credit contribution
+- `reports/strategy_incremental_impact.csv`: marginal-cohort uplift and paired bootstrap interval
+- `reports/strategy_acceptance_checks.csv`: explicit rollout criteria and pass/fail evidence
+- `reports/strategy_governance_decision.csv`: advance, controlled-experiment, or retain-incumbent decision without a causal claim
 - `reports/calibration_table.csv`: decile-level predicted PD vs observed default rate
 - `reports/woe_bins.csv`: Weight of Evidence bin detail for numeric quantile bins and categorical category bins
 - `reports/woe_summary.csv`: feature-level Information Value ranking for development-sample variable screening
@@ -198,6 +215,8 @@ The project intentionally separates:
 - Selection: candidate base models train on the earlier pre-OOT sample and are selected by ROC-AUC on a later pre-OOT calibration holdout, not by OOT performance
 - Calibration: logistic recalibration is fitted on the pre-OOT holdout; raw and recalibrated PDs are then evaluated only on the untouched OOT sample
 - Lending strategy: fixed approval cutoffs are scenario rows, not OOT-optimised recommendations
+- Champion-challenger strategy: the growth cutoff is selected on the pre-OOT holdout under disclosed risk constraints, frozen, and only then accepted or rejected on OOT evidence
+- Strategy limitation: recalibration and policy development share the same pre-OOT holdout, so selection evidence can be optimistic even though OOT evaluation remains untouched
 - Classification: precision, recall, accuracy, and confusion counts use a fixed 15% threshold that is disclosed in the output and never tuned on OOT outcomes
 - Scorecard screening: WOE is calculated as `ln(% good / % bad)`, so positive WOE means lower observed default risk and negative WOE means higher observed default risk; Information Value ranks variables by development-sample separation
 - Explainability: permutation importance measured by out-of-time ROC-AUC drop
@@ -242,6 +261,7 @@ under `data/raw/` and processed files under `data/processed/`, both of which are
 ## Resume Bullets
 
 - Built an end-to-end Python credit risk PD workflow over 2.26 million public LendingClub records, retaining 1.35 million resolved outcomes through chunked ingestion, leakage-safe temporal model selection, recalibration, WOE/IV screening, permutation importance, strategy scenarios, PSI, and vintage maturity monitoring.
+- Built a pre-OOT champion-challenger policy backtest that selected a controlled 20% max-PD cutoff, then measured 35,876 incremental OOT approvals and a USD 17.0 million realised credit-contribution proxy uplift (95% paired-bootstrap CI: 16.1-18.0 million) while preserving accepted-loan and non-causal limitations.
 - Selected a random forest challenger before OOT evaluation and achieved 0.6999 ROC-AUC on 225,639 untouched 2017-2018 observations; logistic recalibration reduced Brier score from 0.2085 to 0.1547.
 - Designed SQL schemas and analytics queries for loan, customer, and performance data to support credit risk reporting and model development.
 
