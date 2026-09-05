@@ -48,6 +48,9 @@ Complete scoped case study:
 - Explicit synthetic account assumptions for EAD, LGD, maturity, EIR, DPD, SICR,
   credit-impaired/defaulted flags, and prior stage
 - Deterministic synthetic demo pipeline and committed report outputs
+- Independent weight, severity, and combined macro-sensitivity cases
+- Overlay trigger, model-overlap, approval, cap, and duplicate-risk controls
+- SQL governance tables and model-to-illustrative-reported ECL reconciliation
 - SQL schema and example portfolio, stage migration, and scenario queries
 
 Implemented outputs:
@@ -58,16 +61,17 @@ Implemented outputs:
 - Scenario-level account ECL table
 - Markdown demo report
 - PD integration lineage, account, scenario, portfolio, migration, and Markdown reports
+- Macro-sensitivity detail/summary, overlay register, ECL reconciliation, and governance report
 
 Potential extensions:
 
-- Add documented SICR rebuttal and management-overlay examples
-- Add macroeconomic sensitivity and stress reporting
-- Add model validation and governance artefacts around ECL inputs
+- Add documented SICR rebuttal decisions
+- Add contractual cash-flow, collateral, cure, and prepayment sensitivity
+- Add empirical macroeconomic model estimation and independent validation evidence
 
 Resume angle:
 
-> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration reporting, and a validated bridge from Project 1 recalibrated PD outputs.
+> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration, and a validated Project 1 PD bridge; added separate macro sensitivity and governed overlay reconciliation with trigger, overlap, approval, and cap controls.
 
 ## Project 3: Model Validation Framework
 

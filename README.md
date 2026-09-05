@@ -52,7 +52,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | Project | Status | Main evidence | Target roles |
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, champion-challenger strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
-| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, discounting, scenarios, migration, Project 1 bridge | ECL, Portfolio Risk, Credit Risk |
+| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, scenarios, migration, PD bridge, macro sensitivity, overlay controls | ECL, Portfolio Risk, Credit Risk |
 | [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent candidate rebuild, metrics, confidence intervals, vintage/segment backtesting, PSI/CSI drift, policy opinion, remediation lifecycle | Model Risk, Validation, Quant Risk |
 
 ## Project 1: Credit Risk PD Modelling
@@ -104,13 +104,24 @@ Reporting-date PD cohort
 -> monthly base/upside/downside PD, LGD, and EAD paths
 -> Stage 1 12-month ECL / Stage 2-3 lifetime ECL
 -> discounting, scenario weighting, migration, and portfolio evidence
+-> separate macro sensitivity, overlay controls, and ECL reconciliation
 ```
 
 ![ECL coverage by stage](docs/assets/ecl_stage_coverage.png)
 
+![ECL macro sensitivity and overlay reconciliation](docs/assets/ecl_macro_overlay.png)
+
 The implementation is deliberately transparent. It demonstrates staging, term structures,
 discounting, scenario weighting, coverage ratios, and stage migration without claiming full
 institution-specific IFRS 9 compliance.
+
+The governance layer keeps sensitivity analysis separate from booked adjustments. On the
+synthetic portfolio, a combined downside weight/severity case increases ECL by `13.56%` but
+is not booked. One triggered, approved, non-overlapping overlay is capped at 8% of modelled
+ECL, while a duplicate macro-risk request and a pending request remain unrecognized. The
+auditable bridge reconciles `27,996.92` modelled ECL to `30,236.67` illustrative reported ECL.
+
+Evidence: [macro sensitivity and overlay report](projects/ifrs9-ecl-engine/reports/macro_overlay/macro_overlay_report.md).
 
 ## Project 3: Model Validation and Remediation
 
@@ -181,6 +192,7 @@ VS Code exposes both commands through **Tasks: Run Task**:
 - Python packages with explicit public APIs rather than notebook-only logic
 - Behavioural, edge-case, lineage, privacy, and deterministic-report tests
 - Pre-OOT strategy selection, frozen OOT evaluation, and paired marginal-cohort uncertainty
+- Separate ECL sensitivity, overlay trigger, double-counting, approval, cap, and reconciliation controls
 - GitHub Actions matrix across all three projects
 - CI PostgreSQL 16 integration test for run, metric uncertainty, grouped performance,
   characteristic drift, finding, benchmark, limitation, and remediation-event persistence
@@ -213,8 +225,9 @@ risk-analytics-portfolio/
   Basel or IFRS 9 default labels. Published vintage denominators quantify severe recent-cohort
   right-censoring but cannot remove it.
 - Accepted-loan data does not represent all applicants and cannot support reject inference.
-- The ECL engine omits institution-specific accounting policy, contractual cash-flow,
-  collateral, cure, overlay, and disclosure processes.
+- The ECL engine's overlay records are synthetic governance examples; it still omits
+  institution-specific accounting policy, contractual cash-flow, collateral, cure,
+  macroeconomic model estimation, expert-judgement evidence, and production disclosure.
 - Validation policy thresholds are explicit case-study assumptions, not regulatory cutoffs.
 - Public aggregate results demonstrate analytical workflow, not production approval.
 
@@ -222,8 +235,8 @@ risk-analytics-portfolio/
 
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
 > LendingClub records, covering temporal PD development, recalibration, credit strategy,
-> vintage maturity,
-> IFRS 9 ECL consumption, independent candidate re-estimation, validation with confidence
+> vintage maturity, IFRS 9 ECL consumption, macro sensitivity and overlay governance,
+> independent candidate re-estimation, validation with confidence
 > intervals and segment backtesting, score/feature drift, no-look-ahead remediation, and
 > PostgreSQL governance persistence.
 
@@ -234,5 +247,5 @@ and the optional VS Code/Codex iteration process are documented in
 
 ## Next Evidence
 
-- Add documented SICR rebuttal and macroeconomic management-overlay sensitivity.
+- Add documented SICR rebuttal decisions and contractual cash-flow sensitivity.
 - Revisit the pending calibration finding when an additional matured OOT horizon is available.

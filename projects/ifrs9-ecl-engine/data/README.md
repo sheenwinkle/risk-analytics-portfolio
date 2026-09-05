@@ -24,5 +24,11 @@ educational assumptions, not production IFRS 9 methodology.
 
 Synthetic PD integration account identifiers must begin with `SYN-PD-ECL-`.
 
+The macro-sensitivity and management-overlay demo uses no additional borrower data. Its
+scenario-weight shifts, downside severity multiplier, trigger observations, requested
+amounts, overlap assessments, cap ratios, and approval records are deterministic synthetic
+governance assumptions defined in `src/ifrs9_ecl_engine/governance_demo.py`. They are not
+estimated macroeconomic relationships, observed institution events, or accounting evidence.
+
 Any real or public-data experiment should remain local unless it has been reviewed and
 intentionally anonymised, aggregated, and documented before being added to Git.

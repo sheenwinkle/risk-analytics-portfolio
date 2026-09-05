@@ -1,7 +1,7 @@
 # IFRS 9 ECL Engine
 
-Status: complete scoped case study with deterministic standalone and Project 1 PD-integration
-evidence.
+Status: complete scoped case study with deterministic standalone, Project 1 PD-integration,
+and macro-sensitivity/management-overlay governance evidence.
 
 This project is a runnable, educational expected credit loss engine for credit risk
 analytics portfolio discussion. It calculates account-level and portfolio-level ECL from
@@ -55,6 +55,36 @@ date exposure measure.
 
 Scenario weights are explicit, nonnegative, and must sum to 1. The engine does not infer,
 choose, optimize, or backfit scenario weights from outcomes.
+
+## Macro Sensitivity and Management Overlays
+
+The separate governance layer consumes frozen scenario-level model output. It never mutates
+account ECL, scenario ECL, PD, LGD, EAD, or staging results.
+
+`analyse_macro_sensitivity(...)` compares controlled scenario-weight and scenario-ECL
+severity assumptions. Every case must cover exactly the modelled scenarios with weights
+summing to 1, and exactly one baseline must reconcile to the engine's original weights.
+The committed cases isolate:
+
+- A 10 percentage-point shift from base to downside weight
+- A 10% increase in downside scenario ECL severity
+- The combined weight and severity sensitivity
+
+Sensitivity deltas are explicitly labelled `not_booked`. They show exposure to assumptions;
+they do not automatically change reported ECL.
+
+`evaluate_management_overlays(...)` applies four independent controls to every request:
+
+- Objective trigger comparison against a documented threshold
+- Model-overlap assessment and double-counting check
+- Approval status with a named approver required for approved requests
+- A request-level cap expressed as a share of baseline modelled ECL
+
+Every request remains in `management_overlay_register.csv`, including blocked, pending, and
+rejected items. Only a triggered, distinct, approved, within-cap amount enters
+`illustrative_reported_ecl`. Duplicate overlay IDs and duplicate risk-driver/scope pairs are
+rejected. The workflow therefore preserves separate model, sensitivity, overlay, and final
+reporting layers.
 
 ## Project 1 PD Integration Bridge
 
@@ -130,6 +160,7 @@ pip install -e .
 ruff check src tests scripts
 pytest
 python scripts\run_pipeline.py
+python scripts\run_macro_overlay.py
 ```
 
 The default CLI writes:
@@ -139,6 +170,14 @@ The default CLI writes:
 - `reports/portfolio_summary.csv`
 - `reports/stage_migration.csv`
 - `reports/ecl_report.md`
+
+The macro/overlay governance CLI writes:
+
+- `reports/macro_overlay/macro_sensitivity_summary.csv`
+- `reports/macro_overlay/macro_sensitivity_detail.csv`
+- `reports/macro_overlay/management_overlay_register.csv`
+- `reports/macro_overlay/ecl_reconciliation.csv`
+- `reports/macro_overlay/macro_overlay_report.md`
 
 Run the Project 1 PD integration bridge:
 
@@ -214,6 +253,15 @@ coverage ratio by stage and total.
 
 `stage_migration.csv` aggregates prior-stage to current-stage movement.
 
+`macro_sensitivity_summary.csv` reports modelled ECL, baseline change, and coverage by
+controlled case. `macro_sensitivity_detail.csv` discloses every scenario weight, ECL
+multiplier, original scenario ECL, stressed ECL, and weighted contribution.
+
+`management_overlay_register.csv` retains trigger evidence, amount requested, cap, overlap
+assessment, approval evidence, control outcome, and recognized amount for every request.
+`ecl_reconciliation.csv` bridges baseline modelled ECL to the separately recognized overlay
+and illustrative reported ECL while disclosing the highest sensitivity as not booked.
+
 ## Committed Synthetic Results
 
 The committed report artefacts are generated from deterministic synthetic accounts whose
@@ -223,6 +271,19 @@ LGD, and amortising EAD paths. They do not use observed future defaults.
 
 The outputs are intended to support interview discussion about staging, 12-month vs
 lifetime ECL, discounting, scenario weighting, coverage ratios, and portfolio migration.
+
+## Committed Macro and Overlay Results
+
+Baseline modelled ECL is `27,996.92` on `554,000.00` synthetic gross exposure. Shifting 10
+percentage points from base to downside raises ECL by `2,202.44`; increasing downside
+severity by 10% raises it by `1,139.25`; combining both raises it by `3,797.39` or `13.56%`.
+These sensitivities are disclosed but not booked.
+
+Three synthetic overlay requests demonstrate distinct outcomes. The approved, triggered,
+non-overlapping request is capped from `4,000.00` to `2,239.75`, equal to 8% of baseline
+modelled ECL. A broad macro request is blocked as double counting, and a distinct
+concentration request remains unrecognized while approval is pending. Illustrative reported
+ECL is therefore `30,236.67`, with a `5.46%` coverage ratio.
 
 ## Committed PD Integration Results
 
@@ -266,13 +327,24 @@ The public API validates:
 - Recalibrated PD range `[0, 1)`
 - Positive integer remaining maturity
 - Scenario hazard multipliers, weights, names, LGD add-ons, and economic ordering
+- Exactly one macro-sensitivity baseline matching modelled scenario weights
+- Complete scenario coverage, weights summing to 1, and nonnegative severity multipliers
+- Unique overlay IDs and risk-driver/scope pairs
+- Valid trigger operators, overlap assessments, approval statuses, and finite amounts
+- Named approver for approved overlays and caps between 0% and 100% of modelled ECL
+- Model-to-baseline ECL reconciliation and separate non-booked sensitivity disclosure
 
 ## Limitations
 
 This is deliberately small and transparent. It does not implement financial asset
 classification, contractual cash flow modelling, prepayment, cures, collateral valuation,
-write-offs, overlays, macroeconomic model estimation, SICR rebuttal documentation, audit
-workflow, disclosure production, or institution-specific IFRS 9 policy.
+write-offs, macroeconomic model estimation, SICR rebuttal documentation, audit workflow,
+production disclosure, or institution-specific IFRS 9 and management-overlay policy.
+
+The overlay trigger metrics, risk assessments, committee name, requested amounts, and caps
+are synthetic. The governance controls demonstrate process and reconciliation, but they do
+not establish empirical risk emergence, accounting materiality, expert-judgement quality,
+or approval by a real institution.
 
 Stage 3 uses the same transparent marginal-PD/LGD/EAD proxy as the other stages. It does
 not implement a production credit-impaired cash-shortfall methodology or interest-revenue
@@ -299,4 +371,6 @@ model governance, SICR policy approval, or audited financial reporting.
   scenario hazard multipliers, and reproducible recruiter-readable reports.
 - Added deterministic synthetic ECL reports covering Stage 1, Stage 2, Stage 3, stage
   migration, scenario-level ECL, gross exposure, weighted ECL, and coverage ratio.
-
+- Built a separate ECL governance layer that quantified a `13.56%` combined downside
+  sensitivity, blocked a duplicate macro-risk overlay, enforced approval and an 8% cap, and
+  reconciled `27,996.92` modelled ECL to `30,236.67` illustrative reported ECL.

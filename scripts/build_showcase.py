@@ -51,6 +51,22 @@ def main() -> None:
     ecl_path = (
         REPO_ROOT / "projects" / "ifrs9-ecl-engine" / "reports" / "portfolio_summary.csv"
     )
+    ecl_macro_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "macro_overlay"
+        / "macro_sensitivity_summary.csv"
+    )
+    ecl_reconciliation_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "macro_overlay"
+        / "ecl_reconciliation.csv"
+    )
     validation_path = (
         REPO_ROOT
         / "projects"
@@ -110,6 +126,11 @@ def main() -> None:
     outputs = (
         _build_calibration_chart(calibration_path, output_dir / "public_pd_calibration.png"),
         _build_ecl_chart(ecl_path, output_dir / "ecl_stage_coverage.png"),
+        _build_ecl_macro_overlay_chart(
+            ecl_macro_path,
+            ecl_reconciliation_path,
+            output_dir / "ecl_macro_overlay.png",
+        ),
         _build_validation_chart(
             validation_path,
             output_dir / "validation_opinion.png",
@@ -245,6 +266,120 @@ def _build_ecl_chart(input_path: Path, output_path: Path) -> Path:
             fontweight="bold",
         )
     figure.tight_layout()
+    _save(figure, output_path)
+    return output_path
+
+
+def _build_ecl_macro_overlay_chart(
+    sensitivity_path: Path,
+    reconciliation_path: Path,
+    output_path: Path,
+) -> Path:
+    sensitivity = _read_csv(sensitivity_path)
+    reconciliation_rows = _read_csv(reconciliation_path)
+    if len(reconciliation_rows) != 1:
+        raise ValueError("ECL reconciliation showcase requires exactly one row")
+    reconciliation = reconciliation_rows[0]
+
+    case_labels = {
+        "baseline": "Baseline",
+        "downside_weight_plus_10pp": "Downside weight\n+10pp",
+        "downside_severity_plus_10pct": "Downside severity\n+10%",
+        "combined_downside": "Combined\ndownside",
+    }
+    labels = [case_labels.get(row["case_id"], row["case_id"]) for row in sensitivity]
+    ecl_values = [float(row["modelled_ecl"]) / 1_000 for row in sensitivity]
+    changes = [float(row["change_vs_baseline"]) / 1_000 for row in sensitivity]
+    colors = [BLUE if row["is_baseline"] == "True" else AMBER for row in sensitivity]
+
+    baseline = float(reconciliation["baseline_modelled_ecl"]) / 1_000
+    overlay = float(reconciliation["recognized_management_overlay"]) / 1_000
+    reported = float(reconciliation["illustrative_reported_ecl"]) / 1_000
+
+    figure, (sensitivity_axis, reconciliation_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(9.6, 5.1),
+        dpi=160,
+        gridspec_kw={"width_ratios": [1.45, 0.85]},
+    )
+    figure.suptitle(
+        "ECL macro sensitivity and overlay governance",
+        x=0.07,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.07,
+        0.91,
+        "Synthetic portfolio | sensitivity deltas are disclosed, not booked",
+        color=MUTED,
+        fontsize=9,
+    )
+
+    bars = sensitivity_axis.bar(labels, ecl_values, color=colors, width=0.62)
+    sensitivity_axis.set_title("Controlled macro cases", loc="left", fontsize=11, pad=12)
+    sensitivity_axis.set_ylabel("ECL (thousands)")
+    sensitivity_axis.set_ylim(0, max(ecl_values) * 1.26)
+    sensitivity_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    sensitivity_axis.set_axisbelow(True)
+    sensitivity_axis.spines[["top", "right"]].set_visible(False)
+    sensitivity_axis.tick_params(axis="x", labelsize=8.5)
+    for bar, value, change in zip(bars, ecl_values, changes, strict=True):
+        label = f"{value:.1f}k" if change == 0 else f"{value:.1f}k\n(+{change:.1f}k)"
+        sensitivity_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + max(ecl_values) * 0.035,
+            label,
+            ha="center",
+            va="bottom",
+            color=TEXT,
+            fontsize=8.5,
+            fontweight="bold",
+        )
+
+    reconciliation_bars = reconciliation_axis.bar(
+        ["Modelled", "Illustrative\nreported"],
+        [baseline, reported],
+        color=[BLUE, TEAL],
+        width=0.58,
+    )
+    reconciliation_axis.set_title("Booked bridge", loc="left", fontsize=11, pad=12)
+    reconciliation_axis.set_ylim(0, max(reported, baseline) * 1.26)
+    reconciliation_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    reconciliation_axis.set_axisbelow(True)
+    reconciliation_axis.spines[["top", "right"]].set_visible(False)
+    reconciliation_axis.tick_params(axis="x", labelsize=8.5)
+    for bar, value in zip(reconciliation_bars, [baseline, reported], strict=True):
+        reconciliation_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + reported * 0.035,
+            f"{value:.1f}k",
+            ha="center",
+            color=TEXT,
+            fontweight="bold",
+        )
+    reconciliation_axis.text(
+        0.5,
+        reported * 1.17,
+        f"Recognized capped overlay: +{overlay:.1f}k",
+        color=TEAL,
+        fontsize=8.5,
+        ha="center",
+        va="center",
+        fontweight="bold",
+        clip_on=True,
+    )
+
+    figure.text(
+        0.07,
+        0.025,
+        "Double-counted macro request blocked | distinct request pending approval | all requests disclosed",
+        color=MUTED,
+        fontsize=8.5,
+    )
+    figure.subplots_adjust(left=0.07, right=0.98, top=0.80, bottom=0.20, wspace=0.30)
     _save(figure, output_path)
     return output_path
 

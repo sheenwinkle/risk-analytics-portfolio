@@ -94,4 +94,4 @@ jobs:
         run: python scripts/build_showcase.py --output-dir .artifacts/showcase
       - name: Check showcase assets
         run: |
-          test $(find .artifacts/showcase -name '*.png' -size +10k | wc -l) -eq 7
+          test $(find .artifacts/showcase -name '*.png' -size +10k | wc -l) -eq 8

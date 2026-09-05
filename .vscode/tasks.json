@@ -79,11 +79,12 @@
       "problemMatcher": []
     },
     {
-      "label": "Project 2: Run ECL and PD Bridge",
+      "label": "Project 2: Run ECL, PD Bridge, and Governance",
       "dependsOrder": "sequence",
       "dependsOn": [
         "Project 2: Run ECL Pipeline",
-        "Project 2: Run PD Bridge"
+        "Project 2: Run PD Bridge",
+        "Project 2: Run Macro and Overlay Governance"
       ],
       "problemMatcher": []
     },
@@ -105,6 +106,18 @@
       "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": [
         "scripts/run_pd_integration.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 2: Run Macro and Overlay Governance",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_macro_overlay.py"
       ],
       "options": {
         "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"

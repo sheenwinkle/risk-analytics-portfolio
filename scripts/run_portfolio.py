@@ -59,6 +59,7 @@ def main() -> None:
     project1_models = output_root / "credit-risk-pd-model" / "models"
     project2_reports = output_root / "ifrs9-ecl-engine" / "reports"
     project2_integration_reports = output_root / "ifrs9-ecl-engine" / "pd_integration"
+    project2_macro_overlay_reports = output_root / "ifrs9-ecl-engine" / "macro_overlay"
     project3_reports = output_root / "model-validation-framework" / "reports"
     project3_replication_reports = (
         output_root / "model-validation-framework" / "replication"
@@ -93,6 +94,15 @@ def main() -> None:
                 str(project1_reports / "oot_predictions.csv"),
                 "--output-dir",
                 str(project2_integration_reports),
+            ),
+        ),
+        PipelineStep(
+            "ECL macro sensitivity and management overlays",
+            PROJECT_ROOT / "ifrs9-ecl-engine",
+            (
+                "scripts/run_macro_overlay.py",
+                "--output-dir",
+                str(project2_macro_overlay_reports),
             ),
         ),
         PipelineStep(
@@ -154,6 +164,7 @@ def main() -> None:
         "credit-risk-pd-model": project1_reports,
         "ifrs9-ecl-engine": project2_reports,
         "ifrs9-ecl-integration": project2_integration_reports,
+        "ifrs9-ecl-macro-overlay": project2_macro_overlay_reports,
         "model-validation-framework": project3_reports,
         "model-validation-replication": project3_replication_reports,
         "model-validation-remediation": project3_remediation_reports,
@@ -199,6 +210,9 @@ def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
         "ifrs9-ecl-engine": PROJECT_ROOT / "ifrs9-ecl-engine" / "reports",
         "ifrs9-ecl-integration": (
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "pd_integration"
+        ),
+        "ifrs9-ecl-macro-overlay": (
+            PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "macro_overlay"
         ),
         "model-validation-framework": PROJECT_ROOT / "model-validation-framework" / "reports",
         "model-validation-replication": (

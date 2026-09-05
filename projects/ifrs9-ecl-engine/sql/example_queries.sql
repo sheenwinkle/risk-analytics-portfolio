@@ -44,3 +44,39 @@ SELECT
 FROM ecl_account_result
 ORDER BY coverage_ratio DESC, weighted_ecl DESC
 LIMIT 20;
+
+-- Macro sensitivity ranking; changes are analysis only and are not booked adjustments.
+SELECT
+    case_id,
+    is_baseline,
+    modelled_ecl,
+    change_vs_baseline,
+    change_pct_vs_baseline,
+    coverage_ratio
+FROM ecl_macro_sensitivity_case
+ORDER BY modelled_ecl DESC, case_id;
+
+-- Overlay control register, including blocked and pending requests.
+SELECT
+    overlay_id,
+    risk_driver,
+    scope,
+    trigger_met,
+    double_counting_check,
+    approval_status,
+    recognition_status,
+    requested_amount,
+    recognized_amount
+FROM ecl_management_overlay
+ORDER BY overlay_id;
+
+-- Model-to-reported ECL bridge with the highest non-booked sensitivity disclosed separately.
+SELECT
+    reporting_id,
+    baseline_modelled_ecl,
+    highest_sensitivity_case_id,
+    highest_sensitivity_delta_not_booked,
+    recognized_management_overlay,
+    illustrative_reported_ecl,
+    illustrative_reported_coverage_ratio
+FROM ecl_reporting_reconciliation;

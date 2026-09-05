@@ -8,7 +8,7 @@ Credit Risk Probability of Default Modelling
 
 Built a Python and PostgreSQL credit risk analytics portfolio across 2.26 million public
 LendingClub records, covering temporal PD modelling, recalibration, educational IFRS 9 ECL,
-credit strategy, independent validation, and remediation governance.
+credit strategy, macro/overlay governance, independent validation, and remediation governance.
 
 ## Resume Bullets
 
@@ -19,6 +19,7 @@ credit strategy, independent validation, and remediation governance.
 - Designed PostgreSQL schemas, transactional persistence, and analytical SQL for model runs, policy metrics, confidence intervals, grouped backtests, findings, limitations, benchmarks, remediation retests, and closure decisions.
 - Produced portfolio-ready model artefacts, including account-level raw and recalibrated PD predictions, calibration deciles, PSI drift reports, and a saved recalibrated model wrapper.
 - Connected committed synthetic recalibrated out-of-time PD outputs to an educational IFRS 9 ECL engine through validated reporting-date cohort selection, explicit account assumptions, scenario hazard multipliers, and reproducible ECL reports.
+- Quantified a 13.56% combined downside ECL sensitivity, kept the stress delta outside booked ECL, blocked a duplicate-risk overlay, and enforced trigger, approval, and 8% cap controls to reconcile 27,996.92 modelled ECL to 30,236.67 illustrative reported ECL.
 - Built a reusable PD model validation framework that independently reperforms AUC, Gini, tie-safe KS, Brier score, calibration deciles, monthly/vintage/segment diagnostics, score PSI, feature CSI, and challenger comparisons, then applies explicit policy thresholds and produces actionable findings.
 - Independently rebuilt the logistic and random-forest development candidates from a governed pre-OOT extract, reproducing model selection, both holdout AUCs, and 19 transformed coefficients/importances per model within a 1e-8 tolerance.
 - Issued a public-data warning opinion after independently re-performing AUC 0.699887 (DeLong 95% CI 0.697369-0.702405), KS 0.292493, calibration gap 0.026335 (95% CI 0.024716-0.027955), PSI 0.016656, and maximum CSI 0.077926 on 225,639 frozen OOT scores.
@@ -30,7 +31,8 @@ This portfolio demonstrates a bank-style credit risk workflow from public-data P
 through educational ECL reporting and independent-style model validation. It includes
 bounded-memory LendingClub ingestion, leakage-safe pre-OOT selection and recalibration,
 champion-challenger strategy with paired uncertainty, PSI monitoring, a PD-to-ECL bridge,
-and a separate validation package that consumes frozen OOT scores and model inputs,
+separate macro-sensitivity/overlay reconciliation, and a validation package that consumes
+frozen OOT scores and model inputs,
 quantifies metric uncertainty, grouped
 performance, and characteristic drift, records policy findings, tests sequential remediation,
 and persists governance history to PostgreSQL.
@@ -42,7 +44,8 @@ learning accuracy. Project 1 processes the full public LendingClub file, selects
 before OOT evaluation, recalibrates on a pre-OOT holdout, and selects a credit-policy
 challenger before measuring its incremental OOT impact. Project 2 shows
 how frozen recalibrated PD can feed a simplified ECL workflow without using future outcomes
-as inputs. Project 3 independently consumes frozen scores, outcomes, and model inputs,
+as inputs, then keeps non-booked macro sensitivities separate from approved and capped
+management overlays. Project 3 independently consumes frozen scores, outcomes, and model inputs,
 reconciles the derived loan-to-income feature, re-performs metrics with confidence intervals,
 measures PSI/CSI drift, applies policy thresholds, tests a no-look-ahead remediation, and
 preserves the distinction between a passed retest and formal closure. The ECL and validation
@@ -56,3 +59,11 @@ policies are educational assumptions, not compliance or production approval clai
 > vintage/segment backtesting, PSI/CSI, and challenger comparisons on 225,639 public OOT
 > observations; implemented feature-lineage checks, policy findings, sequential remediation,
 > deterministic evidence, and governance persistence.
+
+## Project 2 Standalone Bullet
+
+> Built an educational IFRS 9 ECL engine with configurable staging, monthly PD/LGD/EAD,
+> scenario weighting, discounting, and a leakage-controlled PD bridge; added auditable macro
+> sensitivities and management-overlay controls that quantified a 13.56% downside impact,
+> blocked double counting, enforced approval and an 8% cap, and reconciled modelled to
+> illustrative reported ECL.
