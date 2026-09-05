@@ -180,10 +180,15 @@ The pipeline writes:
 - `reports/model_report.md`: markdown summary of model performance, recalibration, strategy scenarios, Information Value, feature importance, and PSI monitoring
 - `reports/oot_predictions.csv`: account-level out-of-time actuals, selected/raw/recalibrated PDs, the complete frozen model-input contract, and non-sensitive segments; Project 2's ECL bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`, while Project 3 independently validates feature lineage and drift
 - `models/<selected_model>_recalibrated.joblib`: selected base model plus fitted logistic recalibrator with `predict_proba`
+- `models/validation_inputs/model_development_sample.csv`: local, borrower-level pre-OOT development and calibration rows used only for independent replication; this path is Git-ignored
+- `models/validation_inputs/model_development_spec.json`: machine-readable feature, preprocessing, candidate, and selection contract
+- `models/validation_inputs/model_parameter_reference.csv`: fitted logistic coefficients and random-forest importances used as reconciliation references
 
 Public-data preparation additionally writes `lendingclub_vintage_resolution.csv`, which keeps
 unresolved statuses in each issue-quarter denominator. The publisher commits this aggregate
 table as `reports/public_lendingclub/vintage_resolution.csv` but never publishes account rows.
+The development sample and model binaries remain local; only aggregate Project 3 replication
+evidence is committed.
 
 ## Model Evaluation
 

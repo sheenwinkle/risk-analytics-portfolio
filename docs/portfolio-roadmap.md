@@ -126,9 +126,16 @@ Remediation evidence:
 - Synthetic sequential retest reduced absolute calibration gap from 0.064441 to 0.009218
 - Closure remains `pending_fresh_oot` because the retest is not an independent OOT window
 
+Independent replication evidence:
+
+- Both candidate holdout AUCs reproduce with zero reported delta
+- Logistic regression remains selected on the frozen pre-OOT holdout
+- Nineteen transformed coefficients/importances per model reconcile within `1e-8`
+- Borrower-level development rows remain local; committed evidence is aggregate only
+
 Potential extensions:
 
-- Independent candidate re-estimation and parameter/importance stability comparison
+- Production scoring-service implementation testing beyond analytical candidate replication
 - Formal fixed-horizon label construction or survival analysis for unresolved outcomes
 - Reject-inference sensitivity for the accepted-only applicant population
 - ECL model validation and overlay governance

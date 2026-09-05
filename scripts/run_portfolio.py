@@ -60,6 +60,9 @@ def main() -> None:
     project2_reports = output_root / "ifrs9-ecl-engine" / "reports"
     project2_integration_reports = output_root / "ifrs9-ecl-engine" / "pd_integration"
     project3_reports = output_root / "model-validation-framework" / "reports"
+    project3_replication_reports = (
+        output_root / "model-validation-framework" / "replication"
+    )
     project3_remediation_reports = (
         output_root / "model-validation-framework" / "remediation"
     )
@@ -93,6 +96,35 @@ def main() -> None:
             ),
         ),
         PipelineStep(
+            "Independent model replication",
+            PROJECT_ROOT / "model-validation-framework",
+            (
+                "scripts/run_model_replication.py",
+                "--sample-path",
+                str(
+                    project1_models
+                    / "validation_inputs"
+                    / "model_development_sample.csv"
+                ),
+                "--specification-path",
+                str(
+                    project1_models
+                    / "validation_inputs"
+                    / "model_development_spec.json"
+                ),
+                "--selection-audit-path",
+                str(project1_reports / "model_selection_audit.csv"),
+                "--parameter-reference-path",
+                str(
+                    project1_models
+                    / "validation_inputs"
+                    / "model_parameter_reference.csv"
+                ),
+                "--output-dir",
+                str(project3_replication_reports),
+            ),
+        ),
+        PipelineStep(
             "Independent model validation",
             PROJECT_ROOT / "model-validation-framework",
             (
@@ -123,6 +155,7 @@ def main() -> None:
         "ifrs9-ecl-engine": project2_reports,
         "ifrs9-ecl-integration": project2_integration_reports,
         "model-validation-framework": project3_reports,
+        "model-validation-replication": project3_replication_reports,
         "model-validation-remediation": project3_remediation_reports,
     }
     if args.verify_committed:
@@ -168,6 +201,9 @@ def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "pd_integration"
         ),
         "model-validation-framework": PROJECT_ROOT / "model-validation-framework" / "reports",
+        "model-validation-replication": (
+            PROJECT_ROOT / "model-validation-framework" / "reports" / "replication"
+        ),
         "model-validation-remediation": (
             PROJECT_ROOT / "model-validation-framework" / "reports" / "remediation"
         ),

@@ -31,6 +31,7 @@ from credit_risk_pd.model import candidate_models
 from credit_risk_pd.monitoring import psi_report
 from credit_risk_pd.reporting import generate_model_report
 from credit_risk_pd.strategy import approval_strategy_table
+from credit_risk_pd.validation_contract import write_model_validation_bundle
 from credit_risk_pd.woe import calculate_woe_iv
 
 
@@ -218,6 +219,17 @@ def run_pd_modelling_workflow(
         ),
         model_file,
     )
+    validation_bundle = write_model_validation_bundle(
+        model_development=model_development,
+        calibration_holdout=calibration_holdout,
+        x_model_development=x_model_development,
+        y_model_development=y_model_development,
+        x_calibration=x_calibration,
+        y_calibration=y_calibration,
+        trained_models=trained_models,
+        config=config,
+        output_dir=model_path / "validation_inputs",
+    )
     report_file = generate_model_report(output_path)
 
     return {
@@ -233,6 +245,7 @@ def run_pd_modelling_workflow(
         "feature_importance": feature_importance_file,
         "report": report_file,
         "model": model_file,
+        **validation_bundle,
     }
 
 

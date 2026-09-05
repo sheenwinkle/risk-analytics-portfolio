@@ -1,0 +1,9 @@
+check,status,detail
+contract_version,pass,1.0
+row_count,pass,4006 governed development rows
+unique_customer_id,pass,non-empty and unique across both samples
+temporal_roles,pass,development ends 2020-12-01; holdout starts 2021-01-01
+binary_target,pass,both classes present in each sample role
+derived_feature_lineage,pass,loan_to_income independently reproduced
+selection_audit,pass,"candidate, sample count, date range, and selection checks passed"
+parameter_reference,pass,unique finite parameter references available for both candidates

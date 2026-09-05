@@ -50,14 +50,14 @@ loans without leakage, publish aggregates only, and test maturity-window edge ca
 ```
 
 ```text
-Add an ECL macro sensitivity example with explicit scenario assumptions. Keep it educational,
-test accounting identities, regenerate deterministic evidence, and document limitations.
+Add a pre-OOT credit decision strategy backtest. Compare fixed incumbent and challenger
+policies on untouched holdout data, include bootstrap uncertainty, and avoid OOT optimisation.
 ```
 
 ```text
-Independently re-estimate Project 1 candidates from a governed development extract. Compare
-parameters and importance with the frozen model, persist aggregate evidence, and avoid OOT
-model selection.
+Add an ECL macro sensitivity example with explicit scenario assumptions and governed
+management overlays. Test accounting identities, regenerate deterministic evidence, and
+document limitations.
 ```
 
 Avoid prompts such as `make the project better`; they do not define a risk decision,
@@ -79,9 +79,9 @@ git status --short
 ```
 
 The root runner checks all Ruff and pytest suites, regenerates all deterministic synthetic,
-ECL-integration, validation, and remediation reports, then compares them with the committed
-evidence. GitHub Actions repeats this gate on Linux and runs the database integration test
-against PostgreSQL 16.
+ECL-integration, model-replication, validation, and remediation reports, then compares them
+with the committed evidence. GitHub Actions repeats this gate on Linux and runs the database
+integration test against PostgreSQL 16.
 
 Review the diff for unrelated files, machine-local paths, credentials, and borrower-level
 records before staging.
@@ -118,8 +118,8 @@ failures on the branch and push again; do not merge a red PR.
 
 ## 7. Next High-Impact Iterations
 
-1. Add ECL macro sensitivity and management-overlay governance examples.
-2. Add independent candidate re-estimation and parameter/importance stability evidence.
+1. Add a pre-OOT credit decision strategy backtest with challenger policy comparisons.
+2. Add ECL macro sensitivity and management-overlay governance examples.
 3. Evaluate survival methods or a fixed-horizon label for unresolved public outcomes.
 4. Add reject-inference sensitivity for the accepted-only population.
 5. Add a fresh OOT closure window when a defensible later-period dataset is available.
