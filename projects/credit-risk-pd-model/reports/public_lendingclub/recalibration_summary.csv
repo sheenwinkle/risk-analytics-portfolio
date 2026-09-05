@@ -1,0 +1,3 @@
+model,score_type,evaluation_sample,recalibration_fit_sample,recalibration_fit_intercept,recalibration_fit_slope,calibration_intercept,calibration_slope,brier_score,log_loss,mean_pd,observed_default_rate
+random_forest,raw,out_of_time,pre_oot_calibration_holdout,-1.0273912516333836,0.980420253988775,-1.1923893897928053,0.9657069200952878,0.20847047019425533,0.6021709387740919,0.4387113180843207,0.21291975234777677
+random_forest,recalibrated,out_of_time,pre_oot_calibration_holdout,-1.0273912516333836,0.980420253988775,-0.180310342807946,0.9853096185629547,0.1547252593012309,0.47713836345301175,0.2392551823631677,0.21291975234777677

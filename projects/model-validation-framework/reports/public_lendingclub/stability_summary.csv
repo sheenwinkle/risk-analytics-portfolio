@@ -1,0 +1,2 @@
+model_name,score_version,reference_start,reference_end,current_start,current_end,reference_observations,current_observations,requested_bins,effective_bins,binning_method,population_stability_index
+random_forest,recalibrated,2017-01-01,2017-12-01,2018-01-01,2018-12-01,169321,56318,10,10,reference_quantile_midpoint,0.016656

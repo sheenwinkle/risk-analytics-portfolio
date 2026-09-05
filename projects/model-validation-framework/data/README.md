@@ -7,6 +7,10 @@ input is the committed synthetic score contract from Project 1:
 ../credit-risk-pd-model/reports/oot_predictions.csv
 ```
 
+The separately labelled `reports/public_lendingclub/` evidence was generated from the local,
+ignored public OOT contract using `data_context=public_lendingclub`. Its committed source
+lineage records only aggregate counts, dates, dataset metadata, and source hashes.
+
 ## Source Contract
 
 | Field | Role in validation |
@@ -31,7 +35,10 @@ selected-score mismatches.
   `.gitignore` rules.
 - Candidate reports under `reports/` are derived evidence, not source observations.
 - The validation pipeline writes deterministic files without timestamps or local paths.
+- The public publisher uses an explicit aggregate allow-list and rejects CSV files containing
+  a `customer_id` column.
 
 To validate a locally prepared public-data run, point `scripts/run_validation.py` at its
-compatible OOT prediction report. Review dataset terms and identifiers before committing any
-derived account-level output.
+compatible OOT prediction report and set `--data-context public_lendingclub`. Then use
+`scripts/publish_public_validation.py` to publish the safe aggregate subset. Review dataset
+terms and identifiers before committing any derived output.

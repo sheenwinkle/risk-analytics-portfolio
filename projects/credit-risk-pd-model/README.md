@@ -2,6 +2,9 @@
 
 Probability of default modelling workflow for credit risk analytics and model validation roles.
 
+Status: complete scoped case study with reproducible synthetic reports and published aggregate
+evidence from a full public LendingClub run.
+
 ## Business Problem
 
 Credit risk teams need more than a binary classifier. A useful PD model should estimate a borrower's probability of default, remain calibrated over time, and be monitored for portfolio drift.
@@ -14,6 +17,26 @@ Data checks -> feature engineering -> out-of-time split -> baseline model -> cha
 -> fixed lending approval cutoff scenarios -> WOE/IV screening -> permutation importance
 -> PSI monitoring -> report outputs
 ```
+
+## Public LendingClub Evidence
+
+The full public-data run processed the accepted-loans file in 100,000-row chunks. Only
+aggregate evidence is committed; raw, canonical, and borrower-level prediction files remain
+ignored.
+
+| Evidence | Result |
+| --- | ---: |
+| Raw accepted-loan rows audited | 2,260,701 |
+| Resolved terminal outcomes retained | 1,348,099 |
+| Untouched 2017-2018 OOT observations | 225,639 |
+| Selected model | Random forest |
+| OOT ROC-AUC / Gini / KS | 0.6999 / 0.3998 / 0.2925 |
+| Raw to recalibrated Brier score | 0.2085 -> 0.1547 |
+
+Review the [public aggregate model report](reports/public_lendingclub/model_report.md),
+[ingestion audit](reports/public_lendingclub/ingestion_audit.csv), and
+[data lineage record](reports/public_lendingclub/data_lineage.json). These results are an
+exploratory terminal-outcome case study, not a Basel-compliant fixed-horizon PD estimate.
 
 ## Why This Project Fits Risk Analytics
 
@@ -49,8 +72,11 @@ credit-risk-pd-model/
   notebooks/
     README.md
   reports/
+    public_lendingclub/
   scripts/
+    download_lendingclub_data.py
     prepare_lendingclub_data.py
+    publish_public_run.py
     run_pipeline.py
   sql/
     schema.sql
@@ -64,6 +90,14 @@ credit-risk-pd-model/
 
 ## Setup
 
+The preferred portfolio-wide setup is one command from the repository root:
+
+```powershell
+.\scripts\setup_and_run.ps1
+```
+
+For a standalone Project 1 environment:
+
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -74,19 +108,27 @@ pip install -e .
 
 ## Run
 
-Use synthetic data:
+Use deterministic synthetic data for the fast demo:
 
 ```powershell
 python scripts/run_pipeline.py
 ```
 
-Prepare the user-downloaded LendingClub accepted-loans file:
+From the repository root, download and rebuild the complete public-data evidence chain:
+
+```powershell
+.\scripts\run_public_lendingclub.ps1
+```
+
+The downloader uses Kaggle's public anonymous dataset endpoint. For a file already present
+locally, prepare it directly with bounded memory:
 
 ```powershell
 python scripts/prepare_lendingclub_data.py `
   --input data/raw/accepted_2007_to_2018Q4.csv.gz `
   --output data/processed/lendingclub_pd.csv `
-  --audit data/processed/lendingclub_ingestion_audit.csv
+  --audit data/processed/lendingclub_ingestion_audit.csv `
+  --chunk-size 100000
 ```
 
 Run with a public-data out-of-time cutoff:
@@ -152,12 +194,14 @@ That framing is closer to how banks and fintech lenders assess risk models.
 
 ## Data Source
 
-The code runs without external data by generating synthetic credit data, and the committed
-demo reports remain synthetic. For public-data runs, the project includes a LendingClub
-accepted-loans adapter for
+The code runs without external data by generating synthetic credit data. The default
+`reports/` files are therefore deterministic demo evidence. A separate, clearly labelled
+aggregate evidence set under `reports/public_lendingclub/` comes from the LendingClub
+accepted-loans dataset:
 [All Lending Club loan data](https://www.kaggle.com/datasets/wordsforthewise/lending-club).
-Download `accepted_2007_to_2018Q4.csv.gz` yourself, keep it under `data/raw/`, and review
-the dataset terms before use.
+The included downloader retrieves `accepted_2007_to_2018Q4.csv.gz` anonymously and records
+its SHA-256 hash and CC0 licence metadata in the published lineage file. Review the source
+terms before use.
 
 Leakage policy: the LendingClub adapter reads only origination-time predictors plus
 `loan_status` for target construction. It maps resolved terminal outcomes only:
@@ -178,11 +222,13 @@ extrapolation is an educational portfolio assumption, not an IFRS 9 compliance c
 
 Do not commit raw datasets or borrower-level processed data to GitHub. Store raw files
 under `data/raw/` and processed files under `data/processed/`, both of which are ignored.
+`publish_public_run.py` enforces a report allow-list and rejects CSVs containing
+`customer_id`; `oot_predictions.csv` is deliberately excluded from publication.
 
 ## Resume Bullets
 
-- Built an end-to-end credit risk PD modelling workflow in Python, including LendingClub raw-data ingestion, feature engineering, leakage-safe pre-OOT model selection, logistic recalibration, fixed approval cutoff scenarios, scorecard-style WOE/IV screening, permutation importance, and PSI-based monitoring.
-- Compared interpretable logistic regression against a tree-based challenger model using ROC-AUC, Gini, KS, Brier score, precision, recall, and confusion matrix diagnostics.
+- Built an end-to-end Python credit risk PD workflow over 2.26 million public LendingClub records, retaining 1.35 million resolved outcomes through chunked ingestion, leakage-safe temporal model selection, recalibration, WOE/IV screening, permutation importance, strategy scenarios, and PSI monitoring.
+- Selected a random forest challenger before OOT evaluation and achieved 0.6999 ROC-AUC on 225,639 untouched 2017-2018 observations; logistic recalibration reduced Brier score from 0.2085 to 0.1547.
 - Designed SQL schemas and analytics queries for loan, customer, and performance data to support credit risk reporting and model development.
 
 ## Interview Talking Points

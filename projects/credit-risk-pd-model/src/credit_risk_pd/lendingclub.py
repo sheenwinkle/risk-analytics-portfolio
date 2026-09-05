@@ -22,6 +22,8 @@ RAW_COLUMNS = [
     "loan_status",
 ]
 
+DEFAULT_CHUNK_SIZE = 100_000
+
 NON_DEFAULT_STATUSES = {
     "fully paid",
     "does not meet the credit policy. status:fully paid",
@@ -49,10 +51,13 @@ def prepare_lendingclub_data(
     audit_path: str | Path,
     *,
     max_rows: int | None = None,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
 ) -> LendingClubPreparationResult:
     """Prepare a user-downloaded LendingClub accepted-loans file for the PD pipeline."""
     if max_rows is not None and max_rows < 1:
         raise ValueError("max_rows must be at least 1 when provided")
+    if chunk_size < 1:
+        raise ValueError("chunk_size must be at least 1")
 
     input_path = Path(input_path)
     output_path = Path(output_path)
@@ -61,20 +66,108 @@ def prepare_lendingclub_data(
     header = pd.read_csv(input_path, nrows=0, compression="infer")
     _validate_raw_columns(header.columns)
 
-    raw = pd.read_csv(
+    chunks = pd.read_csv(
         input_path,
         usecols=RAW_COLUMNS,
         dtype={"id": "string"},
         nrows=max_rows,
+        chunksize=chunk_size,
         compression="infer",
         low_memory=False,
     )
-    prepared, audit = transform_lendingclub_accepted_loans(raw, input_path=input_path)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     audit_path.parent.mkdir(parents=True, exist_ok=True)
-    prepared.to_csv(output_path, index=False)
-    pd.DataFrame([audit]).to_csv(audit_path, index=False)
+    output_temp_path = output_path.with_name(f".{output_path.name}.tmp")
+    audit_temp_path = audit_path.with_name(f".{audit_path.name}.tmp")
+
+    seen_customer_ids: set[str] = set()
+    input_rows = 0
+    unresolved_count = 0
+    invalid_key_or_date_count = 0
+    duplicate_count = 0
+    output_rows = 0
+    default_count = 0
+    chunks_processed = 0
+    observation_date_min: pd.Timestamp | None = None
+    observation_date_max: pd.Timestamp | None = None
+
+    try:
+        output_temp_path.unlink(missing_ok=True)
+        audit_temp_path.unlink(missing_ok=True)
+        wrote_header = False
+
+        for raw_chunk in chunks:
+            chunks_processed += 1
+            prepared_chunk, chunk_audit = transform_lendingclub_accepted_loans(
+                raw_chunk,
+                input_path=input_path,
+            )
+            input_rows += int(chunk_audit["input_rows"])
+            unresolved_count += int(chunk_audit["excluded_unresolved_status_rows"])
+            invalid_key_or_date_count += int(chunk_audit["invalid_key_or_date_rows"])
+            duplicate_count += int(chunk_audit["duplicate_rows"])
+
+            cross_chunk_duplicate_mask = prepared_chunk["customer_id"].isin(seen_customer_ids)
+            duplicate_count += int(cross_chunk_duplicate_mask.sum())
+            prepared_chunk = prepared_chunk.loc[~cross_chunk_duplicate_mask].copy()
+            seen_customer_ids.update(prepared_chunk["customer_id"].astype(str).tolist())
+
+            if not prepared_chunk.empty:
+                chunk_min = pd.Timestamp(prepared_chunk["observation_date"].min())
+                chunk_max = pd.Timestamp(prepared_chunk["observation_date"].max())
+                observation_date_min = (
+                    chunk_min
+                    if observation_date_min is None
+                    else min(observation_date_min, chunk_min)
+                )
+                observation_date_max = (
+                    chunk_max
+                    if observation_date_max is None
+                    else max(observation_date_max, chunk_max)
+                )
+                output_rows += len(prepared_chunk)
+                default_count += int(prepared_chunk["default"].sum())
+
+            prepared_chunk.to_csv(
+                output_temp_path,
+                mode="a",
+                header=not wrote_header,
+                index=False,
+                lineterminator="\n",
+            )
+            wrote_header = True
+
+        if not wrote_header:
+            pd.DataFrame(columns=CANONICAL_COLUMNS).to_csv(
+                output_temp_path,
+                index=False,
+                lineterminator="\n",
+            )
+
+        audit = {
+            "input_path": str(input_path),
+            "input_rows": input_rows,
+            "excluded_rows": input_rows - output_rows,
+            "excluded_unresolved_status_rows": unresolved_count,
+            "invalid_key_or_date_rows": invalid_key_or_date_count,
+            "duplicate_rows": duplicate_count,
+            "output_rows": output_rows,
+            "non_default_count": output_rows - default_count,
+            "default_count": default_count,
+            "default_rate": default_count / output_rows if output_rows else 0.0,
+            "observation_date_min": _format_audit_date(observation_date_min),
+            "observation_date_max": _format_audit_date(observation_date_max),
+            "chunks_processed": chunks_processed,
+            "chunk_size": chunk_size,
+        }
+        pd.DataFrame([audit]).to_csv(audit_temp_path, index=False, lineterminator="\n")
+        output_temp_path.replace(output_path)
+        audit_temp_path.replace(audit_path)
+    except Exception:
+        output_temp_path.unlink(missing_ok=True)
+        audit_temp_path.unlink(missing_ok=True)
+        raise
 
     return LendingClubPreparationResult(
         output_path=output_path,

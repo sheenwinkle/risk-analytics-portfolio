@@ -128,6 +128,43 @@ def test_prepare_lendingclub_data_reads_gzipped_csv_and_writes_audit(tmp_path):
     assert audit.loc[0, "output_rows"] == 1
 
 
+def test_prepare_lendingclub_data_streams_chunks_and_deduplicates_across_them(tmp_path):
+    raw_path = tmp_path / "accepted.csv.gz"
+    output_path = tmp_path / "processed" / "lendingclub_pd.csv"
+    audit_path = tmp_path / "processed" / "lendingclub_audit.csv"
+    raw = _raw_lendingclub_rows(
+        [
+            {"id": "A", "loan_status": "Fully Paid", "issue_d": "Jan-2017"},
+            {"id": "B", "loan_status": "Current", "issue_d": "Jan-2017"},
+            {"id": "A", "loan_status": "Charged Off", "issue_d": "Feb-2017"},
+            {"id": "C", "loan_status": "Default", "issue_d": "not-a-date"},
+            {"id": "D", "loan_status": "Charged Off", "issue_d": "Mar-2017"},
+        ]
+    )
+    raw.to_csv(raw_path, index=False, compression="gzip")
+
+    result = prepare_lendingclub_data(
+        raw_path,
+        output_path,
+        audit_path,
+        chunk_size=2,
+    )
+
+    prepared = pd.read_csv(result.output_path, dtype={"customer_id": "string"})
+    audit = pd.read_csv(result.audit_path).iloc[0]
+    assert prepared["customer_id"].tolist() == ["A", "D"]
+    assert audit["input_rows"] == 5
+    assert audit["excluded_rows"] == 3
+    assert audit["excluded_unresolved_status_rows"] == 1
+    assert audit["invalid_key_or_date_rows"] == 1
+    assert audit["duplicate_rows"] == 1
+    assert audit["output_rows"] == 2
+    assert audit["non_default_count"] == 1
+    assert audit["default_count"] == 1
+    assert audit["observation_date_min"] == "2017-01-01"
+    assert audit["observation_date_max"] == "2017-03-01"
+
+
 def test_prepare_lendingclub_data_rejects_non_positive_row_limit(tmp_path):
     raw_path = tmp_path / "accepted.csv"
     _raw_lendingclub_rows([{}]).to_csv(raw_path, index=False)
@@ -138,6 +175,19 @@ def test_prepare_lendingclub_data_rejects_non_positive_row_limit(tmp_path):
             tmp_path / "prepared.csv",
             tmp_path / "audit.csv",
             max_rows=0,
+        )
+
+
+def test_prepare_lendingclub_data_rejects_non_positive_chunk_size(tmp_path):
+    raw_path = tmp_path / "accepted.csv"
+    _raw_lendingclub_rows([{}]).to_csv(raw_path, index=False)
+
+    with pytest.raises(ValueError, match="chunk_size must be at least 1"):
+        prepare_lendingclub_data(
+            raw_path,
+            tmp_path / "prepared.csv",
+            tmp_path / "audit.csv",
+            chunk_size=0,
         )
 
 

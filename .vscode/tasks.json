@@ -2,9 +2,58 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Run Credit Risk PD Pipeline",
+      "label": "Portfolio: Full Self-Test and Reproduction",
       "type": "shell",
-      "command": ".\\.venv\\Scripts\\python.exe",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/setup_and_run.ps1",
+        "-WithTests",
+        "-VerifyCommitted"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Portfolio: Reproduce Committed Evidence",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_portfolio.py",
+        "--verify-committed"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build Public LendingClub Evidence",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/run_public_lendingclub.ps1"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 1: Run PD Pipeline",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": [
         "scripts/run_pipeline.py"
       ],
@@ -14,15 +63,118 @@
       "problemMatcher": []
     },
     {
-      "label": "Run Credit Risk PD Tests",
-      "type": "shell",
-      "command": ".\\.venv\\Scripts\\pytest.exe",
-      "args": [],
+      "label": "Project 1: Tests",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-q"
+      ],
       "options": {
         "cwd": "${workspaceFolder}/projects/credit-risk-pd-model"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 2: Run ECL and PD Bridge",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Project 2: Run ECL Pipeline",
+        "Project 2: Run PD Bridge"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 2: Run ECL Pipeline",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_pipeline.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 2: Run PD Bridge",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_pd_integration.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 2: Tests",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-q"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 3: Run Validation and Remediation",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Project 3: Run Validation",
+        "Project 3: Run Remediation"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 3: Run Validation",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_validation.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/model-validation-framework"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 3: Run Remediation",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_remediation.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/model-validation-framework"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 3: Tests",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "-q"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/model-validation-framework"
       },
       "problemMatcher": []
     }
   ]
 }
-

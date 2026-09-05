@@ -1,0 +1,27 @@
+{
+  "dataset": "All Lending Club loan data - accepted loans",
+  "dataset_license": "CC0: Public Domain",
+  "dataset_url": "https://www.kaggle.com/datasets/wordsforthewise/lending-club",
+  "excluded_borrower_level_reports": [
+    "oot_predictions.csv"
+  ],
+  "input_rows": 2260701,
+  "observation_date_max": "2018-12-01",
+  "observation_date_min": "2007-06-01",
+  "published_aggregate_reports": [
+    "approval_strategy.csv",
+    "calibration_table.csv",
+    "feature_importance.csv",
+    "model_metrics.csv",
+    "model_report.md",
+    "model_selection_audit.csv",
+    "psi_report.csv",
+    "recalibration_summary.csv",
+    "woe_bins.csv",
+    "woe_summary.csv",
+    "ingestion_audit.csv"
+  ],
+  "raw_file": "accepted_2007_to_2018Q4.csv.gz",
+  "raw_file_sha256": "55c16f75120f897683f02e7aabcf080d0e4a20c4832feb1d592cfa941bd62a2d",
+  "resolved_output_rows": 1348099
+}

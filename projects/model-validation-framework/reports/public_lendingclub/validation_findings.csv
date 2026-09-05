@@ -1,0 +1,4 @@
+status,check,finding,recommended_action
+warning,auc,ROC-AUC reached warning status at 0.699887.,"Review rank ordering, reject-inference assumptions, and candidate segmentation."
+warning,ks,KS statistic reached warning status at 0.292493.,Inspect score distribution overlap and consider model redevelopment triggers.
+warning,absolute_calibration_gap,Absolute calibration gap reached warning status at 0.026335.,Re-estimate calibration on a fresh holdout and review portfolio mix shift.

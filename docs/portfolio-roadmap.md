@@ -7,7 +7,7 @@ Goal: build a bank-style probability of default workflow.
 Core deliverables:
 
 - Data loading and schema checks
-- LendingClub accepted-loans ingestion adapter for user-downloaded public data
+- Anonymous public-data download, chunked LendingClub ingestion, and cross-chunk deduplication
 - SQL schema for customer, loan, and performance tables
 - Feature engineering for affordability, utilisation, delinquency, and loan terms
 - Logistic regression baseline
@@ -19,13 +19,20 @@ Core deliverables:
 - Fixed max-PD approval cutoff strategy scenarios
 - Calibration table
 - Population Stability Index monitoring
+- Privacy-safe publication of aggregate public-data evidence and lineage metadata
 - Clean README and resume bullets
+
+Current evidence:
+
+- 2,260,701 raw accepted-loan rows audited and 1,348,099 resolved outcomes retained
+- 225,639 untouched 2017-2018 OOT observations
+- Selected random forest ROC-AUC 0.6999; recalibration reduced Brier score from 0.2085 to 0.1547
 
 ## Project 2: IFRS 9 ECL Engine
 
 Goal: calculate expected credit loss using PD, LGD, EAD, staging, and macro scenario weights.
 
-Implemented foundation:
+Complete scoped case study:
 
 - `run_ecl_engine(...)`: public API returning an `ECLResult` dataclass
 - Configurable Stage 1, Stage 2, and Stage 3 policy with DPD backstops
@@ -50,7 +57,7 @@ Implemented outputs:
 - Markdown demo report
 - PD integration lineage, account, scenario, portfolio, migration, and Markdown reports
 
-Still planned:
+Potential extensions:
 
 - Add documented SICR rebuttal and management-overlay examples
 - Add macroeconomic sensitivity and stress reporting
@@ -58,13 +65,13 @@ Still planned:
 
 Resume angle:
 
-> Built a runnable IFRS 9 ECL foundation calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration reporting, and a validated bridge from synthetic Project 1 recalibrated PD outputs.
+> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration reporting, and a validated bridge from Project 1 recalibrated PD outputs.
 
 ## Project 3: Model Validation Framework
 
 Goal: create a reusable validation toolkit for credit risk models.
 
-Implemented foundation:
+Complete scoped case study:
 
 - Strict Project 1 OOT score and selected-model lineage adapter
 - Independent tie-safe AUC, Gini, KS, Brier, and portfolio calibration metrics
@@ -76,6 +83,9 @@ Implemented foundation:
 - Warning/fail findings with recommended actions and a model limitation register
 - Deterministic CSV evidence and recruiter-readable Markdown validation report
 - PostgreSQL validation-run, metric, finding, benchmark, and limitation schemas
+- Transactional PostgreSQL loader and PostgreSQL 16 integration test
+- Full public LendingClub OOT validation with context-specific limitations
+- No-look-ahead rolling calibration remediation and finding lifecycle events
 - Behavioural, lineage, edge-case, real-contract, and byte-reproducibility tests
 
 Implemented outputs:
@@ -84,6 +94,8 @@ Implemented outputs:
 - Model limitation register
 - Monitoring dashboard-ready CSVs
 - Challenger benchmark analysis
+- Public-data warning opinion and safe aggregate publication
+- Sequential remediation retest and pending-fresh-OOT closure decision
 
 Current candidate opinion:
 
@@ -92,15 +104,26 @@ Current candidate opinion:
 - Absolute calibration gap: fail because mean recalibrated PD materially understates the
   stressed OOT observed default rate
 
-Still planned:
+Public LendingClub opinion:
+
+- Overall illustrative policy outcome: warning
+- AUC 0.699887, KS 0.292493, and absolute calibration gap 0.026335: warning
+- PSI 0.016656 and challenger margin -0.009411: pass
+
+Remediation evidence:
+
+- Synthetic sequential retest reduced absolute calibration gap from 0.064441 to 0.009218
+- Closure remains `pending_fresh_oot` because the retest is not an independent OOT window
+
+Potential extensions:
 
 - Segment and vintage-level backtesting
 - Bootstrap confidence intervals and uncertainty reporting
 - Feature-level replication, CSI, and characteristic drift analysis
-- Persisted validation-run loader for the PostgreSQL governance schema
-- Formal issue tracking and closure evidence around validation findings
+- Vintage maturity controls and reject-inference discussion for the public PD target
+- ECL model validation and overlay governance
 
 Resume angle:
 
-> Developed a reusable credit risk model validation framework covering independent discrimination and calibration reperformance, deterministic backtesting, PSI stability, challenger benchmarking, explicit governance thresholds, actionable findings, and a documented fail opinion for material PD underestimation.
+> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, deterministic backtesting, PSI stability, challenger benchmarking, explicit governance thresholds, public-data validation, and no-look-ahead remediation lifecycle evidence.
 

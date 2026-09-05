@@ -1,6 +1,7 @@
-# IFRS 9 ECL Engine Foundation
+# IFRS 9 ECL Engine
 
-Status: implemented foundation with a synthetic Project 1 PD integration bridge.
+Status: complete scoped case study with deterministic standalone and Project 1 PD-integration
+evidence.
 
 This project is a runnable, educational expected credit loss engine for credit risk
 analytics portfolio discussion. It calculates account-level and portfolio-level ECL from

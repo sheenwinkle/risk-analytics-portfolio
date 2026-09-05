@@ -33,14 +33,39 @@ WITH latest_run AS (
 )
 SELECT
     finding.status,
+    finding.lifecycle_status,
     finding.check_name,
     finding.finding,
     finding.recommended_action
 FROM model_validation_finding AS finding
 JOIN latest_run USING (validation_run_id)
+WHERE finding.lifecycle_status <> 'closed'
 ORDER BY
     CASE finding.status WHEN 'fail' THEN 1 ELSE 2 END,
     finding.check_name;
+
+-- Finding lifecycle and remediation evidence for the latest validation run.
+WITH latest_run AS (
+    SELECT validation_run_id
+    FROM model_validation_run
+    ORDER BY created_at DESC, validation_run_id DESC
+    LIMIT 1
+)
+SELECT
+    finding.finding_id,
+    finding.check_name,
+    finding.status AS initial_status,
+    finding.lifecycle_status,
+    event.event_type,
+    event.event_status,
+    event.metric_value,
+    event.evidence_reference,
+    event.detail,
+    event.created_at
+FROM model_validation_finding AS finding
+JOIN latest_run USING (validation_run_id)
+LEFT JOIN model_validation_finding_event AS event USING (finding_id)
+ORDER BY finding.finding_id, event.created_at, event.finding_event_id;
 
 -- Metric trend and change from the preceding validation run.
 SELECT
