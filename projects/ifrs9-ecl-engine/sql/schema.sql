@@ -164,3 +164,105 @@ CREATE TABLE ecl_reporting_reconciliation (
         ) < 0.000001
     )
 );
+
+CREATE TABLE ecl_sicr_rebuttal_decision (
+    rebuttal_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES ecl_account_snapshot(account_id),
+    reporting_date DATE NOT NULL,
+    observed_days_past_due INTEGER NOT NULL CHECK (observed_days_past_due >= 0),
+    current_days_past_due INTEGER NOT NULL CHECK (current_days_past_due >= 0),
+    stage2_dpd_backstop INTEGER CHECK (stage2_dpd_backstop > 0),
+    stage3_dpd_backstop INTEGER CHECK (stage3_dpd_backstop > 0),
+    presumption_applicable BOOLEAN NOT NULL,
+    evidence_reference TEXT NOT NULL CHECK (LENGTH(TRIM(evidence_reference)) > 0),
+    evidence_summary TEXT NOT NULL CHECK (LENGTH(TRIM(evidence_summary)) > 0),
+    reasonable_and_supportable BOOLEAN NOT NULL,
+    forward_looking_review_completed BOOLEAN NOT NULL,
+    other_sicr_indicators_present BOOLEAN NOT NULL,
+    decision_date DATE NOT NULL,
+    valid_until DATE NOT NULL CHECK (valid_until >= decision_date),
+    approval_status TEXT NOT NULL CHECK (
+        approval_status IN ('approved', 'pending', 'rejected')
+    ),
+    approved_by TEXT CHECK (approved_by IS NULL OR LENGTH(TRIM(approved_by)) > 0),
+    decision_outcome TEXT NOT NULL CHECK (
+        decision_outcome IN (
+            'approved_effective',
+            'blocked_stage3_precedence',
+            'blocked_other_sicr_indicator',
+            'blocked_not_applicable',
+            'blocked_dpd_mismatch',
+            'blocked_insufficient_evidence',
+            'blocked_forward_looking_review',
+            'not_yet_effective',
+            'expired',
+            'pending_approval',
+            'rejected'
+        )
+    ),
+    stage_without_rebuttal INTEGER NOT NULL CHECK (stage_without_rebuttal IN (1, 2, 3)),
+    stage_reason_without_rebuttal TEXT NOT NULL CHECK (
+        LENGTH(TRIM(stage_reason_without_rebuttal)) > 0
+    ),
+    stage_with_rebuttal INTEGER NOT NULL CHECK (stage_with_rebuttal IN (1, 2, 3)),
+    stage_reason_with_rebuttal TEXT NOT NULL CHECK (
+        LENGTH(TRIM(stage_reason_with_rebuttal)) > 0
+    ),
+    UNIQUE (account_id, reporting_date),
+    CHECK (
+        approval_status <> 'approved'
+        OR (approved_by IS NOT NULL AND LENGTH(TRIM(approved_by)) > 0)
+    ),
+    CHECK (
+        decision_outcome <> 'approved_effective'
+        OR (
+            presumption_applicable = TRUE
+            AND observed_days_past_due = current_days_past_due
+            AND reasonable_and_supportable = TRUE
+            AND forward_looking_review_completed = TRUE
+            AND other_sicr_indicators_present = FALSE
+            AND decision_date <= reporting_date
+            AND reporting_date <= valid_until
+            AND approval_status = 'approved'
+            AND stage_without_rebuttal = 2
+            AND stage_with_rebuttal = 1
+        )
+    )
+);
+
+CREATE TABLE ecl_sicr_rebuttal_reconciliation (
+    reporting_date DATE PRIMARY KEY,
+    gross_exposure NUMERIC NOT NULL CHECK (gross_exposure >= 0),
+    baseline_modelled_ecl NUMERIC NOT NULL CHECK (baseline_modelled_ecl >= 0),
+    governed_modelled_ecl NUMERIC NOT NULL CHECK (governed_modelled_ecl >= 0),
+    ecl_change NUMERIC NOT NULL,
+    ecl_reduction NUMERIC NOT NULL CHECK (ecl_reduction >= 0),
+    ecl_reduction_pct NUMERIC NOT NULL CHECK (ecl_reduction_pct >= 0),
+    baseline_stage1_accounts INTEGER NOT NULL CHECK (baseline_stage1_accounts >= 0),
+    baseline_stage2_accounts INTEGER NOT NULL CHECK (baseline_stage2_accounts >= 0),
+    baseline_stage3_accounts INTEGER NOT NULL CHECK (baseline_stage3_accounts >= 0),
+    governed_stage1_accounts INTEGER NOT NULL CHECK (governed_stage1_accounts >= 0),
+    governed_stage2_accounts INTEGER NOT NULL CHECK (governed_stage2_accounts >= 0),
+    governed_stage3_accounts INTEGER NOT NULL CHECK (governed_stage3_accounts >= 0),
+    rebuttal_request_count INTEGER NOT NULL CHECK (rebuttal_request_count >= 0),
+    effective_rebuttal_count INTEGER NOT NULL CHECK (effective_rebuttal_count >= 0),
+    pending_rebuttal_count INTEGER NOT NULL CHECK (pending_rebuttal_count >= 0),
+    blocked_rebuttal_count INTEGER NOT NULL CHECK (blocked_rebuttal_count >= 0),
+    CHECK (ABS(ecl_change - governed_modelled_ecl + baseline_modelled_ecl) < 0.000001),
+    CHECK (ABS(ecl_reduction - baseline_modelled_ecl + governed_modelled_ecl) < 0.000001),
+    CHECK (
+        (baseline_modelled_ecl = 0 AND ABS(ecl_reduction_pct) < 0.000001)
+        OR (
+            baseline_modelled_ecl > 0
+            AND ABS(ecl_reduction_pct - ecl_reduction / baseline_modelled_ecl) < 0.000001
+        )
+    ),
+    CHECK (
+        baseline_stage1_accounts + baseline_stage2_accounts + baseline_stage3_accounts
+        = governed_stage1_accounts + governed_stage2_accounts + governed_stage3_accounts
+    ),
+    CHECK (
+        effective_rebuttal_count + pending_rebuttal_count + blocked_rebuttal_count
+        <= rebuttal_request_count
+    )
+);

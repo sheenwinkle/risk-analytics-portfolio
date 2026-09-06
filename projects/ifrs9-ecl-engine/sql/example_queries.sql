@@ -80,3 +80,29 @@ SELECT
     illustrative_reported_ecl,
     illustrative_reported_coverage_ratio
 FROM ecl_reporting_reconciliation;
+
+-- SICR rebuttal decision register, including requests that did not change stage.
+SELECT
+    rebuttal_id,
+    account_id,
+    reporting_date,
+    current_days_past_due,
+    approval_status,
+    decision_outcome,
+    stage_without_rebuttal,
+    stage_with_rebuttal
+FROM ecl_sicr_rebuttal_decision
+ORDER BY reporting_date, rebuttal_id;
+
+-- Portfolio impact of effective, pending, and blocked SICR rebuttal decisions.
+SELECT
+    reporting_date,
+    baseline_modelled_ecl,
+    governed_modelled_ecl,
+    ecl_reduction,
+    ecl_reduction_pct,
+    effective_rebuttal_count,
+    pending_rebuttal_count,
+    blocked_rebuttal_count
+FROM ecl_sicr_rebuttal_reconciliation
+ORDER BY reporting_date;

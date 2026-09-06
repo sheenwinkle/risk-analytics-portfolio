@@ -84,7 +84,8 @@
       "dependsOn": [
         "Project 2: Run ECL Pipeline",
         "Project 2: Run PD Bridge",
-        "Project 2: Run Macro and Overlay Governance"
+        "Project 2: Run Macro and Overlay Governance",
+        "Project 2: Run SICR Rebuttal Governance"
       ],
       "problemMatcher": []
     },
@@ -118,6 +119,18 @@
       "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": [
         "scripts/run_macro_overlay.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 2: Run SICR Rebuttal Governance",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_sicr_rebuttal.py"
       ],
       "options": {
         "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
