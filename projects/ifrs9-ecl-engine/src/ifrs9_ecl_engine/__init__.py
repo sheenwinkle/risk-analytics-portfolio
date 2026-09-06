@@ -23,6 +23,11 @@ from ifrs9_ecl_engine.pd_integration import (
     select_pd_reporting_cohort,
     write_pd_integration_reports,
 )
+from ifrs9_ecl_engine.sicr import (
+    SICRRebuttal,
+    SICRRebuttalEvaluation,
+    evaluate_sicr_rebuttals,
+)
 
 __all__ = [
     "ECLResult",
@@ -35,11 +40,14 @@ __all__ = [
     "PDIntegrationConfig",
     "PDIntegrationPipelineOutput",
     "PDScenarioAssumption",
+    "SICRRebuttal",
+    "SICRRebuttalEvaluation",
     "StagingPolicy",
     "analyse_macro_sensitivity",
     "build_ecl_inputs_from_pd_snapshot",
     "build_synthetic_account_assumptions",
     "evaluate_management_overlays",
+    "evaluate_sicr_rebuttals",
     "read_pd_predictions",
     "run_ecl_engine",
     "run_macro_overlay_analysis",

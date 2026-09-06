@@ -67,6 +67,14 @@ def main() -> None:
         / "macro_overlay"
         / "ecl_reconciliation.csv"
     )
+    sicr_reconciliation_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "sicr_rebuttal"
+        / "ecl_impact_reconciliation.csv"
+    )
     validation_path = (
         REPO_ROOT
         / "projects"
@@ -130,6 +138,10 @@ def main() -> None:
             ecl_macro_path,
             ecl_reconciliation_path,
             output_dir / "ecl_macro_overlay.png",
+        ),
+        _build_sicr_rebuttal_chart(
+            sicr_reconciliation_path,
+            output_dir / "ecl_sicr_rebuttal.png",
         ),
         _build_validation_chart(
             validation_path,
@@ -380,6 +392,130 @@ def _build_ecl_macro_overlay_chart(
         fontsize=8.5,
     )
     figure.subplots_adjust(left=0.07, right=0.98, top=0.80, bottom=0.20, wspace=0.30)
+    _save(figure, output_path)
+    return output_path
+
+
+def _build_sicr_rebuttal_chart(
+    reconciliation_path: Path,
+    output_path: Path,
+) -> Path:
+    rows = _read_csv(reconciliation_path)
+    if len(rows) != 1:
+        raise ValueError("SICR rebuttal showcase requires exactly one reconciliation row")
+    row = rows[0]
+    stages = ["Stage 1", "Stage 2", "Stage 3"]
+    baseline_counts = [
+        int(row[f"baseline_stage{stage}_accounts"])
+        for stage in [1, 2, 3]
+    ]
+    governed_counts = [
+        int(row[f"governed_stage{stage}_accounts"])
+        for stage in [1, 2, 3]
+    ]
+    baseline_ecl = float(row["baseline_modelled_ecl"]) / 1_000
+    governed_ecl = float(row["governed_modelled_ecl"]) / 1_000
+    reduction = float(row["ecl_reduction"]) / 1_000
+    reduction_pct = float(row["ecl_reduction_pct"])
+
+    figure, (stage_axis, ecl_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(9.6, 5.1),
+        dpi=160,
+        gridspec_kw={"width_ratios": [1.25, 0.85]},
+    )
+    figure.suptitle(
+        "SICR rebuttal governance impact",
+        x=0.07,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.07,
+        0.91,
+        (
+            f"Synthetic portfolio | {row['effective_rebuttal_count']} of "
+            f"{row['rebuttal_request_count']} requests effective"
+        ),
+        color=MUTED,
+        fontsize=9,
+    )
+
+    positions = list(range(len(stages)))
+    width = 0.34
+    baseline_bars = stage_axis.bar(
+        [position - width / 2 for position in positions],
+        baseline_counts,
+        width=width,
+        color=BLUE,
+        label="Before rebuttal",
+    )
+    governed_bars = stage_axis.bar(
+        [position + width / 2 for position in positions],
+        governed_counts,
+        width=width,
+        color=TEAL,
+        label="Governed result",
+    )
+    stage_axis.set_title("Account stage distribution", loc="left", fontsize=11, pad=12)
+    stage_axis.set_ylabel("Account count")
+    stage_axis.set_xticks(positions, stages)
+    stage_axis.set_ylim(0, max([*baseline_counts, *governed_counts]) + 1.2)
+    stage_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    stage_axis.set_axisbelow(True)
+    stage_axis.spines[["top", "right"]].set_visible(False)
+    stage_axis.legend(frameon=False, ncol=2, loc="upper right", fontsize=8.5)
+    for bar in [*baseline_bars, *governed_bars]:
+        stage_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.12,
+            f"{int(bar.get_height())}",
+            ha="center",
+            color=TEXT,
+            fontweight="bold",
+        )
+
+    ecl_bars = ecl_axis.bar(
+        ["Before\nrebuttal", "Governed\nresult"],
+        [baseline_ecl, governed_ecl],
+        width=0.58,
+        color=[BLUE, TEAL],
+    )
+    ecl_axis.set_title("Modelled ECL impact", loc="left", fontsize=11, pad=12)
+    ecl_axis.set_ylabel("ECL (thousands)")
+    ecl_axis.set_ylim(0, baseline_ecl * 1.30)
+    ecl_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    ecl_axis.set_axisbelow(True)
+    ecl_axis.spines[["top", "right"]].set_visible(False)
+    for bar, value in zip(ecl_bars, [baseline_ecl, governed_ecl], strict=True):
+        ecl_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + baseline_ecl * 0.035,
+            f"{value:.1f}k",
+            ha="center",
+            color=TEXT,
+            fontweight="bold",
+        )
+    ecl_axis.text(
+        0.5,
+        baseline_ecl * 1.19,
+        f"Controlled impact: -{reduction:.1f}k (-{reduction_pct:.1%})",
+        ha="center",
+        color=TEAL,
+        fontsize=8.5,
+        fontweight="bold",
+    )
+
+    figure.text(
+        0.07,
+        0.025,
+        "Approved evidence changes one stage | pending decision unchanged | explicit SICR blocks rebuttal",
+        color=MUTED,
+        fontsize=8.5,
+    )
+    figure.subplots_adjust(left=0.07, right=0.98, top=0.80, bottom=0.19, wspace=0.30)
     _save(figure, output_path)
     return output_path
 

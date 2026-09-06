@@ -1,0 +1,7 @@
+account_id,days_past_due,rebuttal_id,decision_outcome,baseline_stage,baseline_stage_reason,governed_stage,governed_stage_reason,stage_changed,baseline_weighted_ecl,governed_weighted_ecl,ecl_change
+SYN-ECL-001,0,,not_requested,1,performing,1,performing,False,734.509699,734.509699,0.000000
+SYN-ECL-002,34,SICR-REB-002,pending_approval,2,30_dpd_backstop,2,30_dpd_backstop,False,2100.088569,2100.088569,0.000000
+SYN-ECL-003,36,SICR-REB-001,approved_effective,2,30_dpd_backstop,1,30_dpd_rebuttal_approved,True,3697.904913,1534.902641,-2163.002272
+SYN-ECL-004,8,,not_requested,2,sicr_indicator,2,sicr_indicator,False,6501.059769,6501.059769,0.000000
+SYN-ECL-005,74,SICR-REB-003,blocked_other_sicr_indicator,2,sicr_indicator,2,sicr_indicator,False,6753.351884,6753.351884,0.000000
+SYN-ECL-006,102,,not_requested,3,credit_impaired,3,credit_impaired,False,9447.403678,9447.403678,0.000000

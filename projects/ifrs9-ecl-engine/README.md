@@ -1,7 +1,7 @@
 # IFRS 9 ECL Engine
 
 Status: complete scoped case study with deterministic standalone, Project 1 PD-integration,
-and macro-sensitivity/management-overlay governance evidence.
+macro-sensitivity/management-overlay, and SICR rebuttal governance evidence.
 
 This project is a runnable, educational expected credit loss engine for credit risk
 analytics portfolio discussion. It calculates account-level and portfolio-level ECL from
@@ -33,6 +33,7 @@ result = run_ecl_engine(accounts, term_structures, scenario_weights)
 - `scenario_ecl`: scenario-level ECL by account
 - `portfolio_summary`: stage-level and total portfolio summary
 - `stage_migration`: prior-stage to current-stage movement table
+- `sicr_rebuttal_register`: decision evidence and stage impact for every rebuttal request
 
 For each account/scenario/month:
 
@@ -149,6 +150,47 @@ Default policy:
 The 30/90 DPD settings are model policy backstops/rebuttable presumptions for this demo,
 not universal automatic accounting conclusions.
 
+## SICR Rebuttal Governance
+
+IFRS 9 treats payments more than 30 days past due as a rebuttable SICR presumption. The
+presumption can be rebutted only when reasonable and supportable evidence shows that a
+significant increase in credit risk has not occurred. This project implements that narrow
+governance decision; it does not allow a rebuttal to override an explicit SICR indicator,
+credit-impaired/default status, or the Stage 3 DPD backstop.
+
+```python
+from ifrs9_ecl_engine import SICRRebuttal, run_ecl_engine
+
+decision = SICRRebuttal(
+    rebuttal_id="SICR-REB-001",
+    account_id="SYN-ECL-003",
+    observed_days_past_due=36,
+    evidence_reference="SYN-EVIDENCE-001",
+    evidence_summary="Administrative delay with unchanged forward risk",
+    reasonable_and_supportable=True,
+    forward_looking_review_completed=True,
+    other_sicr_indicators_present=False,
+    decision_date="2023-12-20",
+    valid_until="2024-03-31",
+    approval_status="approved",
+    approved_by="Synthetic ECL Committee",
+)
+
+result = run_ecl_engine(
+    accounts,
+    term_structures,
+    scenario_weights,
+    reporting_date="2023-12-31",
+    sicr_rebuttals=(decision,),
+)
+```
+
+The engine checks unique decision and account scope, current DPD against observed evidence,
+reasonable-and-supportable and forward-looking flags, decision validity dates, approval
+status, and named approver. Approved evidence bypasses only the 30 DPD Stage 2 backstop.
+Pending, rejected, expired, stale, incomplete, inapplicable, and precedence-blocked requests
+remain visible in the decision register without changing stage.
+
 ## Quickstart
 
 Create or reuse a Python environment, then run from this project directory:
@@ -161,6 +203,7 @@ ruff check src tests scripts
 pytest
 python scripts\run_pipeline.py
 python scripts\run_macro_overlay.py
+python scripts\run_sicr_rebuttal.py
 ```
 
 The default CLI writes:
@@ -178,6 +221,13 @@ The macro/overlay governance CLI writes:
 - `reports/macro_overlay/management_overlay_register.csv`
 - `reports/macro_overlay/ecl_reconciliation.csv`
 - `reports/macro_overlay/macro_overlay_report.md`
+
+The SICR rebuttal governance CLI writes:
+
+- `reports/sicr_rebuttal/sicr_rebuttal_register.csv`
+- `reports/sicr_rebuttal/account_stage_comparison.csv`
+- `reports/sicr_rebuttal/ecl_impact_reconciliation.csv`
+- `reports/sicr_rebuttal/sicr_rebuttal_report.md`
 
 Run the Project 1 PD integration bridge:
 
@@ -262,6 +312,11 @@ assessment, approval evidence, control outcome, and recognized amount for every 
 `ecl_reconciliation.csv` bridges baseline modelled ECL to the separately recognized overlay
 and illustrative reported ECL while disclosing the highest sensitivity as not booked.
 
+`sicr_rebuttal_register.csv` preserves the evidence, approval, control outcome, and
+before/after stage for every request. `account_stage_comparison.csv` isolates account-level
+stage and ECL changes, while `ecl_impact_reconciliation.csv` proves the portfolio accounting
+identity and reconciles stage counts before and after governed decisions.
+
 ## Committed Synthetic Results
 
 The committed report artefacts are generated from deterministic synthetic accounts whose
@@ -299,6 +354,15 @@ The scenario file records the scenario weight, hazard multiplier, and LGD add-on
 scenario-level ECL.
 No `actual_default` column is present in the PD integration input audit or account result.
 
+## Committed SICR Rebuttal Results
+
+The deterministic case contains three synthetic requests: one approved and effective, one
+pending, and one blocked because an explicit SICR indicator takes precedence. The effective
+request moves one account from Stage 2 lifetime ECL to Stage 1 12-month ECL. Modelled
+portfolio ECL changes from `29,234.32` to `27,071.32`, an impact of `2,163.00` or `7.40%`.
+This is a controlled synthetic accounting impact used to test staging and reconciliation;
+it is not a business benefit, cost saving, or recommendation to minimize ECL.
+
 ## Validation
 
 The public API validates:
@@ -333,18 +397,26 @@ The public API validates:
 - Valid trigger operators, overlap assessments, approval statuses, and finite amounts
 - Named approver for approved overlays and caps between 0% and 100% of modelled ECL
 - Model-to-baseline ECL reconciliation and separate non-booked sensitivity disclosure
+- Required reporting date, unique request/account scope, and current-DPD evidence matching
+- Reasonable-and-supportable evidence, forward-looking review, validity, and approval checks
+- Stage 3 and explicit-SICR precedence over a 30 DPD rebuttal
+- Account-to-portfolio stage-count and ECL-impact reconciliation
 
 ## Limitations
 
 This is deliberately small and transparent. It does not implement financial asset
 classification, contractual cash flow modelling, prepayment, cures, collateral valuation,
-write-offs, macroeconomic model estimation, SICR rebuttal documentation, audit workflow,
+write-offs, macroeconomic model estimation, real SICR evidence assessment, audit workflow,
 production disclosure, or institution-specific IFRS 9 and management-overlay policy.
 
 The overlay trigger metrics, risk assessments, committee name, requested amounts, and caps
 are synthetic. The governance controls demonstrate process and reconciliation, but they do
 not establish empirical risk emergence, accounting materiality, expert-judgement quality,
 or approval by a real institution.
+
+The rebuttal evidence references, explanations, committee decisions, and validity dates are
+also synthetic. The workflow demonstrates enforceable controls but cannot establish that a
+real 30 DPD rebuttal is reasonable and supportable under an institution's approved policy.
 
 Stage 3 uses the same transparent marginal-PD/LGD/EAD proxy as the other stages. It does
 not implement a production credit-impaired cash-shortfall methodology or interest-revenue
@@ -357,6 +429,7 @@ model governance, SICR policy approval, or audited financial reporting.
 
 ## IFRS Foundation References
 
+- [IFRS 9 Financial Instruments, paragraph 5.5.11](https://www.ifrs.org/content/dam/ifrs/publications/pdf-standards/english/2022/issued/part-a/ifrs-9-financial-instruments.pdf?bypass=on)
 - [IFRS 9 project summary](https://www.ifrs.org/content/dam/ifrs/project/fi-hedge-accounting/ifrs-standard/project-summary.pdf)
 - [IFRS 9 and coronavirus uncertainty](https://www.ifrs.org/news-and-events/news/2020/03/application-of-ifrs-9-in-the-light-of-the-coronavirus-uncertainty/)
 - [Forward-looking information and multiple scenarios](https://www.ifrs.org/news-and-events/news/2016/07/25-webcast-on-ifrs-9/)
@@ -374,3 +447,6 @@ model governance, SICR policy approval, or audited financial reporting.
 - Built a separate ECL governance layer that quantified a `13.56%` combined downside
   sensitivity, blocked a duplicate macro-risk overlay, enforced approval and an 8% cap, and
   reconciled `27,996.92` modelled ECL to `30,236.67` illustrative reported ECL.
+- Implemented governed 30 DPD rebuttal decisions with evidence, forward-looking, DPD/date,
+  approval, and precedence controls; in a synthetic case, one of three requests moved Stage
+  2 to Stage 1 and produced a reconciled `2,163.00` (`7.40%`) ECL impact.

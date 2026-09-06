@@ -60,6 +60,7 @@ def main() -> None:
     project2_reports = output_root / "ifrs9-ecl-engine" / "reports"
     project2_integration_reports = output_root / "ifrs9-ecl-engine" / "pd_integration"
     project2_macro_overlay_reports = output_root / "ifrs9-ecl-engine" / "macro_overlay"
+    project2_sicr_rebuttal_reports = output_root / "ifrs9-ecl-engine" / "sicr_rebuttal"
     project3_reports = output_root / "model-validation-framework" / "reports"
     project3_replication_reports = (
         output_root / "model-validation-framework" / "replication"
@@ -103,6 +104,15 @@ def main() -> None:
                 "scripts/run_macro_overlay.py",
                 "--output-dir",
                 str(project2_macro_overlay_reports),
+            ),
+        ),
+        PipelineStep(
+            "SICR rebuttal governance",
+            PROJECT_ROOT / "ifrs9-ecl-engine",
+            (
+                "scripts/run_sicr_rebuttal.py",
+                "--output-dir",
+                str(project2_sicr_rebuttal_reports),
             ),
         ),
         PipelineStep(
@@ -165,6 +175,7 @@ def main() -> None:
         "ifrs9-ecl-engine": project2_reports,
         "ifrs9-ecl-integration": project2_integration_reports,
         "ifrs9-ecl-macro-overlay": project2_macro_overlay_reports,
+        "ifrs9-ecl-sicr-rebuttal": project2_sicr_rebuttal_reports,
         "model-validation-framework": project3_reports,
         "model-validation-replication": project3_replication_reports,
         "model-validation-remediation": project3_remediation_reports,
@@ -213,6 +224,9 @@ def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
         ),
         "ifrs9-ecl-macro-overlay": (
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "macro_overlay"
+        ),
+        "ifrs9-ecl-sicr-rebuttal": (
+            PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "sicr_rebuttal"
         ),
         "model-validation-framework": PROJECT_ROOT / "model-validation-framework" / "reports",
         "model-validation-replication": (

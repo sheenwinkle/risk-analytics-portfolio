@@ -30,5 +30,11 @@ amounts, overlap assessments, cap ratios, and approval records are deterministic
 governance assumptions defined in `src/ifrs9_ecl_engine/governance_demo.py`. They are not
 estimated macroeconomic relationships, observed institution events, or accounting evidence.
 
+The SICR rebuttal demo also uses only deterministic synthetic records. Evidence references,
+payment-delay explanations, observed DPD snapshots, decision dates, validity periods,
+approval statuses, and the named committee are illustrative governance inputs defined in
+`src/ifrs9_ecl_engine/sicr_demo.py`. They are not borrower evidence, institution decisions,
+or support for a real accounting conclusion.
+
 Any real or public-data experiment should remain local unless it has been reviewed and
 intentionally anonymised, aggregated, and documented before being added to Git.

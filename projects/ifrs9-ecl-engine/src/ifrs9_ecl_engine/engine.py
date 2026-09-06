@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 
 import pandas as pd
+
+from ifrs9_ecl_engine.sicr import SICRRebuttal, evaluate_sicr_rebuttals
 
 ACCOUNT_REQUIRED_COLUMNS = {
     "account_id",
@@ -46,6 +49,7 @@ class ECLResult:
     scenario_ecl: pd.DataFrame
     portfolio_summary: pd.DataFrame
     stage_migration: pd.DataFrame
+    sicr_rebuttal_register: pd.DataFrame = field(default_factory=pd.DataFrame)
 
 
 def run_ecl_engine(
@@ -53,6 +57,9 @@ def run_ecl_engine(
     term_structures: pd.DataFrame,
     scenario_weights: dict[str, float],
     policy: StagingPolicy | None = None,
+    *,
+    reporting_date: str | None = None,
+    sicr_rebuttals: Sequence[SICRRebuttal] = (),
 ) -> ECLResult:
     normalized_weights = _validate_scenario_weights(scenario_weights)
     normalized_accounts, normalized_terms = _validate_inputs(
@@ -61,10 +68,30 @@ def run_ecl_engine(
         normalized_weights,
     )
     active_policy = policy or StagingPolicy()
+    rebuttal_evaluation = evaluate_sicr_rebuttals(
+        normalized_accounts,
+        sicr_rebuttals,
+        reporting_date,
+        stage2_dpd_backstop=active_policy.stage2_dpd_backstop,
+        stage3_dpd_backstop=active_policy.stage3_dpd_backstop,
+    )
     staged_accounts = normalized_accounts.copy()
     staged_accounts[["stage", "stage_reason"]] = staged_accounts.apply(
-        lambda row: pd.Series(_assign_stage(row, active_policy)),
+        lambda row: pd.Series(
+            _assign_stage(
+                row,
+                active_policy,
+                approved_dpd_rebuttal=(
+                    row["account_id"] in rebuttal_evaluation.approved_account_ids
+                ),
+            )
+        ),
         axis=1,
+    )
+    rebuttal_register = _attach_rebuttal_stage_impact(
+        rebuttal_evaluation.register,
+        staged_accounts,
+        active_policy,
     )
     scenario_rows = []
     for account in staged_accounts.to_dict("records"):
@@ -141,6 +168,7 @@ def run_ecl_engine(
         scenario_ecl=scenario_ecl,
         portfolio_summary=portfolio_summary,
         stage_migration=stage_migration,
+        sicr_rebuttal_register=rebuttal_register,
     )
 
 
@@ -337,7 +365,12 @@ def _validate_term_coverage(
             raise ValueError("Term structures must contain contiguous monthly terms")
 
 
-def _assign_stage(account: pd.Series, policy: StagingPolicy) -> tuple[int, str]:
+def _assign_stage(
+    account: pd.Series,
+    policy: StagingPolicy,
+    *,
+    approved_dpd_rebuttal: bool = False,
+) -> tuple[int, str]:
     days_past_due = int(account["days_past_due"])
     if bool(account["credit_impaired"]):
         return 3, "credit_impaired"
@@ -348,8 +381,43 @@ def _assign_stage(account: pd.Series, policy: StagingPolicy) -> tuple[int, str]:
     if bool(account["sicr"]):
         return 2, "sicr_indicator"
     if policy.stage2_dpd_backstop is not None and days_past_due >= policy.stage2_dpd_backstop:
+        if approved_dpd_rebuttal:
+            return 1, f"{policy.stage2_dpd_backstop}_dpd_rebuttal_approved"
         return 2, f"{policy.stage2_dpd_backstop}_dpd_backstop"
     return 1, "performing"
+
+
+def _attach_rebuttal_stage_impact(
+    register: pd.DataFrame,
+    staged_accounts: pd.DataFrame,
+    policy: StagingPolicy,
+) -> pd.DataFrame:
+    if register.empty:
+        return register.reindex(
+            columns=[
+                *register.columns,
+                "stage_without_rebuttal",
+                "stage_reason_without_rebuttal",
+                "stage_with_rebuttal",
+                "stage_reason_with_rebuttal",
+            ]
+        )
+    impacts = []
+    for account in staged_accounts.to_dict("records"):
+        stage_without, reason_without = _assign_stage(
+            pd.Series(account),
+            policy,
+        )
+        impacts.append(
+            {
+                "account_id": account["account_id"],
+                "stage_without_rebuttal": stage_without,
+                "stage_reason_without_rebuttal": reason_without,
+                "stage_with_rebuttal": account["stage"],
+                "stage_reason_with_rebuttal": account["stage_reason"],
+            }
+        )
+    return register.merge(pd.DataFrame(impacts), on="account_id", how="left", validate="one_to_one")
 
 
 def _normalize_accounts(accounts: pd.DataFrame) -> pd.DataFrame:
