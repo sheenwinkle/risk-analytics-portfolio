@@ -75,6 +75,22 @@ def main() -> None:
         / "sicr_rebuttal"
         / "ecl_impact_reconciliation.csv"
     )
+    ecl_cashflow_summary_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "cashflow_sensitivity"
+        / "cashflow_sensitivity_summary.csv"
+    )
+    ecl_cashflow_monthly_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "cashflow_sensitivity"
+        / "monthly_portfolio_projection.csv"
+    )
     validation_path = (
         REPO_ROOT
         / "projects"
@@ -142,6 +158,11 @@ def main() -> None:
         _build_sicr_rebuttal_chart(
             sicr_reconciliation_path,
             output_dir / "ecl_sicr_rebuttal.png",
+        ),
+        _build_cashflow_sensitivity_chart(
+            ecl_cashflow_summary_path,
+            ecl_cashflow_monthly_path,
+            output_dir / "ecl_cashflow_sensitivity.png",
         ),
         _build_validation_chart(
             validation_path,
@@ -516,6 +537,119 @@ def _build_sicr_rebuttal_chart(
         fontsize=8.5,
     )
     figure.subplots_adjust(left=0.07, right=0.98, top=0.80, bottom=0.19, wspace=0.30)
+    _save(figure, output_path)
+    return output_path
+
+
+def _build_cashflow_sensitivity_chart(
+    summary_path: Path,
+    monthly_path: Path,
+    output_path: Path,
+) -> Path:
+    summary = _read_csv(summary_path)
+    monthly = _read_csv(monthly_path)
+    if not summary:
+        raise ValueError("Cash-flow sensitivity showcase requires summary rows")
+
+    case_labels = {
+        "baseline": "Baseline",
+        "low_prepayment": "Lower\nprepayment",
+        "low_cure": "Lower\ncure",
+        "collateral_downturn": "Collateral\ndownturn",
+        "delayed_recovery": "Delayed\nrecovery",
+        "combined_downside": "Combined\ndownside",
+    }
+    labels = [case_labels.get(row["case_id"], row["case_id"]) for row in summary]
+    modelled_ecl = [float(row["modelled_ecl"]) / 1_000 for row in summary]
+    changes = [float(row["ecl_change_pct"]) for row in summary]
+    colors = [BLUE, TEAL, AMBER, RED, MUTED, TEXT]
+
+    base_paths: dict[str, list[dict[str, str]]] = {}
+    for case_id in ["baseline", "low_prepayment"]:
+        base_paths[case_id] = sorted(
+            [
+                row
+                for row in monthly
+                if row["case_id"] == case_id and row["scenario"] == "base"
+            ],
+            key=lambda row: int(row["month"]),
+        )
+        if not base_paths[case_id]:
+            raise ValueError(f"Missing base-scenario monthly path for {case_id}")
+
+    figure, (impact_axis, path_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(10.8, 5.3),
+        dpi=160,
+        gridspec_kw={"width_ratios": [1.45, 1.0]},
+    )
+    figure.suptitle(
+        "Contractual cash-flow assumptions change modelled ECL",
+        x=0.065,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.065,
+        0.91,
+        "Synthetic six-account portfolio | sensitivity deltas versus neutral baseline",
+        color=MUTED,
+        fontsize=9,
+    )
+
+    bars = impact_axis.bar(labels, modelled_ecl, color=colors, width=0.65)
+    impact_axis.set_title("Portfolio sensitivity", loc="left", fontsize=11, pad=12)
+    impact_axis.set_ylabel("Modelled ECL (thousands)")
+    impact_axis.set_ylim(0, max(modelled_ecl) * 1.30)
+    impact_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    impact_axis.set_axisbelow(True)
+    impact_axis.spines[["top", "right"]].set_visible(False)
+    impact_axis.tick_params(axis="x", labelsize=8)
+    for bar, value, change in zip(bars, modelled_ecl, changes, strict=True):
+        annotation = f"{value:.1f}k" if change == 0 else f"{value:.1f}k\n+{change:.1%}"
+        impact_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + max(modelled_ecl) * 0.035,
+            annotation,
+            ha="center",
+            va="bottom",
+            color=TEXT,
+            fontsize=8.3,
+            fontweight="bold",
+        )
+
+    for case_id, color, label in [
+        ("baseline", BLUE, "Baseline CPR"),
+        ("low_prepayment", TEAL, "CPR reduced 50%"),
+    ]:
+        rows = base_paths[case_id]
+        path_axis.plot(
+            [int(row["month"]) for row in rows],
+            [float(row["portfolio_ead"]) / 1_000 for row in rows],
+            color=color,
+            linewidth=2.3,
+            label=label,
+        )
+    path_axis.set_title("Base-scenario EAD path", loc="left", fontsize=11, pad=12)
+    path_axis.set_xlabel("Projection month")
+    path_axis.set_ylabel("Portfolio EAD (thousands)")
+    path_axis.set_xlim(1, 36)
+    path_axis.set_xticks([1, 6, 12, 18, 24, 30, 36])
+    path_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    path_axis.set_axisbelow(True)
+    path_axis.spines[["top", "right"]].set_visible(False)
+    path_axis.legend(frameon=False, fontsize=8.5, loc="upper right")
+
+    figure.text(
+        0.065,
+        0.025,
+        "Lower prepayment preserves future EAD; recovery timing and collateral assumptions change effective LGD",
+        color=MUTED,
+        fontsize=8.5,
+    )
+    figure.subplots_adjust(left=0.065, right=0.985, top=0.80, bottom=0.20, wspace=0.28)
     _save(figure, output_path)
     return output_path
 

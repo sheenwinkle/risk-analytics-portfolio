@@ -1,0 +1,7 @@
+case_id,case_description,is_baseline,annual_prepayment_rate_multiplier,cure_rate_multiplier,collateral_value_multiplier,collateral_haircut_addon,cure_delay_addon_months,collateral_recovery_delay_addon_months,gross_exposure,modelled_ecl,coverage_ratio,ecl_change,ecl_change_pct
+baseline,Contractual schedule and approved synthetic recovery assumptions,True,1.000000,1.000000,1.000000,0.000000,0,0,554000.000000,18103.390881,0.032678,0.000000,0.000000
+low_prepayment,Reduce annual CPR assumptions by 50 percent,False,0.500000,1.000000,1.000000,0.000000,0,0,554000.000000,18991.453179,0.034281,888.062298,0.049055
+low_cure,Reduce cure-rate assumptions by 35 percent,False,1.000000,0.650000,1.000000,0.000000,0,0,554000.000000,21008.873586,0.037922,2905.482705,0.160494
+collateral_downturn,Reduce collateral values by 25 percent and add 10pp haircut,False,1.000000,1.000000,0.750000,0.100000,0,0,554000.000000,24283.749555,0.043833,6180.358674,0.341392
+delayed_recovery,Delay cure and collateral recovery by six months,False,1.000000,1.000000,1.000000,0.000000,6,6,554000.000000,20370.532576,0.036770,2267.141695,0.125233
+combined_downside,"Combine lower CPR, cure, collateral and slower recovery",False,0.500000,0.650000,0.750000,0.100000,6,6,554000.000000,31215.459411,0.056346,13112.068529,0.724288

@@ -1,0 +1,37 @@
+case_id,case_description,account_id,stage,stage_reason,gross_exposure,weighted_ecl,baseline_ecl,ecl_change,ecl_change_pct
+baseline,Contractual schedule and approved synthetic recovery assumptions,SYN-ECL-001,1,performing,150000.000000,651.505279,651.505279,0.000000,0.000000
+baseline,Contractual schedule and approved synthetic recovery assumptions,SYN-ECL-002,1,performing,95000.000000,752.285084,752.285084,0.000000,0.000000
+baseline,Contractual schedule and approved synthetic recovery assumptions,SYN-ECL-003,2,30_dpd_backstop,82000.000000,1676.937064,1676.937064,0.000000,0.000000
+baseline,Contractual schedule and approved synthetic recovery assumptions,SYN-ECL-004,2,sicr_indicator,120000.000000,1901.744158,1901.744158,0.000000,0.000000
+baseline,Contractual schedule and approved synthetic recovery assumptions,SYN-ECL-005,2,sicr_indicator,62000.000000,5701.729316,5701.729316,0.000000,0.000000
+baseline,Contractual schedule and approved synthetic recovery assumptions,SYN-ECL-006,3,credit_impaired,45000.000000,7419.189981,7419.189981,0.000000,0.000000
+low_prepayment,Reduce annual CPR assumptions by 50 percent,SYN-ECL-001,1,performing,150000.000000,671.441769,651.505279,19.936489,0.030601
+low_prepayment,Reduce annual CPR assumptions by 50 percent,SYN-ECL-002,1,performing,95000.000000,770.594719,752.285084,18.309636,0.024339
+low_prepayment,Reduce annual CPR assumptions by 50 percent,SYN-ECL-003,2,30_dpd_backstop,82000.000000,1834.831498,1676.937064,157.894434,0.094156
+low_prepayment,Reduce annual CPR assumptions by 50 percent,SYN-ECL-004,2,sicr_indicator,120000.000000,2057.119260,1901.744158,155.375102,0.081701
+low_prepayment,Reduce annual CPR assumptions by 50 percent,SYN-ECL-005,2,sicr_indicator,62000.000000,6026.279836,5701.729316,324.550521,0.056921
+low_prepayment,Reduce annual CPR assumptions by 50 percent,SYN-ECL-006,3,credit_impaired,45000.000000,7631.186097,7419.189981,211.996116,0.028574
+low_cure,Reduce cure-rate assumptions by 35 percent,SYN-ECL-001,1,performing,150000.000000,1049.105760,651.505279,397.600480,0.610280
+low_cure,Reduce cure-rate assumptions by 35 percent,SYN-ECL-002,1,performing,95000.000000,1082.689416,752.285084,330.404333,0.439201
+low_cure,Reduce cure-rate assumptions by 35 percent,SYN-ECL-003,2,30_dpd_backstop,82000.000000,2053.072071,1676.937064,376.135007,0.224299
+low_cure,Reduce cure-rate assumptions by 35 percent,SYN-ECL-004,2,sicr_indicator,120000.000000,2441.609659,1901.744158,539.865501,0.283879
+low_cure,Reduce cure-rate assumptions by 35 percent,SYN-ECL-005,2,sicr_indicator,62000.000000,6548.999750,5701.729316,847.270434,0.148599
+low_cure,Reduce cure-rate assumptions by 35 percent,SYN-ECL-006,3,credit_impaired,45000.000000,7833.396931,7419.189981,414.206949,0.055829
+collateral_downturn,Reduce collateral values by 25 percent and add 10pp haircut,SYN-ECL-001,1,performing,150000.000000,651.505279,651.505279,0.000000,0.000000
+collateral_downturn,Reduce collateral values by 25 percent and add 10pp haircut,SYN-ECL-002,1,performing,95000.000000,752.285084,752.285084,0.000000,0.000000
+collateral_downturn,Reduce collateral values by 25 percent and add 10pp haircut,SYN-ECL-003,2,30_dpd_backstop,82000.000000,2424.029506,1676.937064,747.092442,0.445510
+collateral_downturn,Reduce collateral values by 25 percent and add 10pp haircut,SYN-ECL-004,2,sicr_indicator,120000.000000,2654.628591,1901.744158,752.884433,0.395892
+collateral_downturn,Reduce collateral values by 25 percent and add 10pp haircut,SYN-ECL-005,2,sicr_indicator,62000.000000,7060.770540,5701.729316,1359.041225,0.238356
+collateral_downturn,Reduce collateral values by 25 percent and add 10pp haircut,SYN-ECL-006,3,credit_impaired,45000.000000,10740.530556,7419.189981,3321.340574,0.447669
+delayed_recovery,Delay cure and collateral recovery by six months,SYN-ECL-001,1,performing,150000.000000,706.825151,651.505279,55.319872,0.084911
+delayed_recovery,Delay cure and collateral recovery by six months,SYN-ECL-002,1,performing,95000.000000,803.492105,752.285084,51.207022,0.068069
+delayed_recovery,Delay cure and collateral recovery by six months,SYN-ECL-003,2,30_dpd_backstop,82000.000000,2027.952292,1676.937064,351.015228,0.209319
+delayed_recovery,Delay cure and collateral recovery by six months,SYN-ECL-004,2,sicr_indicator,120000.000000,2234.989667,1901.744158,333.245509,0.175232
+delayed_recovery,Delay cure and collateral recovery by six months,SYN-ECL-005,2,sicr_indicator,62000.000000,6258.198874,5701.729316,556.469558,0.097597
+delayed_recovery,Delay cure and collateral recovery by six months,SYN-ECL-006,3,credit_impaired,45000.000000,8339.074487,7419.189981,919.884506,0.123987
+combined_downside,"Combine lower CPR, cure, collateral and slower recovery",SYN-ECL-001,1,performing,150000.000000,1119.564266,651.505279,468.058987,0.718427
+combined_downside,"Combine lower CPR, cure, collateral and slower recovery",SYN-ECL-002,1,performing,95000.000000,1143.914765,752.285084,391.629681,0.520587
+combined_downside,"Combine lower CPR, cure, collateral and slower recovery",SYN-ECL-003,2,30_dpd_backstop,82000.000000,3620.690474,1676.937064,1943.753410,1.159109
+combined_downside,"Combine lower CPR, cure, collateral and slower recovery",SYN-ECL-004,2,sicr_indicator,120000.000000,4061.196188,1901.744158,2159.452030,1.135511
+combined_downside,"Combine lower CPR, cure, collateral and slower recovery",SYN-ECL-005,2,sicr_indicator,62000.000000,8959.182190,5701.729316,3257.452874,0.571310
+combined_downside,"Combine lower CPR, cure, collateral and slower recovery",SYN-ECL-006,3,credit_impaired,45000.000000,12310.911528,7419.189981,4891.721547,0.659334

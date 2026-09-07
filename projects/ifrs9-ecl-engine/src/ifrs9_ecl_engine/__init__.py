@@ -1,3 +1,10 @@
+from ifrs9_ecl_engine.cashflow import (
+    CashFlowProjectionResult,
+    CashFlowSensitivityCase,
+    CashFlowSensitivityResult,
+    analyse_cashflow_sensitivity,
+    build_cashflow_ecl_terms,
+)
 from ifrs9_ecl_engine.engine import ECLResult, StagingPolicy, run_ecl_engine
 from ifrs9_ecl_engine.governance import (
     MacroOverlayAnalysisResult,
@@ -30,6 +37,9 @@ from ifrs9_ecl_engine.sicr import (
 )
 
 __all__ = [
+    "CashFlowProjectionResult",
+    "CashFlowSensitivityCase",
+    "CashFlowSensitivityResult",
     "ECLResult",
     "MacroOverlayAnalysisResult",
     "MacroSensitivityCase",
@@ -43,7 +53,9 @@ __all__ = [
     "SICRRebuttal",
     "SICRRebuttalEvaluation",
     "StagingPolicy",
+    "analyse_cashflow_sensitivity",
     "analyse_macro_sensitivity",
+    "build_cashflow_ecl_terms",
     "build_ecl_inputs_from_pd_snapshot",
     "build_synthetic_account_assumptions",
     "evaluate_management_overlays",

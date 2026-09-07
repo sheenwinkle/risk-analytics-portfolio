@@ -1,12 +1,17 @@
 # IFRS 9 ECL Engine
 
 Status: complete scoped case study with deterministic standalone, Project 1 PD-integration,
-macro-sensitivity/management-overlay, and SICR rebuttal governance evidence.
+contractual cash-flow/recovery sensitivity, macro-sensitivity/management-overlay, and SICR
+rebuttal governance evidence.
 
 This project is a runnable, educational expected credit loss engine for credit risk
 analytics portfolio discussion. It calculates account-level and portfolio-level ECL from
 reporting-date account snapshots, monthly PD/LGD/EAD term structures, staging rules, and
 explicit macro scenario weights.
+
+An optional pre-engine adapter converts contractual principal, prepayment, cure timing, and
+eligible collateral assumptions into auditable monthly EAD and effective LGD term structures.
+It then calls the same `run_ecl_engine(...)` entry point; there is no second ECL calculator.
 
 It is not a production IFRS 9 implementation, not an assertion of IFRS compliance, and not
 accounting advice. A real implementation would require institution-specific accounting
@@ -56,6 +61,64 @@ date exposure measure.
 
 Scenario weights are explicit, nonnegative, and must sum to 1. The engine does not infer,
 choose, optimize, or backfit scenario weights from outcomes.
+
+## Contractual Cash-flow and Recovery Sensitivity
+
+Public API:
+
+```python
+from ifrs9_ecl_engine import (
+    CashFlowSensitivityCase,
+    analyse_cashflow_sensitivity,
+    build_cashflow_ecl_terms,
+)
+
+projection = build_cashflow_ecl_terms(
+    accounts,
+    marginal_pd_curves,
+    contractual_schedule,
+    recovery_assumptions,
+)
+analysis = analyse_cashflow_sensitivity(
+    accounts,
+    marginal_pd_curves,
+    contractual_schedule,
+    recovery_assumptions,
+    scenario_weights,
+    cases=(
+        CashFlowSensitivityCase(case_id="baseline", is_baseline=True),
+        CashFlowSensitivityCase(
+            case_id="lower_cure",
+            cure_rate_multiplier=0.65,
+        ),
+    ),
+)
+```
+
+The adapter converts annual conditional prepayment rate (CPR) to a monthly rate before the
+balance roll-forward:
+
+```text
+monthly prepayment rate = 1 - (1 - annual CPR) ** (1 / 12)
+closing balance = opening balance - applied contractual principal - expected prepayment
+effective LGD = 1 - discounted expected recovery at default / opening EAD
+```
+
+Cure cash flows and collateral proceeds are discounted from their expected recovery dates
+using the account effective interest rate. Collateral is included only when it is integral to
+the contractual terms and not recognized separately, and is reduced for haircut and recovery
+cost before being capped at the non-cure exposure. Every excluded record retains an auditable
+eligibility reason.
+
+The deterministic demo compares one neutral baseline with lower prepayment, lower cure,
+collateral downturn, delayed recovery, and combined-downside cases. On `554,000.00` synthetic
+gross exposure, baseline ECL is `18,103.39`; the single-factor cases add `4.91%` to `34.14%`,
+and the combined case adds `13,112.07` or `72.43%`. These are sensitivities, not booked
+adjustments or empirical forecasts.
+
+This component supplies cash-flow-informed EAD and LGD assumptions to the portfolio engine.
+It is not a full direct comparison of all contractual versus expected cash flows and is not
+an IFRS 9 compliance conclusion.
 
 ## Macro Sensitivity and Management Overlays
 
@@ -204,6 +267,7 @@ pytest
 python scripts\run_pipeline.py
 python scripts\run_macro_overlay.py
 python scripts\run_sicr_rebuttal.py
+python scripts\run_cashflow_sensitivity.py
 ```
 
 The default CLI writes:
@@ -228,6 +292,16 @@ The SICR rebuttal governance CLI writes:
 - `reports/sicr_rebuttal/account_stage_comparison.csv`
 - `reports/sicr_rebuttal/ecl_impact_reconciliation.csv`
 - `reports/sicr_rebuttal/sicr_rebuttal_report.md`
+
+The contractual cash-flow sensitivity CLI writes:
+
+- `reports/cashflow_sensitivity/contractual_schedule.csv`
+- `reports/cashflow_sensitivity/recovery_assumptions.csv`
+- `reports/cashflow_sensitivity/monthly_portfolio_projection.csv`
+- `reports/cashflow_sensitivity/account_ecl_sensitivity.csv`
+- `reports/cashflow_sensitivity/cashflow_sensitivity_summary.csv`
+- `reports/cashflow_sensitivity/cashflow_reconciliation.csv`
+- `reports/cashflow_sensitivity/cashflow_sensitivity_report.md`
 
 Run the Project 1 PD integration bridge:
 
@@ -289,6 +363,19 @@ python scripts\run_pipeline.py --output-dir reports\scratch
 | `lgd` | LGD in `[0, 1]` |
 | `ead` | Exposure at default, nonnegative |
 
+The cash-flow adapter replaces supplied LGD/EAD paths with two governed inputs:
+
+- `contractual_schedule`: one unique positive month per account with nonnegative contractual
+  principal; each account schedule must be contiguous, share the PD horizon, and fully
+  amortise reporting-date gross exposure.
+- `recovery_assumptions`: exactly one row per account/scenario with annual CPR, cure rate and
+  delay, collateral value/haircut/recovery cost and delay, plus strict integral/separate-
+  recognition eligibility flags.
+
+Sensitivity definitions require unique non-empty case IDs, exactly one neutral baseline,
+finite nonnegative multipliers/add-ons, nonnegative integer delays, and adjusted CPR, cure,
+and haircut rates that remain in `[0, 1]`.
+
 ## Output Schema
 
 `account_ecl.csv` includes relevant staging inputs, the normalized `defaulted` flag,
@@ -316,6 +403,11 @@ and illustrative reported ECL while disclosing the highest sensitivity as not bo
 before/after stage for every request. `account_stage_comparison.csv` isolates account-level
 stage and ECL changes, while `ecl_impact_reconciliation.csv` proves the portfolio accounting
 identity and reconciles stage counts before and after governed decisions.
+
+`monthly_portfolio_projection.csv` aggregates contractual principal, prepayment, opening EAD,
+closing balance, cure/collateral recovery, and EAD-weighted LGD by case/scenario/month.
+`account_ecl_sensitivity.csv` attributes every case delta to accounts, while
+`cashflow_reconciliation.csv` proves each portfolio ECL equals the summed account ECL.
 
 ## Committed Synthetic Results
 
@@ -363,6 +455,20 @@ portfolio ECL changes from `29,234.32` to `27,071.32`, an impact of `2,163.00` o
 This is a controlled synthetic accounting impact used to test staging and reconciliation;
 it is not a business benefit, cost saving, or recommendation to minimize ECL.
 
+## Committed Cash-flow Sensitivity Results
+
+The deterministic case uses six contractual repayment profiles over a common 36-month
+horizon, including level amortisation, 24-month amortisation, partial balloons, and a bullet
+maturity. Recovery assumptions vary by account and base/upside/downside scenario. One
+separately recognized guarantee is deliberately excluded to exercise the eligibility control.
+
+Baseline modelled ECL is `18,103.39` with a `3.27%` coverage ratio. Halving prepayment adds
+`888.06` (`4.91%`), reducing cure rates by 35% adds `2,905.48` (`16.05%`), collateral downturn
+adds `6,180.36` (`34.14%`), and a six-month recovery delay adds `2,267.14` (`12.52%`). The
+combined downside reaches `31,215.46`, a `13,112.07` (`72.43%`) increase. Every case preserves
+staging and reconciles exactly from account ECL to portfolio ECL, isolating assumption risk
+from stage migration.
+
 ## Validation
 
 The public API validates:
@@ -401,13 +507,26 @@ The public API validates:
 - Reasonable-and-supportable evidence, forward-looking review, validity, and approval checks
 - Stage 3 and explicit-SICR precedence over a 30 DPD rebuttal
 - Account-to-portfolio stage-count and ECL-impact reconciliation
+- Unique contractual account/month and marginal-PD account/scenario/month keys
+- Contractual schedules that fully amortise exposure over the same contiguous PD horizon
+- Annual CPR, cure, haircut, cost, collateral value, and recovery-delay domains
+- Integral/not-separately-recognized collateral eligibility with explicit exclusion reasons
+- Exactly one neutral cash-flow baseline and adjusted sensitivity rates constrained to `[0, 1]`
+- Cash-flow account-to-portfolio ECL reconciliation for every sensitivity case
 
 ## Limitations
 
 This is deliberately small and transparent. It does not implement financial asset
-classification, contractual cash flow modelling, prepayment, cures, collateral valuation,
-write-offs, macroeconomic model estimation, real SICR evidence assessment, audit workflow,
-production disclosure, or institution-specific IFRS 9 and management-overlay policy.
+classification, a full direct contractual-versus-expected cash-shortfall valuation,
+behaviourally estimated prepayment/cure models, independent collateral appraisal, write-offs,
+macroeconomic model estimation, real SICR evidence assessment, audit workflow, production
+disclosure, or institution-specific IFRS 9 and management-overlay policy.
+
+Contractual schedules, cure rates, collateral values, haircuts, recovery costs, and delays are
+synthetic assumptions. The cash-flow adapter demonstrates balance roll-forward, recovery
+discounting, eligibility, sensitivity, and reconciliation controls; it does not establish
+reasonable and supportable forecasts, legal enforceability, or accounting scope for real
+credit enhancements.
 
 The overlay trigger metrics, risk assessments, committee name, requested amounts, and caps
 are synthetic. The governance controls demonstrate process and reconciliation, but they do
@@ -430,6 +549,8 @@ model governance, SICR policy approval, or audited financial reporting.
 ## IFRS Foundation References
 
 - [IFRS 9 Financial Instruments, paragraph 5.5.11](https://www.ifrs.org/content/dam/ifrs/publications/pdf-standards/english/2022/issued/part-a/ifrs-9-financial-instruments.pdf?bypass=on)
+- [IFRS 9 impairment staff paper: collateral and other credit enhancements](https://www.ifrs.org/content/dam/ifrs/meetings/2015/december/itg/impairment-of-financial-instruments/ap5-collateral-and-other-credit-enhancements.pdf)
+- [IFRIC Update, March 2019: credit enhancement in ECL measurement](https://www.ifrs.org/news-and-events/updates/ifric/2019/ifric-update-march-2019/)
 - [IFRS 9 project summary](https://www.ifrs.org/content/dam/ifrs/project/fi-hedge-accounting/ifrs-standard/project-summary.pdf)
 - [IFRS 9 and coronavirus uncertainty](https://www.ifrs.org/news-and-events/news/2020/03/application-of-ifrs-9-in-the-light-of-the-coronavirus-uncertainty/)
 - [Forward-looking information and multiple scenarios](https://www.ifrs.org/news-and-events/news/2016/07/25-webcast-on-ifrs-9/)
@@ -450,3 +571,7 @@ model governance, SICR policy approval, or audited financial reporting.
 - Implemented governed 30 DPD rebuttal decisions with evidence, forward-looking, DPD/date,
   approval, and precedence controls; in a synthetic case, one of three requests moved Stage
   2 to Stage 1 and produced a reconciled `2,163.00` (`7.40%`) ECL impact.
+- Built a contractual cash-flow adapter covering CPR-driven EAD roll-forward, cure timing,
+  collateral eligibility/haircut/cost, and discounted recovery; quantified four isolated
+  assumption shocks and a combined synthetic downside that increased ECL by `13,112.07`
+  (`72.43%`), with exact account-to-portfolio reconciliation.

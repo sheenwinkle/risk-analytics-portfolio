@@ -36,5 +36,17 @@ approval statuses, and the named committee are illustrative governance inputs de
 `src/ifrs9_ecl_engine/sicr_demo.py`. They are not borrower evidence, institution decisions,
 or support for a real accounting conclusion.
 
+The contractual cash-flow demo reuses the six `SYN-ECL-` account snapshots and marginal PD
+curves. It adds deterministic 36-month repayment schedules covering level amortisation,
+24-month amortisation, partial balloons, and a bullet maturity. Annual CPR, cure rates,
+recovery delays, collateral values, haircuts, selling/recovery costs, security type, and
+integral/separate-recognition flags are synthetic scenario-policy assumptions defined in
+`src/ifrs9_ecl_engine/cashflow_demo.py`.
+
+These inputs are not observed borrower cash flows, appraisals, legal enforceability opinions,
+or institution-approved forecasts. The committed outputs aggregate monthly projections at
+portfolio level; the small account-level sensitivity table uses synthetic identifiers only.
+No future-default outcome is used to build contractual schedules or recovery assumptions.
+
 Any real or public-data experiment should remain local unless it has been reviewed and
 intentionally anonymised, aggregated, and documented before being added to Git.
