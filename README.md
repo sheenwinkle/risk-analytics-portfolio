@@ -13,6 +13,7 @@ Public/synthetic lending data
 -> PD development and OOT scoring
 -> vintage maturity and statistical uncertainty checks
 -> IFRS 9 ECL consumption
+-> contractual cash-flow/recovery sensitivity
 -> SICR rebuttal and macro/overlay governance
 -> independent validation opinion
 -> score and input characteristic stability
@@ -39,6 +40,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | Public independent validation opinion | warning |
 | Synthetic stress-case validation opinion | fail |
 | Sequential remediation calibration gap | 0.064 -> 0.009 |
+| Synthetic contractual cash-flow combined downside ECL | +72.43% |
 
 ![Public LendingClub calibration](docs/assets/public_pd_calibration.png)
 
@@ -53,7 +55,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | Project | Status | Main evidence | Target roles |
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, champion-challenger strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
-| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, PD bridge, SICR rebuttal, macro sensitivity, overlay controls | ECL, Portfolio Risk, Credit Risk |
+| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, contractual cash-flow/recovery sensitivity, PD bridge, SICR rebuttal, macro sensitivity, overlay controls | ECL, Portfolio Risk, Credit Risk |
 | [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent candidate rebuild, metrics, confidence intervals, vintage/segment backtesting, PSI/CSI drift, policy opinion, remediation lifecycle | Model Risk, Validation, Quant Risk |
 
 ## Project 1: Credit Risk PD Modelling
@@ -105,6 +107,7 @@ Reporting-date PD cohort
 -> monthly base/upside/downside PD, LGD, and EAD paths
 -> Stage 1 12-month ECL / Stage 2-3 lifetime ECL
 -> discounting, scenario weighting, migration, and portfolio evidence
+-> contractual principal, prepayment, cure, and eligible-collateral sensitivity
 -> governed 30 DPD rebuttal decisions and ECL impact reconciliation
 -> separate macro sensitivity, overlay controls, and ECL reconciliation
 ```
@@ -114,6 +117,8 @@ Reporting-date PD cohort
 ![ECL macro sensitivity and overlay reconciliation](docs/assets/ecl_macro_overlay.png)
 
 ![SICR rebuttal governance impact](docs/assets/ecl_sicr_rebuttal.png)
+
+![Contractual cash-flow and recovery sensitivity](docs/assets/ecl_cashflow_sensitivity.png)
 
 The implementation is deliberately transparent. It demonstrates staging, term structures,
 discounting, scenario weighting, coverage ratios, and stage migration without claiming full
@@ -134,6 +139,14 @@ from Stage 2 to Stage 1 and reconciles a `2,163.00` (`7.40%`) ECL impact. This i
 accounting sensitivity, not a business benefit.
 
 Evidence: [SICR rebuttal governance report](projects/ifrs9-ecl-engine/reports/sicr_rebuttal/sicr_rebuttal_report.md).
+
+The cash-flow adapter rolls contractual principal and CPR-driven prepayment into monthly EAD,
+then derives effective LGD from discounted cure and eligible collateral recovery. Across six
+synthetic cases, isolated shocks increase ECL by `4.91%` to `34.14%`; the combined downside
+increases baseline ECL from `18,103.39` to `31,215.46`, or `72.43%`, with exact account-to-
+portfolio reconciliation and unchanged staging.
+
+Evidence: [contractual cash-flow sensitivity report](projects/ifrs9-ecl-engine/reports/cashflow_sensitivity/cashflow_sensitivity_report.md).
 
 ## Project 3: Model Validation and Remediation
 
@@ -206,6 +219,7 @@ VS Code exposes both commands through **Tasks: Run Task**:
 - Pre-OOT strategy selection, frozen OOT evaluation, and paired marginal-cohort uncertainty
 - Governed SICR evidence, DPD/date matching, approval, precedence, and impact reconciliation
 - Separate ECL sensitivity, overlay trigger, double-counting, approval, cap, and reconciliation controls
+- Contractual schedule, CPR, cure, collateral eligibility, recovery timing, and sensitivity reconciliation controls
 - GitHub Actions matrix across all three projects
 - CI PostgreSQL 16 integration test for run, metric uncertainty, grouped performance,
   characteristic drift, finding, benchmark, limitation, and remediation-event persistence
@@ -238,9 +252,10 @@ risk-analytics-portfolio/
   Basel or IFRS 9 default labels. Published vintage denominators quantify severe recent-cohort
   right-censoring but cannot remove it.
 - Accepted-loan data does not represent all applicants and cannot support reject inference.
-- The ECL engine's overlay and SICR records are synthetic governance examples; it still omits
-  institution-specific accounting policy, contractual cash-flow, collateral, cure,
-  macroeconomic model estimation, real expert-judgement evidence, and production disclosure.
+- The ECL engine's schedules, recovery assumptions, overlays, and SICR records are synthetic.
+  It does not implement a full direct contractual-versus-expected cash-shortfall valuation,
+  empirical prepayment/cure estimation, independent collateral appraisal, institution-specific
+  accounting policy, or production disclosure.
 - Validation policy thresholds are explicit case-study assumptions, not regulatory cutoffs.
 - Public aggregate results demonstrate analytical workflow, not production approval.
 
@@ -248,7 +263,8 @@ risk-analytics-portfolio/
 
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
 > LendingClub records, covering temporal PD development, recalibration, credit strategy,
-> vintage maturity, IFRS 9 ECL consumption, SICR rebuttal, macro sensitivity and overlay governance,
+> vintage maturity, IFRS 9 ECL consumption, contractual cash-flow/recovery sensitivity, SICR
+> rebuttal, macro sensitivity and overlay governance,
 > independent candidate re-estimation, validation with confidence
 > intervals and segment backtesting, score/feature drift, no-look-ahead remediation, and
 > PostgreSQL governance persistence.
@@ -260,6 +276,7 @@ and the optional VS Code/Codex iteration process are documented in
 
 ## Next Evidence
 
-- Add contractual cash-flow, cure, collateral, and prepayment sensitivity.
 - Add empirical macroeconomic model estimation and independent validation evidence.
+- Replace synthetic recovery assumptions with a governed public-data estimation study when a
+  defensible recovery dataset and legal-scope mapping are available.
 - Revisit the pending calibration finding when an additional matured OOT horizon is available.

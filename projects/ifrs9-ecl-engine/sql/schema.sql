@@ -13,7 +13,7 @@ CREATE TABLE ecl_account_snapshot (
 CREATE TABLE ecl_term_structure (
     account_id TEXT NOT NULL REFERENCES ecl_account_snapshot(account_id),
     scenario TEXT NOT NULL,
-    month INTEGER NOT NULL CHECK (month > 0),
+    month INTEGER NOT NULL CHECK (month > 0 AND month = CAST(month AS INTEGER)),
     marginal_pd NUMERIC NOT NULL CHECK (marginal_pd BETWEEN 0 AND 1),
     lgd NUMERIC NOT NULL CHECK (lgd BETWEEN 0 AND 1),
     ead NUMERIC NOT NULL CHECK (ead >= 0),
@@ -264,5 +264,151 @@ CREATE TABLE ecl_sicr_rebuttal_reconciliation (
     CHECK (
         effective_rebuttal_count + pending_rebuttal_count + blocked_rebuttal_count
         <= rebuttal_request_count
+    )
+);
+
+CREATE TABLE ecl_contractual_cashflow (
+    account_id TEXT NOT NULL REFERENCES ecl_account_snapshot(account_id),
+    repayment_profile TEXT NOT NULL CHECK (LENGTH(TRIM(repayment_profile)) > 0),
+    month INTEGER NOT NULL CHECK (month > 0 AND month = CAST(month AS INTEGER)),
+    contractual_principal_due NUMERIC NOT NULL CHECK (contractual_principal_due >= 0),
+    PRIMARY KEY (account_id, month)
+);
+
+CREATE TABLE ecl_recovery_assumption (
+    account_id TEXT NOT NULL REFERENCES ecl_account_snapshot(account_id),
+    scenario TEXT NOT NULL REFERENCES ecl_scenario_weight(scenario),
+    security_type TEXT NOT NULL CHECK (LENGTH(TRIM(security_type)) > 0),
+    assumption_basis TEXT NOT NULL CHECK (LENGTH(TRIM(assumption_basis)) > 0),
+    annual_prepayment_rate NUMERIC NOT NULL CHECK (
+        annual_prepayment_rate BETWEEN 0 AND 1
+    ),
+    cure_rate NUMERIC NOT NULL CHECK (cure_rate BETWEEN 0 AND 1),
+    cure_delay_months INTEGER NOT NULL CHECK (
+        cure_delay_months >= 0
+        AND cure_delay_months = CAST(cure_delay_months AS INTEGER)
+    ),
+    collateral_value NUMERIC NOT NULL CHECK (collateral_value >= 0),
+    collateral_haircut NUMERIC NOT NULL CHECK (collateral_haircut BETWEEN 0 AND 1),
+    recovery_cost_rate NUMERIC NOT NULL CHECK (recovery_cost_rate BETWEEN 0 AND 1),
+    collateral_recovery_delay_months INTEGER NOT NULL CHECK (
+        collateral_recovery_delay_months >= 0
+        AND collateral_recovery_delay_months = CAST(
+            collateral_recovery_delay_months AS INTEGER
+        )
+    ),
+    collateral_is_integral BOOLEAN NOT NULL CHECK (
+        collateral_is_integral IN (FALSE, TRUE)
+    ),
+    collateral_recognized_separately BOOLEAN NOT NULL CHECK (
+        collateral_recognized_separately IN (FALSE, TRUE)
+    ),
+    PRIMARY KEY (account_id, scenario)
+);
+
+CREATE TABLE ecl_cashflow_sensitivity_case (
+    case_id TEXT PRIMARY KEY,
+    description TEXT NOT NULL CHECK (LENGTH(TRIM(description)) > 0),
+    is_baseline BOOLEAN NOT NULL CHECK (is_baseline IN (FALSE, TRUE)),
+    annual_prepayment_rate_multiplier NUMERIC NOT NULL CHECK (
+        annual_prepayment_rate_multiplier >= 0
+    ),
+    cure_rate_multiplier NUMERIC NOT NULL CHECK (cure_rate_multiplier >= 0),
+    collateral_value_multiplier NUMERIC NOT NULL CHECK (
+        collateral_value_multiplier >= 0
+    ),
+    collateral_haircut_addon NUMERIC NOT NULL CHECK (
+        collateral_haircut_addon BETWEEN 0 AND 1
+    ),
+    cure_delay_addon_months INTEGER NOT NULL CHECK (
+        cure_delay_addon_months >= 0
+        AND cure_delay_addon_months = CAST(cure_delay_addon_months AS INTEGER)
+    ),
+    collateral_recovery_delay_addon_months INTEGER NOT NULL CHECK (
+        collateral_recovery_delay_addon_months >= 0
+        AND collateral_recovery_delay_addon_months = CAST(
+            collateral_recovery_delay_addon_months AS INTEGER
+        )
+    ),
+    gross_exposure NUMERIC NOT NULL CHECK (gross_exposure >= 0),
+    modelled_ecl NUMERIC NOT NULL CHECK (modelled_ecl >= 0),
+    coverage_ratio NUMERIC NOT NULL CHECK (coverage_ratio >= 0),
+    ecl_change NUMERIC NOT NULL,
+    ecl_change_pct NUMERIC NOT NULL,
+    CHECK (
+        is_baseline = FALSE
+        OR (
+            annual_prepayment_rate_multiplier = 1
+            AND cure_rate_multiplier = 1
+            AND collateral_value_multiplier = 1
+            AND collateral_haircut_addon = 0
+            AND cure_delay_addon_months = 0
+            AND collateral_recovery_delay_addon_months = 0
+            AND ABS(ecl_change) < 0.000001
+            AND ABS(ecl_change_pct) < 0.000001
+        )
+    )
+);
+
+CREATE UNIQUE INDEX one_ecl_cashflow_baseline
+ON ecl_cashflow_sensitivity_case(is_baseline)
+WHERE is_baseline = TRUE;
+
+CREATE TABLE ecl_cashflow_account_result (
+    case_id TEXT NOT NULL REFERENCES ecl_cashflow_sensitivity_case(case_id),
+    account_id TEXT NOT NULL REFERENCES ecl_account_snapshot(account_id),
+    stage INTEGER NOT NULL CHECK (stage IN (1, 2, 3)),
+    stage_reason TEXT NOT NULL CHECK (LENGTH(TRIM(stage_reason)) > 0),
+    gross_exposure NUMERIC NOT NULL CHECK (gross_exposure >= 0),
+    weighted_ecl NUMERIC NOT NULL CHECK (weighted_ecl >= 0),
+    baseline_ecl NUMERIC NOT NULL CHECK (baseline_ecl >= 0),
+    ecl_change NUMERIC NOT NULL,
+    ecl_change_pct NUMERIC NOT NULL,
+    PRIMARY KEY (case_id, account_id),
+    CHECK (ABS(ecl_change - weighted_ecl + baseline_ecl) < 0.000001),
+    CHECK (
+        (baseline_ecl = 0 AND ABS(ecl_change_pct) < 0.000001)
+        OR (
+            baseline_ecl > 0
+            AND ABS(ecl_change_pct - ecl_change / baseline_ecl) < 0.000001
+        )
+    )
+);
+
+CREATE TABLE ecl_cashflow_monthly_projection (
+    case_id TEXT NOT NULL REFERENCES ecl_cashflow_sensitivity_case(case_id),
+    scenario TEXT NOT NULL REFERENCES ecl_scenario_weight(scenario),
+    scenario_weight NUMERIC NOT NULL CHECK (scenario_weight BETWEEN 0 AND 1),
+    month INTEGER NOT NULL CHECK (month > 0 AND month = CAST(month AS INTEGER)),
+    portfolio_ead NUMERIC NOT NULL CHECK (portfolio_ead >= 0),
+    ead_weighted_lgd NUMERIC NOT NULL CHECK (ead_weighted_lgd BETWEEN 0 AND 1),
+    contractual_principal_due NUMERIC NOT NULL CHECK (contractual_principal_due >= 0),
+    scheduled_principal_applied NUMERIC NOT NULL CHECK (
+        scheduled_principal_applied >= 0
+    ),
+    expected_prepayment NUMERIC NOT NULL CHECK (expected_prepayment >= 0),
+    closing_balance NUMERIC NOT NULL CHECK (closing_balance >= 0),
+    expected_cure_recovery NUMERIC NOT NULL CHECK (expected_cure_recovery >= 0),
+    expected_collateral_recovery NUMERIC NOT NULL CHECK (
+        expected_collateral_recovery >= 0
+    ),
+    discounted_expected_recovery_at_default NUMERIC NOT NULL CHECK (
+        discounted_expected_recovery_at_default >= 0
+    ),
+    PRIMARY KEY (case_id, scenario, month)
+);
+
+CREATE TABLE ecl_cashflow_reconciliation (
+    case_id TEXT PRIMARY KEY REFERENCES ecl_cashflow_sensitivity_case(case_id),
+    modelled_ecl NUMERIC NOT NULL CHECK (modelled_ecl >= 0),
+    account_ecl_sum NUMERIC NOT NULL CHECK (account_ecl_sum >= 0),
+    reconciliation_difference NUMERIC NOT NULL,
+    reconciled BOOLEAN NOT NULL CHECK (reconciled IN (FALSE, TRUE)),
+    CHECK (
+        ABS(reconciliation_difference - modelled_ecl + account_ecl_sum) < 0.000001
+    ),
+    CHECK (
+        (reconciled = TRUE AND ABS(reconciliation_difference) < 0.000001)
+        OR (reconciled = FALSE AND ABS(reconciliation_difference) >= 0.000001)
     )
 );

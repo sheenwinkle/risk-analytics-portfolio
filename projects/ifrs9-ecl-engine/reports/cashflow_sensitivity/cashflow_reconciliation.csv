@@ -1,0 +1,7 @@
+case_id,modelled_ecl,account_ecl_sum,reconciliation_difference,reconciled
+baseline,18103.390881,18103.390881,0.000000,True
+low_prepayment,18991.453179,18991.453179,0.000000,True
+low_cure,21008.873586,21008.873586,0.000000,True
+collateral_downturn,24283.749555,24283.749555,0.000000,True
+delayed_recovery,20370.532576,20370.532576,0.000000,True
+combined_downside,31215.459411,31215.459411,0.000000,True

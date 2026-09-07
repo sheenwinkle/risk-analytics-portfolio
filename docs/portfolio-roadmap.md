@@ -52,6 +52,12 @@ Complete scoped case study:
 - Overlay trigger, model-overlap, approval, cap, and duplicate-risk controls
 - Governed 30 DPD rebuttal decisions with evidence, forward-looking, DPD/date, approval,
   expiry, and Stage 3/explicit-SICR precedence controls
+- Contractual principal schedules with CPR-driven EAD roll-forward across six repayment
+  profiles and a common monthly horizon
+- Discounted cure and eligible collateral recovery, including haircut, cost, timing,
+  integral-contract, and separate-recognition controls
+- Baseline, lower-prepayment, lower-cure, collateral-downturn, delayed-recovery, and combined
+  cash-flow sensitivity cases with account-to-portfolio reconciliation
 - SQL governance tables and model-to-illustrative-reported ECL reconciliation
 - SQL schema and example portfolio, stage migration, and scenario queries
 
@@ -65,15 +71,18 @@ Implemented outputs:
 - PD integration lineage, account, scenario, portfolio, migration, and Markdown reports
 - Macro-sensitivity detail/summary, overlay register, ECL reconciliation, and governance report
 - SICR decision register, account stage comparison, ECL impact reconciliation, and report
+- Contractual schedule/recovery inputs, monthly portfolio projection, account attribution,
+  six-case sensitivity summary, zero-difference reconciliation, and Markdown report
 
 Potential extensions:
 
-- Add contractual cash-flow, collateral, cure, and prepayment sensitivity
 - Add empirical macroeconomic model estimation and independent validation evidence
+- Estimate recovery assumptions from governed public data if a defensible recovery and
+  collateral dataset becomes available
 
 Resume angle:
 
-> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration, and a validated Project 1 PD bridge; added governed 30 DPD rebuttals plus separate macro sensitivity and overlay reconciliation with evidence, precedence, trigger, overlap, approval, and cap controls.
+> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration, and a validated Project 1 PD bridge; added contractual cash-flow/recovery sensitivity, governed 30 DPD rebuttals, and separate macro/overlay reconciliation with evidence, eligibility, timing, precedence, trigger, overlap, approval, and cap controls.
 
 ## Project 3: Model Validation Framework
 

@@ -106,3 +106,52 @@ SELECT
     blocked_rebuttal_count
 FROM ecl_sicr_rebuttal_reconciliation
 ORDER BY reporting_date;
+
+-- Contractual cash-flow sensitivity ranking and quantified change from baseline.
+SELECT
+    case_id,
+    description,
+    is_baseline,
+    modelled_ecl,
+    ecl_change,
+    ecl_change_pct,
+    coverage_ratio
+FROM ecl_cashflow_sensitivity_case
+ORDER BY modelled_ecl DESC, case_id;
+
+-- Accounts driving the combined-downside ECL increase.
+SELECT
+    account_id,
+    stage,
+    gross_exposure,
+    baseline_ecl,
+    weighted_ecl AS stressed_ecl,
+    ecl_change,
+    ecl_change_pct
+FROM ecl_cashflow_account_result
+WHERE case_id = 'combined_downside'
+ORDER BY ecl_change DESC, account_id;
+
+-- Base-scenario EAD and effective LGD trajectory for baseline versus combined downside.
+SELECT
+    case_id,
+    month,
+    portfolio_ead,
+    ead_weighted_lgd,
+    expected_prepayment,
+    discounted_expected_recovery_at_default
+FROM ecl_cashflow_monthly_projection
+WHERE scenario = 'base'
+  AND case_id IN ('baseline', 'combined_downside')
+ORDER BY month, case_id;
+
+-- Data-quality exception query; a governed run should return no rows.
+SELECT
+    case_id,
+    modelled_ecl,
+    account_ecl_sum,
+    reconciliation_difference
+FROM ecl_cashflow_reconciliation
+WHERE reconciled = FALSE
+   OR ABS(reconciliation_difference) >= 0.000001
+ORDER BY case_id;
