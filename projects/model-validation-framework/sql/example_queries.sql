@@ -196,3 +196,37 @@ JOIN model_validation_characteristic_bin AS bin
     USING (validation_run_id, feature_name)
 WHERE summary.stability_status IN ('moderate_shift', 'material_shift')
 ORDER BY summary.feature_name, bin.csi_component DESC, bin.bin;
+
+-- Point-forecast benchmark failures for macro models under active validation.
+SELECT
+    run.model_name,
+    run.oot_end,
+    run.overall_opinion,
+    check_result.metric_value AS oot_mae_improvement,
+    check_result.status
+FROM model_validation_macro_run AS run
+JOIN model_validation_macro_check AS check_result
+    USING (macro_validation_run_id)
+WHERE check_result.check_name = 'oot_mae_vs_persistence'
+  AND check_result.status = 'fail'
+ORDER BY run.oot_end DESC;
+
+-- Open findings that keep a macro challenger in sensitivity-only use.
+SELECT
+    run.model_name,
+    finding.finding_id,
+    finding.severity,
+    finding.title,
+    finding.required_action
+FROM model_validation_macro_run AS run
+JOIN model_validation_macro_finding AS finding
+    USING (macro_validation_run_id)
+WHERE finding.status = 'open'
+  AND finding.use_restriction = 'sensitivity_only'
+ORDER BY
+    CASE finding.severity
+        WHEN 'high' THEN 1
+        WHEN 'moderate' THEN 2
+        ELSE 3
+    END,
+    finding.finding_id;

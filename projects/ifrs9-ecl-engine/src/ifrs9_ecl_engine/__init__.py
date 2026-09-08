@@ -16,6 +16,7 @@ from ifrs9_ecl_engine.governance import (
     evaluate_management_overlays,
     run_macro_overlay_analysis,
 )
+from ifrs9_ecl_engine.macro_satellite import MacroSatelliteResult, run_macro_satellite
 from ifrs9_ecl_engine.pd_integration import (
     PDBridgeInputs,
     PDIntegrationConfig,
@@ -42,6 +43,7 @@ __all__ = [
     "CashFlowSensitivityResult",
     "ECLResult",
     "MacroOverlayAnalysisResult",
+    "MacroSatelliteResult",
     "MacroSensitivityCase",
     "MacroSensitivityResult",
     "ManagementOverlay",
@@ -63,6 +65,7 @@ __all__ = [
     "read_pd_predictions",
     "run_ecl_engine",
     "run_macro_overlay_analysis",
+    "run_macro_satellite",
     "run_pd_ecl_integration",
     "run_pd_integration_pipeline",
     "select_evenly_spaced_pd_sample",

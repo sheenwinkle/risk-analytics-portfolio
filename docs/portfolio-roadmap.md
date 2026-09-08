@@ -49,6 +49,9 @@ Complete scoped case study:
   credit-impaired/defaulted flags, and prior stage
 - Deterministic synthetic demo pipeline and committed report outputs
 - Independent weight, severity, and combined macro-sensitivity cases
+- Attributed APRA/RBA macro-credit snapshot with 70 contiguous quarterly observations
+- Constrained macro satellite with development/tuning/frozen-OOT separation and persistence benchmark
+- Fixed-input manual-versus-empirical ECL multiplier comparison with use restriction
 - Overlay trigger, model-overlap, approval, cap, and duplicate-risk controls
 - Governed 30 DPD rebuttal decisions with evidence, forward-looking, DPD/date, approval,
   expiry, and Stage 3/explicit-SICR precedence controls
@@ -70,19 +73,21 @@ Implemented outputs:
 - Markdown demo report
 - PD integration lineage, account, scenario, portfolio, migration, and Markdown reports
 - Macro-sensitivity detail/summary, overlay register, ECL reconciliation, and governance report
+- Macro model tuning, coefficients, backtest, scenario multipliers, ECL A/B, lineage, and report
 - SICR decision register, account stage comparison, ECL impact reconciliation, and report
 - Contractual schedule/recovery inputs, monthly portfolio projection, account attribution,
   six-case sensitivity summary, zero-difference reconciliation, and Markdown report
 
 Potential extensions:
 
-- Add empirical macroeconomic model estimation and independent validation evidence
+- Remediate the restricted macro satellite with alternative targets, lags, horizons, and
+  segment-level data before a newly frozen OOT validation
 - Estimate recovery assumptions from governed public data if a defensible recovery and
   collateral dataset becomes available
 
 Resume angle:
 
-> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration, and a validated Project 1 PD bridge; added contractual cash-flow/recovery sensitivity, governed 30 DPD rebuttals, and separate macro/overlay reconciliation with evidence, eligibility, timing, precedence, trigger, overlap, approval, and cap controls.
+> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration, and a validated Project 1 PD bridge; developed an APRA/RBA macro satellite with frozen OOT testing and ECL A/B sensitivity, retained a sensitivity-only restriction after benchmark failure, and added contractual cash-flow, SICR, and overlay controls.
 
 ## Project 3: Model Validation Framework
 
@@ -108,6 +113,9 @@ Complete scoped case study:
 - Full public LendingClub OOT validation with context-specific limitations
 - No-look-ahead rolling calibration remediation and finding lifecycle events
 - Behavioural, lineage, edge-case, real-contract, and byte-reproducibility tests
+- Independent Project 2 macro-satellite residual, persistence benchmark, scenario, coefficient,
+  tuning, and developer-metric reconciliation without importing development code
+- Restricted-use opinion and open finding persistence for failed macro benchmark checks
 
 Implemented outputs:
 
@@ -119,6 +127,7 @@ Implemented outputs:
 - Sequential remediation retest and pending-fresh-OOT closure decision
 - Public vintage maturity, segment performance, and statistical uncertainty evidence
 - Public feature-stability summary, bin drivers, and recruiter-facing CSI chart
+- Independent macro-satellite restricted opinion, control summary, input audit, and findings
 
 Current candidate opinion:
 
@@ -148,6 +157,13 @@ Independent replication evidence:
 - Nineteen transformed coefficients/importances per model reconcile within `1e-8`
 - Borrower-level development rows remain local; committed evidence is aggregate only
 
+Macro-satellite validation evidence:
+
+- OOT MAE improvement versus persistence: -17.7%; RMSE improvement: -30.6%
+- Overall opinion: restricted to sensitivity use
+- High finding for benchmark underperformance; moderate findings for inactive unemployment
+  and missing real-time release-vintage evidence
+
 Decision-strategy evidence:
 
 - Controlled 20% max-PD challenger selected only on the pre-OOT calibration holdout
@@ -160,8 +176,8 @@ Potential extensions:
 - Production scoring-service implementation testing beyond analytical candidate replication
 - Formal fixed-horizon label construction or survival analysis for unresolved outcomes
 - Reject-inference sensitivity for the accepted-only applicant population
-- ECL model validation and overlay governance
+- Alternative macro targets, lags, horizons, and fresh OOT evidence for finding remediation
 
 Resume angle:
 
-> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, statistical uncertainty, vintage and segment backtesting, PSI/CSI stability, challenger benchmarking, explicit governance thresholds, public-data validation, and no-look-ahead remediation lifecycle evidence.
+> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, statistical uncertainty, vintage and segment backtesting, PSI/CSI stability, challenger benchmarking, public-data validation, no-look-ahead remediation, and an independent restricted opinion on a macro satellite that failed frozen persistence benchmarks.

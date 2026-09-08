@@ -1,0 +1,4 @@
+scenario,anchor_quarter,unemployment_shock_pp,real_gdp_growth_shock_pp,unemployment_rate_pct,real_gdp_yoy_pct,predicted_npl_ratio,npl_multiplier,evidence_use
+upside,2018-12-31,-0.5000000000,2.0000000000,4.5333333333,4.4000000000,0.0082464228,0.9538085538,sensitivity_only
+base,2018-12-31,0.0000000000,0.0000000000,5.0333333333,2.4000000000,0.0086457840,1.0000000000,sensitivity_only
+downside,2018-12-31,3.0000000000,-6.0000000000,8.0333333333,-3.6000000000,0.0099624989,1.1522955962,sensitivity_only

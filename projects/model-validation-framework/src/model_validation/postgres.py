@@ -6,6 +6,7 @@ from typing import Any, Protocol, Self
 
 import pandas as pd
 
+from model_validation.macro_satellite import MacroSatelliteValidationResult
 from model_validation.remediation import RemediationResult
 from model_validation.validation import ValidationResult
 
@@ -57,6 +58,121 @@ class ValidationPersistenceRecords:
     findings: tuple[dict[str, object], ...]
     benchmarks: tuple[dict[str, object], ...]
     limitations: tuple[dict[str, object], ...]
+
+
+@dataclass(frozen=True)
+class MacroSatelliteRunMetadata:
+    source_report_path: str
+    source_commit_sha: str | None = None
+    development_end: date = date(2015, 12, 31)
+    validation_end: date = date(2018, 12, 31)
+    oot_end: date = date(2021, 12, 31)
+
+    def __post_init__(self) -> None:
+        if not self.source_report_path.strip():
+            raise ValueError("source_report_path must not be blank")
+        cutoffs = (self.development_end, self.validation_end, self.oot_end)
+        if not cutoffs[0] < cutoffs[1] < cutoffs[2]:
+            raise ValueError("Macro model cutoffs must be increasing")
+        if not all(pd.Timestamp(value).is_quarter_end for value in cutoffs):
+            raise ValueError("Macro model cutoffs must be quarter-end dates")
+        if self.oot_end >= date(2022, 3, 31):
+            raise ValueError("Macro OOT period must end before the APS 220 reporting break")
+
+
+@dataclass(frozen=True)
+class MacroSatellitePersistenceRecords:
+    run: dict[str, object]
+    checks: tuple[dict[str, object], ...]
+    findings: tuple[dict[str, object], ...]
+
+
+def build_macro_satellite_persistence_records(
+    result: MacroSatelliteValidationResult,
+    metadata: MacroSatelliteRunMetadata,
+) -> MacroSatellitePersistenceRecords:
+    summary = result.validation_summary
+    required_checks = {
+        "check",
+        "metric_value",
+        "threshold",
+        "direction",
+        "status",
+        "rationale",
+    }
+    missing_checks = required_checks - set(summary.columns)
+    if missing_checks:
+        raise ValueError(
+            "Macro validation summary missing columns: "
+            + ", ".join(sorted(missing_checks))
+        )
+    if summary.empty or summary["check"].duplicated().any():
+        raise ValueError("Macro validation checks must be non-empty and unique")
+    if not set(summary["status"]).issubset({"pass", "warning", "fail"}):
+        raise ValueError("Macro validation summary contains unsupported statuses")
+    if result.overall_opinion not in {"acceptable", "conditional", "restricted"}:
+        raise ValueError("Macro validation result contains an unsupported opinion")
+    if len(result.replicated_performance) != 1:
+        raise ValueError("Macro validation must contain exactly one replicated OOT row")
+    validated_oot_end = _date(result.replicated_performance.iloc[0]["period_end"])
+    if validated_oot_end != metadata.oot_end:
+        raise ValueError("Metadata oot_end does not match validated OOT evidence")
+
+    findings = result.findings
+    required_findings = {
+        "finding_id",
+        "severity",
+        "title",
+        "status",
+        "use_restriction",
+        "required_action",
+    }
+    missing_findings = required_findings - set(findings.columns)
+    if missing_findings:
+        raise ValueError(
+            "Macro validation findings missing columns: "
+            + ", ".join(sorted(missing_findings))
+        )
+    if findings["finding_id"].duplicated().any():
+        raise ValueError("Macro validation finding IDs must be unique")
+
+    run = {
+        "model_name": "australian_macro_satellite",
+        "source_report_path": metadata.source_report_path,
+        "source_commit_sha": metadata.source_commit_sha,
+        "development_end": metadata.development_end,
+        "validation_end": metadata.validation_end,
+        "oot_end": metadata.oot_end,
+        "overall_opinion": result.overall_opinion,
+        "intended_use": "sensitivity_only",
+    }
+    check_records = tuple(
+        {
+            "check_name": str(row["check"]),
+            "metric_value": float(row["metric_value"]),
+            "threshold": float(row["threshold"]),
+            "direction": str(row["direction"]),
+            "status": str(row["status"]),
+            "rationale": str(row["rationale"]),
+        }
+        for _, row in summary.iterrows()
+    )
+    finding_records = tuple(
+        {
+            "finding_id": str(row["finding_id"]),
+            "severity": str(row["severity"]),
+            "title": str(row["title"]),
+            "status": str(row["status"]),
+            "use_restriction": str(row["use_restriction"]),
+            "required_action": str(row["required_action"]),
+        }
+        for _, row in findings.iterrows()
+    )
+    return MacroSatellitePersistenceRecords(
+        run=run,
+        checks=check_records,
+        findings=finding_records,
+    )
 
 
 def build_persistence_records(
@@ -285,6 +401,67 @@ def persist_validation_result(
         _insert_benchmarks(cursor, validation_run_id, records.benchmarks)
         _insert_limitations(cursor, validation_run_id, records.limitations)
     return validation_run_id
+
+
+def persist_macro_satellite_result(
+    connection: Connection,
+    result: MacroSatelliteValidationResult,
+    metadata: MacroSatelliteRunMetadata,
+) -> int:
+    records = build_macro_satellite_persistence_records(result, metadata)
+    with connection.transaction(), connection.cursor() as cursor:
+        cursor.execute(
+            """
+                INSERT INTO model_validation_macro_run (
+                    model_name, source_report_path, source_commit_sha,
+                    development_end, validation_end, oot_end,
+                    overall_opinion, intended_use
+                ) VALUES (
+                    %(model_name)s, %(source_report_path)s, %(source_commit_sha)s,
+                    %(development_end)s, %(validation_end)s, %(oot_end)s,
+                    %(overall_opinion)s, %(intended_use)s
+                )
+                RETURNING macro_validation_run_id
+                """,
+            records.run,
+        )
+        inserted = cursor.fetchone()
+        if inserted is None:
+            raise RuntimeError("PostgreSQL did not return a macro_validation_run_id")
+        macro_validation_run_id = int(inserted[0])
+        cursor.executemany(
+            """
+                INSERT INTO model_validation_macro_check (
+                    macro_validation_run_id, check_name, metric_value,
+                    threshold, direction, status, rationale
+                ) VALUES (
+                    %(macro_validation_run_id)s, %(check_name)s, %(metric_value)s,
+                    %(threshold)s, %(direction)s, %(status)s, %(rationale)s
+                )
+                """,
+            [
+                dict(record, macro_validation_run_id=macro_validation_run_id)
+                for record in records.checks
+            ],
+        )
+        if records.findings:
+            cursor.executemany(
+                """
+                    INSERT INTO model_validation_macro_finding (
+                        macro_validation_run_id, finding_id, severity, title,
+                        status, use_restriction, required_action
+                    ) VALUES (
+                        %(macro_validation_run_id)s, %(finding_id)s, %(severity)s,
+                        %(title)s, %(status)s, %(use_restriction)s,
+                        %(required_action)s
+                    )
+                    """,
+                [
+                    dict(record, macro_validation_run_id=macro_validation_run_id)
+                    for record in records.findings
+                ],
+            )
+    return macro_validation_run_id
 
 
 def persist_remediation_result(

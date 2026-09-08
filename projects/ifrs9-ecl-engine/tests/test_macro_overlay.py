@@ -18,7 +18,10 @@ from ifrs9_ecl_engine import (
     run_macro_overlay_analysis,
 )
 from ifrs9_ecl_engine.demo import build_demo_inputs
-from ifrs9_ecl_engine.governance_demo import build_demo_governance_inputs
+from ifrs9_ecl_engine.governance_demo import (
+    build_demo_governance_inputs,
+    run_macro_overlay_pipeline,
+)
 
 
 def _scenario_ecl() -> pd.DataFrame:
@@ -310,6 +313,36 @@ def test_full_analysis_keeps_unbooked_sensitivity_out_of_reported_ecl() -> None:
         reconciliation["highest_sensitivity_ecl"]
         + reconciliation["recognized_management_overlay"]
     )
+
+
+def test_governance_cases_accept_empirical_downside_severity() -> None:
+    cases, _ = build_demo_governance_inputs(
+        {"upside": 0.95, "base": 1.0, "downside": 1.15}
+    )
+
+    cases_by_id = {case.case_id: case for case in cases}
+    severity = cases_by_id["empirical_downside_severity"]
+    combined = cases_by_id["combined_empirical_downside"]
+    assert severity.scenario_ecl_multipliers == {"downside": pytest.approx(1.15)}
+    assert combined.scenario_ecl_multipliers == {"downside": pytest.approx(1.15)}
+    assert "APRA/RBA" in severity.description
+
+
+def test_macro_overlay_rejects_duplicate_satellite_scenarios(tmp_path: Path) -> None:
+    multiplier_path = tmp_path / "scenario_pd_multipliers.csv"
+    pd.DataFrame(
+        {
+            "scenario": ["upside", "base", "downside", "downside"],
+            "npl_multiplier": [0.95, 1.0, 1.15, 1.20],
+            "evidence_use": ["sensitivity_only"] * 4,
+        }
+    ).to_csv(multiplier_path, index=False)
+
+    with pytest.raises(ValueError, match="exactly once"):
+        run_macro_overlay_pipeline(
+            output_dir=tmp_path / "reports",
+            scenario_multiplier_path=multiplier_path,
+        )
 
 
 def test_macro_sensitivity_rejects_duplicate_cases_and_invalid_multiplier() -> None:

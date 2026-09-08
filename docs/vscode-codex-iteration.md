@@ -32,6 +32,8 @@ Useful Command Palette tasks:
 - `Portfolio: Full Self-Test and Reproduction`
 - `Portfolio: Reproduce Committed Evidence`
 - `Build Public LendingClub Evidence`
+- `Project 2: Run Macro Satellite and ECL A/B`
+- `Project 3: Run Macro Satellite Validation`
 - `Project 2: Run Cash-flow Sensitivity`
 - each project's focused test task
 
@@ -62,6 +64,12 @@ document limitations.
 ```
 
 ```text
+Remediate the restricted Australian macro satellite. Keep the current frozen OOT result,
+test alternative target/lag/horizon specifications only on development and tuning data,
+publish challenger evidence, and require independent validation before changing its use.
+```
+
+```text
 Extend contractual cash-flow sensitivity with a new isolated assumption. Preserve the single
 ECL engine, add formula-level tests and account-to-portfolio reconciliation, regenerate the
 published evidence, and distinguish synthetic assumptions from accounting conclusions.
@@ -87,9 +95,10 @@ git status --short
 
 The root runner checks all Ruff and pytest suites, regenerates all deterministic synthetic,
 ECL-integration, contractual cash-flow sensitivity, SICR rebuttal, macro/overlay governance,
-model-replication, validation, and remediation reports, then compares them with the committed
-evidence. GitHub Actions repeats this gate on Linux and runs the database integration test
-against PostgreSQL 16.
+Australian macro-satellite/ECL A/B, independent macro validation, model-replication,
+validation, and remediation reports, then compares them with the committed evidence. GitHub
+Actions repeats this gate on Linux and runs the database integration test against PostgreSQL
+16.
 
 Review the diff for unrelated files, machine-local paths, credentials, and borrower-level
 records before staging.
@@ -130,6 +139,7 @@ failures on the branch and push again; do not merge a red PR.
 2. Add reject-inference sensitivity for the accepted-only population.
 3. Estimate recovery assumptions from governed public data when legal and data scope permit.
 4. Add a fresh OOT closure window when a defensible later-period dataset is available.
+5. Remediate the restricted macro satellite with alternative targets, lags, and horizons.
 
 Each iteration should improve a hiring manager's ability to inspect a concrete risk decision,
 not merely increase code volume.

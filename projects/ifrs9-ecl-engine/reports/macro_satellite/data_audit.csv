@@ -1,0 +1,2 @@
+source_file,source_sha256,quarterly_observations,coverage_start,coverage_end,reporting_basis,post_aps_220_rows
+australia_macro_credit.csv,6d863b35ddb66c1dc4ee47c1113f438f317ff8419d7bfdc44247093ce7728f87,70,2004-09-30,2021-12-31,pre_aps_220_impaired_plus_past_due,0

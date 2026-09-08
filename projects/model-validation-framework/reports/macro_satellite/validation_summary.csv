@@ -1,0 +1,10 @@
+check,metric_value,threshold,direction,status,rationale
+oot_observations,12.0000000000,12.0000000000,greater_than_or_equal,pass,Frozen OOT sample should cover at least three years of quarters.
+oot_mae_vs_persistence,-0.1769465465,0.0000000000,greater_than_or_equal,fail,A point-forecast challenger should not underperform a persistence benchmark.
+oot_rmse_vs_persistence,-0.3056510436,0.0000000000,greater_than_or_equal,fail,The benchmark comparison is repeated with an error metric sensitive to misses.
+scenario_directionality,0.0461914462,0.0000000000,greater_than,pass,"Upside, base, and downside multipliers must increase with scenario severity."
+coefficient_constraints,0.0000000000,0.0000000000,greater_than_or_equal,pass,The implemented coefficient signs must match the documented constraints.
+active_macro_drivers,1.0000000000,2.0000000000,greater_than_or_equal,warning,Both pre-specified macro factors should retain incremental sensitivity.
+alpha_search_interior,0.0000000000,1.0000000000,equal,warning,An interior optimum provides stronger evidence that regularisation was bracketed.
+real_time_data_vintage,0.0000000000,1.0000000000,equal,warning,Operational forecasting requires release-lag and historical-revision evidence for contemporaneous macro factors.
+developer_metric_reconciliation,0.0000000000,0.0000000100,less_than_or_equal,pass,Independent metrics must reconcile to the developer report.

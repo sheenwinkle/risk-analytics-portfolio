@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,7 +24,14 @@ class MacroOverlayPipelineOutput:
 
 
 def build_demo_governance_inputs(
+    scenario_pd_multipliers: Mapping[str, float] | None = None,
 ) -> tuple[tuple[MacroSensitivityCase, ...], tuple[ManagementOverlay, ...]]:
+    multipliers = _validate_satellite_multipliers(
+        scenario_pd_multipliers
+        if scenario_pd_multipliers is not None
+        else {"upside": 0.95, "base": 1.0, "downside": 1.10}
+    )
+    downside_multiplier = multipliers["downside"]
     cases = (
         MacroSensitivityCase(
             case_id="baseline",
@@ -36,16 +45,19 @@ def build_demo_governance_inputs(
             scenario_weights={"base": 0.50, "upside": 0.15, "downside": 0.35},
         ),
         MacroSensitivityCase(
-            case_id="downside_severity_plus_10pct",
-            description="Increase downside scenario ECL severity by 10 percent",
+            case_id="empirical_downside_severity",
+            description=(
+                "Apply the APRA/RBA satellite downside NPL multiplier "
+                f"of {downside_multiplier:.3f} as a sensitivity proxy"
+            ),
             scenario_weights={"base": 0.60, "upside": 0.15, "downside": 0.25},
-            scenario_ecl_multipliers={"downside": 1.10},
+            scenario_ecl_multipliers={"downside": downside_multiplier},
         ),
         MacroSensitivityCase(
-            case_id="combined_downside",
-            description="Combine the downside weight and severity sensitivities",
+            case_id="combined_empirical_downside",
+            description="Combine the downside weight shift and APRA/RBA severity proxy",
             scenario_weights={"base": 0.50, "upside": 0.15, "downside": 0.35},
-            scenario_ecl_multipliers={"downside": 1.10},
+            scenario_ecl_multipliers={"downside": downside_multiplier},
         ),
     )
     overlays = (
@@ -79,7 +91,8 @@ def build_demo_governance_inputs(
             cap_ratio_of_modelled_ecl=0.10,
             overlap_assessment="captured_by_model",
             modelled_risk_reference=(
-                "Captured by downside_weight_plus_10pp and combined_downside sensitivities"
+                "Captured by downside_weight_plus_10pp and "
+                "combined_empirical_downside sensitivities"
             ),
             approval_status="approved",
             approved_by="Synthetic ECL Committee",
@@ -107,10 +120,20 @@ def build_demo_governance_inputs(
 
 def run_macro_overlay_pipeline(
     output_dir: str | Path = "reports/macro_overlay",
+    scenario_multiplier_path: str | Path | None = None,
 ) -> MacroOverlayPipelineOutput:
     accounts, term_structures, scenario_weights = build_demo_inputs()
     ecl_result = run_ecl_engine(accounts, term_structures, scenario_weights)
-    cases, overlays = build_demo_governance_inputs()
+    multiplier_path = (
+        Path(scenario_multiplier_path)
+        if scenario_multiplier_path is not None
+        else Path(__file__).resolve().parents[2]
+        / "reports"
+        / "macro_satellite"
+        / "scenario_pd_multipliers.csv"
+    )
+    satellite_multipliers = _read_satellite_multipliers(multiplier_path)
+    cases, overlays = build_demo_governance_inputs(satellite_multipliers)
     analysis = run_macro_overlay_analysis(ecl_result, cases, overlays)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -214,8 +237,8 @@ def _markdown_report(analysis: MacroOverlayAnalysisResult) -> str:
             "",
             "This is a synthetic governance demonstration, not an accounting conclusion.",
             (
-                "Sensitivity multipliers and overlay evidence are illustrative assumptions, "
-                "not estimated macroeconomic relationships or institution-approved policy."
+                "The severity proxy comes from the restricted APRA/RBA macro satellite; "
+                "scenario weights and overlay evidence remain illustrative and unapproved."
             ),
             "",
         ]
@@ -235,3 +258,37 @@ def _format_cell(value: object) -> str:
     if isinstance(value, float):
         return f"{value:.6f}"
     return str(value)
+
+
+def _read_satellite_multipliers(path: Path) -> dict[str, float]:
+    if not path.is_file():
+        raise FileNotFoundError(f"Satellite multiplier report not found: {path}")
+    frame = pd.read_csv(path)
+    required = {"scenario", "npl_multiplier", "evidence_use"}
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(
+            "Satellite multiplier report missing columns: " + ", ".join(sorted(missing))
+        )
+    if set(frame["evidence_use"]) != {"sensitivity_only"}:
+        raise ValueError("Satellite multiplier report must be restricted to sensitivity_only")
+    if len(frame) != 3 or frame["scenario"].duplicated().any():
+        raise ValueError(
+            "Satellite multiplier report must contain each scenario exactly once"
+        )
+    return _validate_satellite_multipliers(
+        dict(zip(frame["scenario"], frame["npl_multiplier"], strict=True))
+    )
+
+
+def _validate_satellite_multipliers(values: Mapping[str, float]) -> dict[str, float]:
+    if set(values) != {"upside", "base", "downside"}:
+        raise ValueError("Satellite multipliers must cover upside, base, and downside")
+    normalized = {scenario: float(value) for scenario, value in values.items()}
+    if any(not math.isfinite(value) or value <= 0 for value in normalized.values()):
+        raise ValueError("Satellite multipliers must be finite and positive")
+    if not math.isclose(normalized["base"], 1.0, abs_tol=1e-8):
+        raise ValueError("Satellite base multiplier must equal 1")
+    if not normalized["upside"] < normalized["base"] < normalized["downside"]:
+        raise ValueError("Satellite multipliers must increase from upside to downside")
+    return normalized

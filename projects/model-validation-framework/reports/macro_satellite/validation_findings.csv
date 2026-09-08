@@ -1,0 +1,4 @@
+finding_id,severity,title,status,use_restriction,required_action
+MSV-001,high,Satellite underperforms persistence benchmark,open,sensitivity_only,"Test alternative horizons, targets, and dynamic specifications; repeat frozen OOT validation before point-forecast use."
+MSV-002,moderate,Pre-specified unemployment factor is inactive,open,sensitivity_only,"Investigate factor form, lags, collinearity, and segment-level targets without forcing a non-zero coefficient."
+MSV-003,moderate,Real-time macro data availability is not evidenced,open,sensitivity_only,Reconstruct release-date vintages or lag macro factors; test data revision sensitivity before operational forecasting.

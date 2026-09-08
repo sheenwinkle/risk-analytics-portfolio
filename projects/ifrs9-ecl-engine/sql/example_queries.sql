@@ -155,3 +155,39 @@ FROM ecl_cashflow_reconciliation
 WHERE reconciled = FALSE
    OR ABS(reconciliation_difference) >= 0.000001
 ORDER BY case_id;
+
+-- Frozen OOT macro-satellite error versus the previous-quarter persistence benchmark.
+SELECT
+    COUNT(*) AS oot_quarters,
+    AVG(ABS(actual_npl_ratio - model_prediction)) AS model_mae,
+    AVG(ABS(actual_npl_ratio - persistence_prediction)) AS persistence_mae,
+    1 - (
+        AVG(ABS(actual_npl_ratio - model_prediction))
+        / NULLIF(AVG(ABS(actual_npl_ratio - persistence_prediction)), 0)
+    ) AS mae_improvement_vs_persistence
+FROM ecl_macro_satellite_backtest
+WHERE split = 'oot';
+
+-- Trace the sensitivity-only macro scenario ordering and calibration anchor.
+SELECT
+    scenario,
+    anchor_quarter,
+    unemployment_shock_pp,
+    real_gdp_growth_shock_pp,
+    predicted_npl_ratio,
+    npl_multiplier,
+    evidence_use
+FROM ecl_macro_scenario_multiplier
+WHERE evidence_use = 'sensitivity_only'
+ORDER BY npl_multiplier;
+
+-- Quantify the empirical challenger impact while holding the ECL portfolio fixed.
+SELECT
+    variant,
+    modelled_ecl,
+    coverage_ratio,
+    change_vs_incumbent,
+    change_pct_vs_incumbent
+FROM ecl_macro_challenger_comparison
+WHERE stage = 'Total'
+ORDER BY variant;

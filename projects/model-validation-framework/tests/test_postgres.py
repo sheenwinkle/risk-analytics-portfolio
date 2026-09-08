@@ -1,7 +1,16 @@
+from datetime import date
 from pathlib import Path
 
+import pytest
+
 from model_validation import Project1OOTPredictionAdapter, run_validation
-from model_validation.postgres import ValidationRunMetadata, build_persistence_records
+from model_validation.macro_satellite_demo import run_macro_satellite_validation
+from model_validation.postgres import (
+    MacroSatelliteRunMetadata,
+    ValidationRunMetadata,
+    build_macro_satellite_persistence_records,
+    build_persistence_records,
+)
 
 
 def test_build_persistence_records_maps_governance_tables_from_real_candidate_result():
@@ -59,3 +68,47 @@ def test_build_persistence_records_maps_governance_tables_from_real_candidate_re
     )
     assert len(records.benchmarks) == 2
     assert len(records.limitations) == 4
+
+
+def test_build_macro_satellite_persistence_records_maps_checks_and_findings(tmp_path):
+    project_dir = Path(__file__).resolve().parents[1]
+    developer_dir = (
+        project_dir.parent / "ifrs9-ecl-engine" / "reports" / "macro_satellite"
+    )
+    validation = run_macro_satellite_validation(developer_dir, tmp_path)
+
+    records = build_macro_satellite_persistence_records(
+        validation.result,
+        MacroSatelliteRunMetadata(
+            source_report_path=(
+                "projects/ifrs9-ecl-engine/reports/macro_satellite/"
+                "backtest_predictions.csv"
+            ),
+            source_commit_sha="macro123",
+        ),
+    )
+
+    assert records.run["overall_opinion"] == "restricted"
+    assert records.run["intended_use"] == "sensitivity_only"
+    assert records.run["oot_end"].isoformat() == "2021-12-31"
+    assert records.run["source_commit_sha"] == "macro123"
+    assert len(records.checks) == 9
+    assert {record["status"] for record in records.checks} == {
+        "pass",
+        "warning",
+        "fail",
+    }
+    assert {record["finding_id"] for record in records.findings} == {
+        "MSV-001",
+        "MSV-002",
+        "MSV-003",
+    }
+
+    with pytest.raises(ValueError, match="does not match validated OOT evidence"):
+        build_macro_satellite_persistence_records(
+            validation.result,
+            MacroSatelliteRunMetadata(
+                source_report_path="backtest_predictions.csv",
+                oot_end=date(2021, 9, 30),
+            ),
+        )

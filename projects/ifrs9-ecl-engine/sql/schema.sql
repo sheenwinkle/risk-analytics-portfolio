@@ -412,3 +412,50 @@ CREATE TABLE ecl_cashflow_reconciliation (
         OR (reconciled = FALSE AND ABS(reconciliation_difference) >= 0.000001)
     )
 );
+
+CREATE TABLE ecl_macro_satellite_backtest (
+    quarter DATE PRIMARY KEY,
+    split TEXT NOT NULL CHECK (split IN ('development', 'validation', 'oot')),
+    actual_npl_ratio NUMERIC NOT NULL CHECK (actual_npl_ratio BETWEEN 0 AND 1),
+    model_prediction NUMERIC NOT NULL CHECK (model_prediction BETWEEN 0 AND 1),
+    persistence_prediction NUMERIC NOT NULL CHECK (
+        persistence_prediction BETWEEN 0 AND 1
+    ),
+    model_residual NUMERIC NOT NULL,
+    unemployment_rate_pct NUMERIC NOT NULL,
+    real_gdp_yoy_pct NUMERIC NOT NULL,
+    CHECK (quarter < '2022-03-31'),
+    CHECK (ABS(model_residual - actual_npl_ratio + model_prediction) < 0.000001)
+);
+
+CREATE TABLE ecl_macro_scenario_multiplier (
+    scenario TEXT PRIMARY KEY CHECK (scenario IN ('upside', 'base', 'downside')),
+    anchor_quarter DATE NOT NULL,
+    unemployment_shock_pp NUMERIC NOT NULL,
+    real_gdp_growth_shock_pp NUMERIC NOT NULL,
+    predicted_npl_ratio NUMERIC NOT NULL CHECK (predicted_npl_ratio BETWEEN 0 AND 1),
+    npl_multiplier NUMERIC NOT NULL CHECK (npl_multiplier > 0),
+    evidence_use TEXT NOT NULL CHECK (evidence_use = 'sensitivity_only'),
+    CHECK (scenario <> 'base' OR ABS(npl_multiplier - 1) < 0.000001)
+);
+
+CREATE TABLE ecl_macro_challenger_comparison (
+    variant TEXT NOT NULL CHECK (
+        variant IN ('incumbent_manual', 'challenger_empirical')
+    ),
+    stage TEXT NOT NULL CHECK (stage IN ('1', '2', '3', 'Total')),
+    evidence_basis TEXT NOT NULL CHECK (LENGTH(TRIM(evidence_basis)) > 0),
+    gross_exposure NUMERIC NOT NULL CHECK (gross_exposure >= 0),
+    modelled_ecl NUMERIC NOT NULL CHECK (modelled_ecl >= 0),
+    coverage_ratio NUMERIC NOT NULL CHECK (coverage_ratio >= 0),
+    change_vs_incumbent NUMERIC NOT NULL,
+    change_pct_vs_incumbent NUMERIC NOT NULL,
+    PRIMARY KEY (variant, stage),
+    CHECK (
+        variant <> 'incumbent_manual'
+        OR (
+            ABS(change_vs_incumbent) < 0.000001
+            AND ABS(change_pct_vs_incumbent) < 0.000001
+        )
+    )
+);
