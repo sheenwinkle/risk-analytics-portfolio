@@ -1,0 +1,23 @@
+{
+  "alpha_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "benchmark": "previous-quarter NPL proxy ratio",
+  "constraint": "all standardized coefficients nonnegative",
+  "development_end": "2015-12-31",
+  "features": [
+    "lagged logit NPL proxy ratio",
+    "contemporaneous unemployment rate",
+    "negative contemporaneous year-ended real GDP growth"
+  ],
+  "intended_use": "sensitivity challenger only",
+  "macro_data_vintage": "2026 source snapshot with revised historical observations; real-time release vintages not reconstructed",
+  "oot_end": "2021-12-31",
+  "selected_alpha": 0.01,
+  "target": "logit of APRA impaired-plus-past-due facilities divided by gross loans and advances",
+  "validation_end": "2018-12-31"
+}

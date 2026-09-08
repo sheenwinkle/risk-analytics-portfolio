@@ -67,6 +67,22 @@ def main() -> None:
         / "macro_overlay"
         / "ecl_reconciliation.csv"
     )
+    macro_satellite_predictions_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "macro_satellite"
+        / "backtest_predictions.csv"
+    )
+    macro_satellite_ecl_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "macro_satellite"
+        / "ecl_ab_comparison.csv"
+    )
     sicr_reconciliation_path = (
         REPO_ROOT
         / "projects"
@@ -154,6 +170,11 @@ def main() -> None:
             ecl_macro_path,
             ecl_reconciliation_path,
             output_dir / "ecl_macro_overlay.png",
+        ),
+        _build_macro_satellite_chart(
+            macro_satellite_predictions_path,
+            macro_satellite_ecl_path,
+            output_dir / "australian_macro_satellite.png",
         ),
         _build_sicr_rebuttal_chart(
             sicr_reconciliation_path,
@@ -319,6 +340,8 @@ def _build_ecl_macro_overlay_chart(
         "downside_weight_plus_10pp": "Downside weight\n+10pp",
         "downside_severity_plus_10pct": "Downside severity\n+10%",
         "combined_downside": "Combined\ndownside",
+        "empirical_downside_severity": "Empirical\nseverity",
+        "combined_empirical_downside": "Combined\nstress",
     }
     labels = [case_labels.get(row["case_id"], row["case_id"]) for row in sensitivity]
     ecl_values = [float(row["modelled_ecl"]) / 1_000 for row in sensitivity]
@@ -413,6 +436,120 @@ def _build_ecl_macro_overlay_chart(
         fontsize=8.5,
     )
     figure.subplots_adjust(left=0.07, right=0.98, top=0.80, bottom=0.20, wspace=0.30)
+    _save(figure, output_path)
+    return output_path
+
+
+def _build_macro_satellite_chart(
+    predictions_path: Path,
+    ecl_comparison_path: Path,
+    output_path: Path,
+) -> Path:
+    oot_rows = [row for row in _read_csv(predictions_path) if row["split"] == "oot"]
+    total_rows = [row for row in _read_csv(ecl_comparison_path) if row["stage"] == "Total"]
+    if len(oot_rows) != 12 or len(total_rows) != 2:
+        raise ValueError("Macro satellite showcase requires 12 OOT rows and two ECL totals")
+
+    quarters = [row["quarter"][:7] for row in oot_rows]
+    x_values = list(range(len(quarters)))
+    actual = [float(row["actual_npl_ratio"]) for row in oot_rows]
+    model = [float(row["model_prediction"]) for row in oot_rows]
+    persistence = [float(row["persistence_prediction"]) for row in oot_rows]
+    ecl_by_variant = {row["variant"]: float(row["modelled_ecl"]) for row in total_rows}
+    incumbent = ecl_by_variant["incumbent_manual"]
+    challenger = ecl_by_variant["challenger_empirical"]
+    change_pct = challenger / incumbent - 1
+
+    figure, (backtest_axis, ecl_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(10.2, 5.2),
+        dpi=160,
+        gridspec_kw={"width_ratios": [1.55, 0.75]},
+    )
+    figure.suptitle(
+        "Australian macro satellite remains sensitivity-only",
+        x=0.07,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.07,
+        0.91,
+        "70 public quarterly observations | frozen 2019-2021 OOT | independent opinion: RESTRICTED",
+        color=MUTED,
+        fontsize=9,
+    )
+
+    backtest_axis.plot(x_values, actual, color=TEXT, linewidth=2.2, marker="o", label="Actual")
+    backtest_axis.plot(x_values, model, color=RED, linewidth=1.8, marker="s", label="Satellite")
+    backtest_axis.plot(
+        x_values,
+        persistence,
+        color=BLUE,
+        linewidth=1.6,
+        linestyle="--",
+        label="Persistence",
+    )
+    backtest_axis.set_title("Frozen out-of-time backtest", loc="left", fontsize=11, pad=12)
+    backtest_axis.set_ylabel("Aggregate NPL proxy")
+    backtest_axis.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=1))
+    backtest_axis.set_xticks(x_values[::2], quarters[::2], rotation=35, ha="right")
+    backtest_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    backtest_axis.set_axisbelow(True)
+    backtest_axis.spines[["top", "right"]].set_visible(False)
+    backtest_axis.legend(frameon=False, ncol=3, loc="upper left", fontsize=8.5)
+    backtest_axis.text(
+        0.02,
+        0.05,
+        "MAE improvement vs persistence: -17.7%",
+        transform=backtest_axis.transAxes,
+        color=RED,
+        fontsize=8.5,
+        fontweight="bold",
+    )
+
+    ecl_values = [incumbent / 1_000, challenger / 1_000]
+    bars = ecl_axis.bar(
+        ["Manual\nincumbent", "Empirical\nchallenger"],
+        ecl_values,
+        color=[BLUE, AMBER],
+        width=0.58,
+    )
+    ecl_axis.set_title("ECL model-choice sensitivity", loc="left", fontsize=11, pad=12)
+    ecl_axis.set_ylabel("ECL (thousands)")
+    ecl_axis.set_ylim(0, max(ecl_values) * 1.3)
+    ecl_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    ecl_axis.set_axisbelow(True)
+    ecl_axis.spines[["top", "right"]].set_visible(False)
+    for bar, value in zip(bars, ecl_values, strict=True):
+        ecl_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + max(ecl_values) * 0.04,
+            f"{value:.1f}k",
+            ha="center",
+            color=TEXT,
+            fontweight="bold",
+        )
+    ecl_axis.text(
+        0.5,
+        max(ecl_values) * 1.19,
+        f"Challenger change: {change_pct:.1%}",
+        ha="center",
+        color=AMBER,
+        fontsize=8.5,
+        fontweight="bold",
+    )
+
+    figure.text(
+        0.07,
+        0.025,
+        "APRA asset-quality proxy + ABS macro series distributed by RBA | ECL difference is not a saving",
+        color=MUTED,
+        fontsize=8.5,
+    )
+    figure.subplots_adjust(left=0.07, right=0.98, top=0.80, bottom=0.21, wspace=0.30)
     _save(figure, output_path)
     return output_path
 

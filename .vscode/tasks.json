@@ -83,6 +83,7 @@
       "dependsOrder": "sequence",
       "dependsOn": [
         "Project 2: Run ECL Pipeline",
+        "Project 2: Run Macro Satellite and ECL A/B",
         "Project 2: Run PD Bridge",
         "Project 2: Run Macro and Overlay Governance",
         "Project 2: Run SICR Rebuttal Governance",
@@ -96,6 +97,18 @@
       "command": "${workspaceFolder}/.venv/Scripts/python.exe",
       "args": [
         "scripts/run_pipeline.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 2: Run Macro Satellite and ECL A/B",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_macro_satellite.py"
       ],
       "options": {
         "cwd": "${workspaceFolder}/projects/ifrs9-ecl-engine"
@@ -170,9 +183,22 @@
       "label": "Project 3: Run Validation and Remediation",
       "dependsOrder": "sequence",
       "dependsOn": [
+        "Project 3: Run Macro Satellite Validation",
         "Project 3: Run Validation",
         "Project 3: Run Remediation"
       ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 3: Run Macro Satellite Validation",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_macro_satellite_validation.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/model-validation-framework"
+      },
       "problemMatcher": []
     },
     {

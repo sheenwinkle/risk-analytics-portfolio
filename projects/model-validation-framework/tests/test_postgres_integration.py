@@ -5,9 +5,12 @@ import psycopg
 import pytest
 
 from model_validation import Project1OOTPredictionAdapter, run_validation
+from model_validation.macro_satellite_demo import run_macro_satellite_validation
 from model_validation.policy import ValidationPolicy
 from model_validation.postgres import (
+    MacroSatelliteRunMetadata,
     ValidationRunMetadata,
+    persist_macro_satellite_result,
     persist_remediation_result,
     persist_validation_result,
 )
@@ -18,7 +21,7 @@ from model_validation.remediation import run_calibration_remediation
     not os.getenv("MODEL_VALIDATION_TEST_DSN"),
     reason="MODEL_VALIDATION_TEST_DSN is not configured",
 )
-def test_validation_result_persists_to_real_postgresql_tables():
+def test_validation_result_persists_to_real_postgresql_tables(tmp_path):
     project_dir = Path(__file__).resolve().parents[1]
     prediction_path = (
         project_dir.parent / "credit-risk-pd-model" / "reports" / "oot_predictions.csv"
@@ -130,6 +133,49 @@ def test_validation_result_persists_to_real_postgresql_tables():
             (open_run_id,),
         ).fetchone()[0]
 
+        developer_dir = (
+            project_dir.parent / "ifrs9-ecl-engine" / "reports" / "macro_satellite"
+        )
+        macro_validation = run_macro_satellite_validation(
+            developer_dir,
+            tmp_path / "macro_validation",
+        )
+        macro_run_id = persist_macro_satellite_result(
+            connection,
+            macro_validation.result,
+            MacroSatelliteRunMetadata(
+                source_report_path=(
+                    "projects/ifrs9-ecl-engine/reports/macro_satellite/"
+                    "backtest_predictions.csv"
+                ),
+                source_commit_sha="ci-macro-integration-test",
+            ),
+        )
+        macro_run = connection.execute(
+            """
+            SELECT overall_opinion, intended_use
+            FROM model_validation_macro_run
+            WHERE macro_validation_run_id = %s
+            """,
+            (macro_run_id,),
+        ).fetchone()
+        macro_check_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM model_validation_macro_check
+            WHERE macro_validation_run_id = %s
+            """,
+            (macro_run_id,),
+        ).fetchone()[0]
+        macro_finding_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM model_validation_macro_finding
+            WHERE macro_validation_run_id = %s
+            """,
+            (macro_run_id,),
+        ).fetchone()[0]
+
     assert metric_count == 6
     assert uncertainty_count == 5
     assert group_count == len(result.vintage_performance) + len(result.segment_performance)
@@ -140,3 +186,6 @@ def test_validation_result_persists_to_real_postgresql_tables():
     assert finding_lifecycle == "pending_fresh_oot"
     assert finding_event_count == 3
     assert open_event_status == "open"
+    assert macro_run == ("restricted", "sensitivity_only")
+    assert macro_check_count == len(macro_validation.result.validation_summary)
+    assert macro_finding_count == len(macro_validation.result.findings)

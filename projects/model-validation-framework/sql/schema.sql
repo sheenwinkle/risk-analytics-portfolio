@@ -268,3 +268,56 @@ CREATE INDEX IF NOT EXISTS idx_model_validation_characteristic_status
     ON model_validation_characteristic_summary (
         stability_status, characteristic_stability_index DESC, validation_run_id
     );
+
+CREATE TABLE IF NOT EXISTS model_validation_macro_run (
+    macro_validation_run_id BIGSERIAL PRIMARY KEY,
+    model_name TEXT NOT NULL DEFAULT 'australian_macro_satellite',
+    source_report_path TEXT NOT NULL CHECK (LENGTH(TRIM(source_report_path)) > 0),
+    source_commit_sha TEXT,
+    development_end DATE NOT NULL,
+    validation_end DATE NOT NULL,
+    oot_end DATE NOT NULL,
+    overall_opinion TEXT NOT NULL CHECK (
+        overall_opinion IN ('acceptable', 'conditional', 'restricted')
+    ),
+    intended_use TEXT NOT NULL CHECK (intended_use = 'sensitivity_only'),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (development_end < validation_end),
+    CHECK (validation_end < oot_end),
+    CHECK (oot_end < '2022-03-31')
+);
+
+CREATE TABLE IF NOT EXISTS model_validation_macro_check (
+    macro_validation_run_id BIGINT NOT NULL REFERENCES model_validation_macro_run(
+        macro_validation_run_id
+    ),
+    check_name TEXT NOT NULL,
+    metric_value NUMERIC NOT NULL,
+    threshold NUMERIC NOT NULL,
+    direction TEXT NOT NULL CHECK (
+        direction IN (
+            'greater_than', 'greater_than_or_equal', 'less_than_or_equal', 'equal'
+        )
+    ),
+    status TEXT NOT NULL CHECK (status IN ('pass', 'warning', 'fail')),
+    rationale TEXT NOT NULL CHECK (LENGTH(TRIM(rationale)) > 0),
+    PRIMARY KEY (macro_validation_run_id, check_name)
+);
+
+CREATE TABLE IF NOT EXISTS model_validation_macro_finding (
+    macro_validation_run_id BIGINT NOT NULL REFERENCES model_validation_macro_run(
+        macro_validation_run_id
+    ),
+    finding_id TEXT NOT NULL,
+    severity TEXT NOT NULL CHECK (severity IN ('low', 'moderate', 'high')),
+    title TEXT NOT NULL CHECK (LENGTH(TRIM(title)) > 0),
+    status TEXT NOT NULL CHECK (status IN ('open', 'closed')),
+    use_restriction TEXT NOT NULL CHECK (
+        use_restriction IN ('sensitivity_only', 'blocked')
+    ),
+    required_action TEXT NOT NULL CHECK (LENGTH(TRIM(required_action)) > 0),
+    PRIMARY KEY (macro_validation_run_id, finding_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_validation_macro_check_status
+    ON model_validation_macro_check (status, macro_validation_run_id);

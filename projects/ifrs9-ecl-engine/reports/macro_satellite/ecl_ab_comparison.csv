@@ -1,0 +1,9 @@
+variant,evidence_basis,stage,gross_exposure,modelled_ecl,coverage_ratio,change_vs_incumbent,change_pct_vs_incumbent
+incumbent_manual,"Illustrative fixed PD multipliers: base 1.00, upside 0.75, downside 1.65",1,245000.0000000000,1597.1978918663,0.0065191751,0.0000000000,0.0000000000
+incumbent_manual,"Illustrative fixed PD multipliers: base 1.00, upside 0.75, downside 1.65",2,264000.0000000000,16952.3165664157,0.0642133203,0.0000000000,0.0000000000
+incumbent_manual,"Illustrative fixed PD multipliers: base 1.00, upside 0.75, downside 1.65",3,45000.0000000000,9447.4036782656,0.2099423040,0.0000000000,0.0000000000
+incumbent_manual,"Illustrative fixed PD multipliers: base 1.00, upside 0.75, downside 1.65",Total,554000.0000000000,27996.9181365476,0.0505359533,0.0000000000,0.0000000000
+challenger_empirical,APRA/RBA constrained macro satellite NPL response,1,245000.0000000000,1432.7086434715,0.0058477904,-164.4892483949,-0.1029861417
+challenger_empirical,APRA/RBA constrained macro satellite NPL response,2,264000.0000000000,15258.0504326322,0.0577956456,-1694.2661337835,-0.0999430448
+challenger_empirical,APRA/RBA constrained macro satellite NPL response,3,45000.0000000000,8542.8976591791,0.1898421702,-904.5060190865,-0.0957412269
+challenger_empirical,APRA/RBA constrained macro satellite NPL response,Total,554000.0000000000,25233.6567352827,0.0455481169,-2763.2614012649,-0.0986987706

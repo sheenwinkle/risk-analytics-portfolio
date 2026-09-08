@@ -1,0 +1,53 @@
+{
+  "coverage": {
+    "end": "2021-12-31",
+    "quarterly_observations": 70,
+    "start": "2004-09-30"
+  },
+  "curated_file_sha256": "6d863b35ddb66c1dc4ee47c1113f438f317ff8419d7bfdc44247093ce7728f87",
+  "dataset": "australia_macro_credit",
+  "reporting_break": {
+    "excluded_from": "2022-03-31",
+    "reason": "APRA updated asset-quality series for APS 220; the post-break non-performing definition is not spliced into the historical proxy."
+  },
+  "retrieved_at": "2026-09-07",
+  "schema_version": 1,
+  "sources": [
+    {
+      "attribution": "\u00a9 Australian Prudential Regulation Authority 2026",
+      "licence": "CC BY 4.0",
+      "publisher": "APRA",
+      "rows": [
+        "Sum of impaired facilities and past due items",
+        "Gross loans and advances"
+      ],
+      "sha256": "56baa7837556f8d1a2db849ca7198f748ce61277a8aad6b04dbca93e55fdd9b9",
+      "sheet": "Tab 2d",
+      "title": "Quarterly ADI performance statistics",
+      "url": "https://www.apra.gov.au/system/files/2026-06/Quarterly%20authorised%20deposit-taking%20institution%20performance-September%202004%20to%20March%202026.xlsx"
+    },
+    {
+      "attribution": "Based on Australian Bureau of Statistics data via RBA",
+      "publication_date": "21-Aug-2026",
+      "publisher": "RBA",
+      "series_id": "GLFSURSA",
+      "sha256": "57fed963d34af9ae55c0b66637cc3bbc200542df7200221e519355aeb2a1b455",
+      "title": "H5 Labour Force",
+      "transformation": "Quarterly arithmetic mean of monthly observations",
+      "underlying_source": "ABS",
+      "url": "https://www.rba.gov.au/statistics/tables/csv/h5-data.csv"
+    },
+    {
+      "attribution": "Based on Australian Bureau of Statistics data via RBA",
+      "publication_date": "03-Sep-2026",
+      "publisher": "RBA",
+      "series_id": "GGDPCVGDPY",
+      "sha256": "f1b334302f8a9bd4746b6c6ba8db8ee79bd0328108ffd488d3716ec588882ed3",
+      "title": "H1 Gross Domestic Product and Income",
+      "transformation": "No aggregation; quarterly year-ended growth",
+      "underlying_source": "ABS",
+      "url": "https://www.rba.gov.au/statistics/tables/csv/h1-data.csv"
+    }
+  ],
+  "target_definition": "APRA banks' sum of impaired facilities and past-due items divided by gross loans and advances"
+}

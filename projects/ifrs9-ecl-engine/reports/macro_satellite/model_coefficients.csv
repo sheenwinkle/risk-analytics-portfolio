@@ -1,0 +1,4 @@
+feature,feature_role,standardized_coefficient,raw_coefficient,constraint
+lag_logit_npl,autoregressive,0.4597997413,0.9661102925,nonnegative
+unemployment_rate_pct,macro_stress,0.0000000000,0.0000000000,nonnegative
+gdp_stress_pct,macro_stress,0.0177840583,0.0238475340,nonnegative

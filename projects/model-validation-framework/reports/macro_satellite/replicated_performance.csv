@@ -1,0 +1,2 @@
+split,observations,period_start,period_end,model_mae,persistence_mae,mae_improvement_vs_persistence,model_rmse,persistence_rmse,rmse_improvement_vs_persistence,residual_lag1_autocorrelation
+oot,12,2019-03-31,2021-12-31,0.0006009822,0.0005106283,-0.1769465465,0.0008643571,0.0006620123,-0.3056510436,0.2721055873

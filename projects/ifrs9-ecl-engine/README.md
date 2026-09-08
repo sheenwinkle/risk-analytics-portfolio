@@ -1,8 +1,8 @@
 # IFRS 9 ECL Engine
 
 Status: complete scoped case study with deterministic standalone, Project 1 PD-integration,
-contractual cash-flow/recovery sensitivity, macro-sensitivity/management-overlay, and SICR
-rebuttal governance evidence.
+contractual cash-flow/recovery sensitivity, an attributed Australian macro-credit satellite,
+ECL A/B sensitivity, macro/management-overlay, and SICR rebuttal governance evidence.
 
 This project is a runnable, educational expected credit loss engine for credit risk
 analytics portfolio discussion. It calculates account-level and portfolio-level ECL from
@@ -120,6 +120,44 @@ This component supplies cash-flow-informed EAD and LGD assumptions to the portfo
 It is not a full direct comparison of all contractual versus expected cash flows and is not
 an IFRS 9 compliance conclusion.
 
+## Australian Macro Satellite and ECL A/B
+
+Public API:
+
+```python
+from ifrs9_ecl_engine import run_macro_satellite
+
+result = run_macro_satellite(australian_macro_credit_data)
+```
+
+The committed snapshot combines APRA's quarterly bank asset-quality series with ABS
+unemployment and real-GDP series distributed by the RBA. The target is impaired plus
+past-due facilities divided by gross loans and advances. It contains 70 contiguous quarters
+from 2004 Q3 to 2021 Q4; the post-March 2022 series is excluded because APRA identifies an
+APS 220 reporting-basis change.
+
+The constrained ridge satellite uses lagged target log-odds, unemployment level, and inverse
+real-GDP growth. Development ends in 2015 Q4, alpha tuning uses 2016-2018, and a frozen
+2019-2021 window is evaluated once against a one-quarter persistence benchmark. The selected
+`0.01` alpha produces an OOT MAE of `0.000601`, versus `0.000511` for persistence, a `-17.7%`
+improvement. The unemployment coefficient is zero under the nonnegative constraint.
+
+The source snapshot was downloaded in 2026 and contains revised historical macro values;
+release-date vintages are not reconstructed. Contemporaneous factors therefore support a
+conditional relationship study, not an operational quarter-end forecast.
+
+Those adverse diagnostics are retained as evidence, not hidden. The model is restricted to
+transparent sensitivity use and is not approved for point forecasting or accounting
+calibration. Its upside/base/downside NPL response translates to PD multipliers of `0.954`,
+`1.000`, and `1.152`. Holding all synthetic accounts, LGD, EAD, staging, scenario weights,
+and engine logic fixed, replacing the manual multipliers changes ECL from `27,996.92` to
+`25,233.66`, or `-9.87%`. This A/B-style comparison quantifies model-choice sensitivity; it
+is not a saving, causal experiment, or production recommendation.
+
+Review the [developer report](reports/macro_satellite/macro_satellite_report.md),
+[source lineage](data/public/australia_macro_credit_lineage.json), and Project 3's
+[independent restricted opinion](../model-validation-framework/reports/macro_satellite/macro_validation_report.md).
+
 ## Macro Sensitivity and Management Overlays
 
 The separate governance layer consumes frozen scenario-level model output. It never mutates
@@ -131,8 +169,8 @@ summing to 1, and exactly one baseline must reconcile to the engine's original w
 The committed cases isolate:
 
 - A 10 percentage-point shift from base to downside weight
-- A 10% increase in downside scenario ECL severity
-- The combined weight and severity sensitivity
+- An empirical `1.152` downside-severity proxy from the restricted satellite
+- The combined weight and empirical-severity sensitivity
 
 Sensitivity deltas are explicitly labelled `not_booked`. They show exposure to assumptions;
 they do not automatically change reported ECL.
@@ -265,6 +303,7 @@ pip install -e .
 ruff check src tests scripts
 pytest
 python scripts\run_pipeline.py
+python scripts\run_macro_satellite.py
 python scripts\run_macro_overlay.py
 python scripts\run_sicr_rebuttal.py
 python scripts\run_cashflow_sensitivity.py
@@ -285,6 +324,19 @@ The macro/overlay governance CLI writes:
 - `reports/macro_overlay/management_overlay_register.csv`
 - `reports/macro_overlay/ecl_reconciliation.csv`
 - `reports/macro_overlay/macro_overlay_report.md`
+
+The Australian macro satellite CLI writes:
+
+- `reports/macro_satellite/data_audit.csv`
+- `reports/macro_satellite/model_specification.json`
+- `reports/macro_satellite/model_tuning.csv`
+- `reports/macro_satellite/model_coefficients.csv`
+- `reports/macro_satellite/backtest_predictions.csv`
+- `reports/macro_satellite/backtest_performance.csv`
+- `reports/macro_satellite/scenario_pd_multipliers.csv`
+- `reports/macro_satellite/ecl_ab_comparison.csv`
+- `reports/macro_satellite/ecl_scenario_comparison.csv`
+- `reports/macro_satellite/macro_satellite_report.md`
 
 The SICR rebuttal governance CLI writes:
 
@@ -399,6 +451,11 @@ assessment, approval evidence, control outcome, and recognized amount for every 
 `ecl_reconciliation.csv` bridges baseline modelled ECL to the separately recognized overlay
 and illustrative reported ECL while disclosing the highest sensitivity as not booked.
 
+`backtest_predictions.csv` freezes actual, satellite, and persistence results by sample role.
+`backtest_performance.csv` reports MAE/RMSE benchmark deltas, while
+`scenario_pd_multipliers.csv` records the controlled macro shocks and sensitivity-only use.
+`ecl_ab_comparison.csv` holds the fixed-input incumbent/challenger reconciliation by stage.
+
 `sicr_rebuttal_register.csv` preserves the evidence, approval, control outcome, and
 before/after stage for every request. `account_stage_comparison.csv` isolates account-level
 stage and ECL changes, while `ecl_impact_reconciliation.csv` proves the portfolio accounting
@@ -421,10 +478,17 @@ lifetime ECL, discounting, scenario weighting, coverage ratios, and portfolio mi
 
 ## Committed Macro and Overlay Results
 
+The macro satellite uses 70 public Australian quarters and selects ridge alpha `0.01` before
+the frozen OOT evaluation. It fails the persistence benchmark: OOT MAE is `0.000601` versus
+`0.000511`, and RMSE is `0.000864` versus `0.000662`. Its empirical multipliers reduce the
+same synthetic ECL calculation by `2,763.26` (`-9.87%`) versus the manual multiplier set.
+The result is retained as transparent assumption sensitivity under a `sensitivity_only`
+restriction, not presented as improved accuracy or economic value.
+
 Baseline modelled ECL is `27,996.92` on `554,000.00` synthetic gross exposure. Shifting 10
-percentage points from base to downside raises ECL by `2,202.44`; increasing downside
-severity by 10% raises it by `1,139.25`; combining both raises it by `3,797.39` or `13.56%`.
-These sensitivities are disclosed but not booked.
+percentage points from base to downside raises ECL by `2,202.44`; applying the empirical
+downside multiplier raises it by `1,735.03`; combining both raises it by `4,631.48` or
+`16.54%`. These sensitivities are disclosed but not booked.
 
 Three synthetic overlay requests demonstrate distinct outcomes. The approved, triggered,
 non-overlapping request is capped from `4,000.00` to `2,239.75`, equal to 8% of baseline
@@ -497,6 +561,10 @@ The public API validates:
 - Recalibrated PD range `[0, 1)`
 - Positive integer remaining maturity
 - Scenario hazard multipliers, weights, names, LGD add-ons, and economic ordering
+- Strict quarterly macro history, required sample windows, and no gaps or duplicate quarters
+- Rejection of the post-2021 APS 220 reporting basis and invalid alpha grids
+- Frozen OOT predictions, persistence benchmark, constrained coefficients, and scenario ordering
+- Fixed-input incumbent/challenger ECL reconciliation with explicit sensitivity-only labels
 - Exactly one macro-sensitivity baseline matching modelled scenario weights
 - Complete scenario coverage, weights summing to 1, and nonnegative severity multipliers
 - Unique overlay IDs and risk-driver/scope pairs
@@ -519,8 +587,16 @@ The public API validates:
 This is deliberately small and transparent. It does not implement financial asset
 classification, a full direct contractual-versus-expected cash-shortfall valuation,
 behaviourally estimated prepayment/cure models, independent collateral appraisal, write-offs,
-macroeconomic model estimation, real SICR evidence assessment, audit workflow, production
-disclosure, or institution-specific IFRS 9 and management-overlay policy.
+account-level macroeconomic model estimation, real SICR evidence assessment, audit workflow,
+production disclosure, or institution-specific IFRS 9 and management-overlay policy.
+
+The macro satellite uses a short aggregate banking-system proxy rather than borrower-level
+defaults or portfolio segments. The reporting-basis break prevents extending the current
+target past 2021 without a governed mapping, the unemployment level is inactive in the
+constrained fit, the macro series are revised rather than real-time vintages, and the model
+underperforms persistence on the frozen OOT period. Its
+scenario response is therefore sensitivity evidence only and does not establish a reasonable
+and supportable forecast, PD calibration, or accounting scenario.
 
 Contractual schedules, cure rates, collateral values, haircuts, recovery costs, and delays are
 synthetic assumptions. The cash-flow adapter demonstrates balance roll-forward, recovery
@@ -546,7 +622,14 @@ The Project 1 integration bridge assumes a constant annual hazard to extrapolate
 an auditable portfolio demonstration, but not sufficient for IFRS 9 compliance, macroeconomic
 model governance, SICR policy approval, or audited financial reporting.
 
-## IFRS Foundation References
+## Official Data and Accounting References
+
+- [APRA Quarterly ADI performance statistics](https://www.apra.gov.au/news-and-publications/quarterly-authorised-deposit-taking-institution-statistics)
+- [APRA Quarterly ADI statistics glossary](https://www.apra.gov.au/system/files/2023-06/Glossary%20-%20Quarterly%20ADI%20Performance%20Statistics%20%26%20ADI%20Centralised%20Publication%20.pdf)
+- [RBA statistical tables: H1 GDP and H5 labour force](https://www.rba.gov.au/statistics/tables/)
+- [APRA copyright and CC BY 4.0 terms](https://www.apra.gov.au/copyright)
+- [RBA copyright and attribution terms](https://www.rba.gov.au/copyright/index.html)
+- [ABS privacy and legal terms](https://www.abs.gov.au/privacy-and-legals)
 
 - [IFRS 9 Financial Instruments, paragraph 5.5.11](https://www.ifrs.org/content/dam/ifrs/publications/pdf-standards/english/2022/issued/part-a/ifrs-9-financial-instruments.pdf?bypass=on)
 - [IFRS 9 impairment staff paper: collateral and other credit enhancements](https://www.ifrs.org/content/dam/ifrs/meetings/2015/december/itg/impairment-of-financial-instruments/ap5-collateral-and-other-credit-enhancements.pdf)
@@ -565,7 +648,13 @@ model governance, SICR policy approval, or audited financial reporting.
   scenario hazard multipliers, and reproducible recruiter-readable reports.
 - Added deterministic synthetic ECL reports covering Stage 1, Stage 2, Stage 3, stage
   migration, scenario-level ECL, gross exposure, weighted ECL, and coverage ratio.
-- Built a separate ECL governance layer that quantified a `13.56%` combined downside
+- Built an attributed APRA/RBA macro-credit satellite on 70 quarterly observations with
+  development/tuning/frozen-OOT separation; reported `-17.7%` MAE improvement versus
+  persistence and enforced sensitivity-only use instead of overstating a failed benchmark.
+- Held accounts, LGD, EAD, staging, weights, and engine logic fixed in an A/B-style ECL
+  comparison, quantifying a `-9.87%` manual-versus-empirical multiplier sensitivity without
+  presenting the difference as a saving.
+- Built a separate ECL governance layer that quantified a `16.54%` combined downside
   sensitivity, blocked a duplicate macro-risk overlay, enforced approval and an 8% cap, and
   reconciled `27,996.92` modelled ECL to `30,236.67` illustrative reported ECL.
 - Implemented governed 30 DPD rebuttal decisions with evidence, forward-looking, DPD/date,

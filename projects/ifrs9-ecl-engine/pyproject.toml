@@ -9,6 +9,9 @@ description = "Educational IFRS 9 expected credit loss foundation."
 requires-python = ">=3.11"
 dependencies = [
     "pandas>=2.1",
+    "numpy>=1.26",
+    "openpyxl>=3.1",
+    "scikit-learn>=1.4",
 ]
 
 [tool.setuptools.packages.find]

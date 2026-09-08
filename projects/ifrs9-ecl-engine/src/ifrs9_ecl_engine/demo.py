@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -18,7 +20,14 @@ class DemoPipelineOutput:
     report_paths: dict[str, Path]
 
 
-def build_demo_inputs() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, float]]:
+def build_demo_inputs(
+    scenario_pd_multipliers: Mapping[str, float] | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, float]]:
+    pd_multipliers = _validate_pd_multipliers(
+        SCENARIO_PD_MULTIPLIERS
+        if scenario_pd_multipliers is None
+        else scenario_pd_multipliers
+    )
     accounts = pd.DataFrame(
         [
             _account("SYN-ECL-001", 0, False, False, 1, 0.105, 150_000, 0.0011, 0.33),
@@ -29,7 +38,7 @@ def build_demo_inputs() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, float]]:
             _account("SYN-ECL-006", 102, True, True, 2, 0.157, 45_000, 0.0120, 0.58),
         ]
     )
-    term_structures = pd.DataFrame(_term_rows(accounts))
+    term_structures = pd.DataFrame(_term_rows(accounts, pd_multipliers))
     account_columns = [
         "account_id",
         "days_past_due",
@@ -99,13 +108,16 @@ def _account(
     }
 
 
-def _term_rows(accounts: pd.DataFrame) -> list[dict]:
+def _term_rows(
+    accounts: pd.DataFrame,
+    scenario_pd_multipliers: Mapping[str, float],
+) -> list[dict]:
     rows = []
     for account in accounts.to_dict("records"):
         for scenario in ["base", "upside", "downside"]:
             for month in range(1, 37):
                 seasoning = 1.0 + (month - 1) * 0.012
-                marginal_pd = account["base_monthly_pd"] * SCENARIO_PD_MULTIPLIERS[scenario]
+                marginal_pd = account["base_monthly_pd"] * scenario_pd_multipliers[scenario]
                 lgd = account["base_lgd"] + SCENARIO_LGD_ADDONS[scenario]
                 amortisation = max(0.35, 1.0 - (month - 1) * 0.015)
                 rows.append(
@@ -119,6 +131,21 @@ def _term_rows(accounts: pd.DataFrame) -> list[dict]:
                     }
                 )
     return rows
+
+
+def _validate_pd_multipliers(values: Mapping[str, float]) -> dict[str, float]:
+    expected = set(SCENARIO_WEIGHTS)
+    if set(values) != expected:
+        raise ValueError("Scenario PD multipliers must cover base, upside, and downside")
+    normalized = {}
+    for scenario, value in values.items():
+        if isinstance(value, bool):
+            raise TypeError(f"Scenario PD multiplier for {scenario} must be numeric")
+        multiplier = float(value)
+        if not math.isfinite(multiplier) or multiplier <= 0:
+            raise ValueError(f"Scenario PD multiplier for {scenario} must be finite and positive")
+        normalized[scenario] = multiplier
+    return normalized
 
 
 def _markdown_report(result: ECLResult) -> str:

@@ -17,6 +17,13 @@ The separately labelled `reports/public_lendingclub/` evidence was generated fro
 ignored public OOT contract using `data_context=public_lendingclub`. Its committed source
 lineage records only aggregate counts, dates, dataset metadata, and source hashes.
 
+The independent macro-satellite review reads only Project 2's committed developer evidence
+under `../ifrs9-ecl-engine/reports/macro_satellite/`. It independently recomputes residuals,
+MAE/RMSE benchmark deltas, scenario ordering, and control outcomes without importing Project
+2 model code. The underlying aggregate source lineage remains owned by Project 2 at
+`../ifrs9-ecl-engine/data/public/australia_macro_credit_lineage.json`; Project 3 records
+SHA-256 hashes of every consumed report in its validation input audit.
+
 ## Source Contract
 
 | Field | Role in validation |
@@ -49,6 +56,7 @@ and inconsistent derived loan-to-income values.
 - Independent replication reports contain model-level and feature-parameter aggregates only.
 - Vintage, segment, and characteristic-stability reports contain aggregate counts and metrics only.
 - The validation pipeline writes deterministic files without timestamps or local paths.
+- Macro-satellite validation outputs contain aggregate metrics, checks, and findings only.
 - The public publisher uses an explicit aggregate allow-list and rejects CSV files containing
   a `customer_id` column.
 

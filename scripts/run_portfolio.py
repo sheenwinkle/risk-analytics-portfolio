@@ -58,11 +58,17 @@ def main() -> None:
     project1_reports = output_root / "credit-risk-pd-model" / "reports"
     project1_models = output_root / "credit-risk-pd-model" / "models"
     project2_reports = output_root / "ifrs9-ecl-engine" / "reports"
+    project2_macro_satellite_reports = (
+        output_root / "ifrs9-ecl-engine" / "macro_satellite"
+    )
     project2_integration_reports = output_root / "ifrs9-ecl-engine" / "pd_integration"
     project2_macro_overlay_reports = output_root / "ifrs9-ecl-engine" / "macro_overlay"
     project2_sicr_rebuttal_reports = output_root / "ifrs9-ecl-engine" / "sicr_rebuttal"
     project2_cashflow_reports = output_root / "ifrs9-ecl-engine" / "cashflow_sensitivity"
     project3_reports = output_root / "model-validation-framework" / "reports"
+    project3_macro_satellite_reports = (
+        output_root / "model-validation-framework" / "macro_satellite"
+    )
     project3_replication_reports = (
         output_root / "model-validation-framework" / "replication"
     )
@@ -88,6 +94,23 @@ def main() -> None:
             ("scripts/run_pipeline.py", "--output-dir", str(project2_reports)),
         ),
         PipelineStep(
+            "Australian macro satellite and ECL challenger",
+            PROJECT_ROOT / "ifrs9-ecl-engine",
+            (
+                "scripts/run_macro_satellite.py",
+                "--data-path",
+                str(
+                    PROJECT_ROOT
+                    / "ifrs9-ecl-engine"
+                    / "data"
+                    / "public"
+                    / "australia_macro_credit.csv"
+                ),
+                "--output-dir",
+                str(project2_macro_satellite_reports),
+            ),
+        ),
+        PipelineStep(
             "PD to ECL integration",
             PROJECT_ROOT / "ifrs9-ecl-engine",
             (
@@ -105,6 +128,8 @@ def main() -> None:
                 "scripts/run_macro_overlay.py",
                 "--output-dir",
                 str(project2_macro_overlay_reports),
+                "--scenario-multiplier-path",
+                str(project2_macro_satellite_reports / "scenario_pd_multipliers.csv"),
             ),
         ),
         PipelineStep(
@@ -123,6 +148,17 @@ def main() -> None:
                 "scripts/run_cashflow_sensitivity.py",
                 "--output-dir",
                 str(project2_cashflow_reports),
+            ),
+        ),
+        PipelineStep(
+            "Independent macro satellite validation",
+            PROJECT_ROOT / "model-validation-framework",
+            (
+                "scripts/run_macro_satellite_validation.py",
+                "--developer-report-dir",
+                str(project2_macro_satellite_reports),
+                "--output-dir",
+                str(project3_macro_satellite_reports),
             ),
         ),
         PipelineStep(
@@ -183,11 +219,13 @@ def main() -> None:
     generated_report_dirs = {
         "credit-risk-pd-model": project1_reports,
         "ifrs9-ecl-engine": project2_reports,
+        "ifrs9-ecl-macro-satellite": project2_macro_satellite_reports,
         "ifrs9-ecl-integration": project2_integration_reports,
         "ifrs9-ecl-macro-overlay": project2_macro_overlay_reports,
         "ifrs9-ecl-sicr-rebuttal": project2_sicr_rebuttal_reports,
         "ifrs9-ecl-cashflow-sensitivity": project2_cashflow_reports,
         "model-validation-framework": project3_reports,
+        "model-validation-macro-satellite": project3_macro_satellite_reports,
         "model-validation-replication": project3_replication_reports,
         "model-validation-remediation": project3_remediation_reports,
     }
@@ -230,6 +268,9 @@ def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
     committed_report_dirs = {
         "credit-risk-pd-model": PROJECT_ROOT / "credit-risk-pd-model" / "reports",
         "ifrs9-ecl-engine": PROJECT_ROOT / "ifrs9-ecl-engine" / "reports",
+        "ifrs9-ecl-macro-satellite": (
+            PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "macro_satellite"
+        ),
         "ifrs9-ecl-integration": (
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "pd_integration"
         ),
@@ -243,6 +284,12 @@ def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "cashflow_sensitivity"
         ),
         "model-validation-framework": PROJECT_ROOT / "model-validation-framework" / "reports",
+        "model-validation-macro-satellite": (
+            PROJECT_ROOT
+            / "model-validation-framework"
+            / "reports"
+            / "macro_satellite"
+        ),
         "model-validation-replication": (
             PROJECT_ROOT / "model-validation-framework" / "reports" / "replication"
         ),

@@ -11,7 +11,8 @@ governance judgement, but it is not a regulatory approval, accounting opinion, o
 production-use decision.
 
 Status: complete scoped case study with independent model replication, public-data validation,
-a synthetic adverse-finding remediation exercise, and tested PostgreSQL governance persistence.
+a synthetic adverse-finding remediation exercise, independent Australian macro-satellite
+validation, and tested PostgreSQL governance persistence.
 
 ## Public LendingClub Opinion
 
@@ -62,6 +63,25 @@ model is unchanged, and all 19 transformed coefficients/importances reconcile wi
 Only aggregate reconciliation tables are committed. The borrower-level development extract
 is generated locally under Project 1's Git-ignored `models/validation_inputs/` directory.
 See the [replication report](reports/replication/model_replication_report.md).
+
+## Independent Australian Macro Satellite Opinion
+
+Project 3 independently consumes Project 2's frozen predictions, tuning evidence,
+coefficients, scenario response, and developer metrics. It does not import Project 2 model
+code. The validator recomputes OOT residuals and persistence benchmarks, reconciles reported
+metrics, and checks scenario directionality, coefficient constraints, active drivers, alpha
+search boundaries, and sample sufficiency.
+
+The opinion is **restricted** to sensitivity use. Across 12 frozen 2019-2021 quarters, the
+satellite's MAE is `0.000601` versus `0.000511` for persistence (`-17.7%` improvement), and
+its RMSE improvement is `-30.6%`. The review raises a high-severity benchmark finding and a
+moderate finding because the constrained unemployment factor is inactive. A second moderate
+finding records that the 2026 source snapshot does not reconstruct release-date data vintages.
+Point forecasting or accounting calibration requires alternative targets, lags, horizons,
+real-time vintage evidence, and a newly frozen OOT benchmark; the lower challenger ECL is not
+evidence of savings or model superiority.
+
+See the [independent macro validation report](reports/macro_satellite/macro_validation_report.md).
 
 ## Synthetic Governance Candidate
 
@@ -122,6 +142,11 @@ Project 1 governed pre-OOT development extract and machine-readable specificatio
 -> independent preprocessing and candidate reconstruction
 -> calibration-holdout AUC and model-selection reconciliation
 -> logistic coefficient and random-forest importance stability evidence
+
+Project 2 frozen macro-satellite evidence
+-> independent residual and persistence-benchmark recomputation
+-> scenario, coefficient, alpha-search, and report-reconciliation controls
+-> findings and explicit sensitivity-only use restriction
 ```
 
 The implementation includes:
@@ -148,6 +173,8 @@ The implementation includes:
 - no-look-ahead rolling remediation with explicit closure status
 - PostgreSQL persistence for runs, metric uncertainty, grouped performance, characteristic
   summaries/bins, findings, benchmarks, limitations, and finding events
+- independent macro-satellite benchmark replication without Project 2 imports
+- use restriction driven by failed benchmark checks and open findings
 
 ## Input Contract
 
@@ -196,6 +223,7 @@ model-validation-framework/
   data/                  input lineage and privacy notes
   reports/               committed validation evidence
     public_lendingclub/   safe aggregate public-data validation
+    macro_satellite/      independent aggregate satellite opinion
     replication/          aggregate independent model-rebuild evidence
     remediation/         synthetic finding lifecycle evidence
   scripts/               validation, publication, remediation, and database loaders
@@ -209,6 +237,7 @@ Core modules separate validation responsibilities:
 - `validation.py`: adapter, input contract, orchestration, and public result dataclass
 - `replication.py`: governed development adapter, independent model rebuild, and reconciliation
 - `metrics.py`: discrimination and portfolio calibration metrics
+- `macro_satellite.py`: independent satellite evidence checks and opinion
 - `calibration.py`: deterministic deciles and monthly backtesting
 - `diagnostics.py`: confidence intervals, vintage backtesting, and segment reliability
 - `stability.py`: chronological reference/current PSI
@@ -240,6 +269,7 @@ pip install -e .
 python scripts\run_validation.py
 python scripts\run_model_replication.py
 python scripts\run_remediation.py
+python scripts\run_macro_satellite_validation.py
 ```
 
 Use another compatible score file or output directory:
@@ -259,6 +289,7 @@ python -m compileall -q src tests scripts
 python scripts\run_validation.py
 python scripts\run_model_replication.py
 python scripts\run_remediation.py
+python scripts\run_macro_satellite_validation.py
 ```
 
 Persist a validation run and remediation lifecycle to PostgreSQL:
@@ -270,7 +301,16 @@ python scripts\load_validation_run.py --apply-schema --persist-remediation
 
 The integration test runs against PostgreSQL 16 in GitHub Actions and verifies the inserted
 run, metric, uncertainty, grouped-performance, characteristic summary/bin, finding,
-benchmark, limitation, and three finding-event records.
+benchmark, limitation, three finding-event, macro-check, and macro-finding records.
+
+Persist the independently regenerated macro-satellite opinion:
+
+```powershell
+python scripts\load_macro_satellite_validation.py --apply-schema
+```
+
+The loader uses `MODEL_VALIDATION_DATABASE_URL`, stores source path/commit lineage, and writes
+the run, all nine controls, and three open findings in one transaction.
 
 ## Report Outputs
 
@@ -296,6 +336,11 @@ benchmark, limitation, and three finding-event records.
 | `reports/replication/parameter_stability_summary.csv` | Coefficient/importance stability statistics |
 | `reports/replication/parameter_stability_detail.csv` | Feature-level reference and replicated values |
 | `reports/replication/model_replication_report.md` | Recruiter-readable independent rebuild opinion |
+| `reports/macro_satellite/input_audit.csv` | SHA-256 and row-count audit of developer evidence |
+| `reports/macro_satellite/replicated_performance.csv` | Independently recomputed OOT MAE/RMSE benchmark |
+| `reports/macro_satellite/validation_summary.csv` | Satellite control values, thresholds, and statuses |
+| `reports/macro_satellite/validation_findings.csv` | Open findings and required actions |
+| `reports/macro_satellite/macro_validation_report.md` | Independent restricted-use opinion |
 
 `reports/public_lendingclub/` contains the same aggregate validation contract for the full
 public-data run. `reports/remediation/` contains monthly sequential retest evidence, a
@@ -303,7 +348,8 @@ summary, finding lifecycle events, and a reviewer-readable report.
 
 The PostgreSQL schema and loader under `sql/` and `scripts/` retain validation runs, policy
 metrics, confidence intervals, grouped backtests, characteristic drift, findings, limitations,
-challenger results, remediation retests, and closure decisions for governance reporting.
+challenger results, remediation retests, closure decisions, and macro-satellite validation
+checks/findings for governance reporting.
 
 ## Limitations
 
@@ -317,6 +363,10 @@ challenger results, remediation retests, and closure decisions for governance re
 - Policy thresholds are illustrative and require institution-specific governance approval.
 - The sequential remediation retest shares historical data with development and therefore
   cannot close the finding without a fresh independent OOT window.
+- The macro satellite uses only 70 aggregate quarters and its frozen OOT period includes the
+  exceptional pandemic cycle. Historical macro values are revised rather than release-date
+  vintages. It underperforms persistence and cannot support point forecasts, account-level PD
+  calibration, or accounting decisions without remediation and new evidence.
 
 ## Resume Description
 
@@ -325,7 +375,8 @@ challenger results, remediation retests, and closure decisions for governance re
 > CSI, challenger comparisons, confidence intervals, and segment/vintage diagnostics on
 > 225,639 public OOT observations; independently rebuilt two development candidates and
 > reconciled 19 fitted parameters per model; implemented policy opinions, no-look-ahead
-> remediation, deterministic evidence, and PostgreSQL governance persistence.
+> remediation, and independently restricted an Australian macro satellite after it missed
+> frozen persistence benchmarks; persisted deterministic governance evidence to PostgreSQL.
 
 ## Interview Discussion
 
@@ -334,3 +385,8 @@ but recalibrated mean PD is materially below the stressed OOT default rate. A va
 raise that finding, investigate portfolio mix and calibration-window representativeness, and
 require fresh calibration evidence rather than approving the model because discrimination is
 acceptable.
+
+The macro case demonstrates the same governance principle: a plausible directional scenario
+response does not compensate for failed OOT point-forecast benchmarks. The correct outcome is
+restricted use, documented remediation, and revalidation rather than approval based on a
+favourable ECL delta.

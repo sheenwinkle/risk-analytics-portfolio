@@ -22,8 +22,22 @@ def main() -> None:
         type=Path,
         help="Directory where governance report artefacts are written.",
     )
+    parser.add_argument(
+        "--scenario-multiplier-path",
+        default=(
+            PROJECT_DIR
+            / "reports"
+            / "macro_satellite"
+            / "scenario_pd_multipliers.csv"
+        ),
+        type=Path,
+        help="Restricted macro-satellite scenario multiplier evidence.",
+    )
     args = parser.parse_args()
-    output = run_macro_overlay_pipeline(args.output_dir)
+    output = run_macro_overlay_pipeline(
+        args.output_dir,
+        args.scenario_multiplier_path,
+    )
     print(f"Wrote {len(output.report_paths)} report files to {Path(args.output_dir).resolve()}")
 
 
