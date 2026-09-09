@@ -4,10 +4,13 @@ from pathlib import Path
 import pytest
 
 from model_validation import Project1OOTPredictionAdapter, run_validation
+from model_validation.macro_remediation_demo import run_macro_remediation_validation
 from model_validation.macro_satellite_demo import run_macro_satellite_validation
 from model_validation.postgres import (
+    MacroRemediationRunMetadata,
     MacroSatelliteRunMetadata,
     ValidationRunMetadata,
+    build_macro_remediation_persistence_records,
     build_macro_satellite_persistence_records,
     build_persistence_records,
 )
@@ -112,3 +115,48 @@ def test_build_macro_satellite_persistence_records_maps_checks_and_findings(tmp_
                 oot_end=date(2021, 9, 30),
             ),
         )
+
+
+def test_build_macro_remediation_records_preserves_finding_lifecycle(tmp_path):
+    project_dir = Path(__file__).resolve().parents[1]
+    ifrs9_reports = project_dir.parent / "ifrs9-ecl-engine" / "reports"
+    validation = run_macro_remediation_validation(
+        ifrs9_reports / "macro_remediation",
+        ifrs9_reports / "macro_satellite",
+        project_dir / "reports" / "macro_satellite",
+        tmp_path,
+    )
+
+    records = build_macro_remediation_persistence_records(
+        validation.result,
+        MacroRemediationRunMetadata(
+            source_report_path=(
+                "projects/model-validation-framework/reports/macro_remediation/"
+                "macro_remediation_validation_report.md"
+            ),
+            source_commit_sha="remediation123",
+        ),
+    )
+
+    assert records.run["selected_candidate_id"] == (
+        "dynamic_ratio_change_lagged_macro"
+    )
+    assert records.run["selected_alpha"] == 1000.0
+    assert records.run["overall_opinion"] == "restricted"
+    assert records.run["evidence_freshness"] == "reused_oot"
+    assert records.run["source_commit_sha"] == "remediation123"
+    assert len(records.checks) == len(validation.result.validation_summary)
+    assert len(records.events) == 6
+    closure_events = [
+        event for event in records.events if event["event_type"] == "closure_decision"
+    ]
+    assert {event["finding_id"] for event in closure_events} == {
+        "MSV-001",
+        "MSV-002",
+        "MSV-003",
+    }
+    assert {event["event_status"] for event in closure_events} == {
+        "open",
+        "pending_fresh_oot",
+    }
+    assert all(event["event_status"] != "closed" for event in closure_events)

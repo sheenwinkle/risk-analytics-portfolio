@@ -12,7 +12,7 @@ production-use decision.
 
 Status: complete scoped case study with independent model replication, public-data validation,
 a synthetic adverse-finding remediation exercise, independent Australian macro-satellite
-validation, and tested PostgreSQL governance persistence.
+validation, controlled macro-remediation review, and tested PostgreSQL governance persistence.
 
 ## Public LendingClub Opinion
 
@@ -82,6 +82,26 @@ real-time vintage evidence, and a newly frozen OOT benchmark; the lower challeng
 evidence of savings or model superiority.
 
 See the [independent macro validation report](reports/macro_satellite/macro_validation_report.md).
+
+## Independent Macro Remediation Opinion
+
+The remediation validator consumes only Project 2's committed candidate register, tuning,
+selection, coefficients, predictions, comparison, and governance files plus the incumbent
+evidence. It independently recomputes every selection ratio, applies the documented
+tie-break order, checks forecast-origin timing, recalculates OOT MAE/RMSE, and reconciles the
+developer claims without importing Project 2 code.
+
+The developer and independent selection agree on
+`dynamic_ratio_change_lagged_macro` with alpha `1000`; the maximum selection arithmetic gap
+is `6.35e-13`. The reused OOT challenger reduces MAE/RMSE versus the incumbent by
+`14.73%`/`24.61%`, but its MAE remains `0.35%` worse than persistence while RMSE is `1.57%`
+better. Of 13 controls, 10 pass, two fail, and one warns.
+
+The independent opinion remains **restricted**. `MSV-001` stays `open` because only one
+benchmark passes and the evidence is reused; `MSV-002` moves to `pending_fresh_oot` because
+both lagged macro drivers are active; `MSV-003` stays `open` because lags do not establish
+historical revision behavior. Zero findings close. See the
+[independent remediation report](reports/macro_remediation/macro_remediation_validation_report.md).
 
 ## Synthetic Governance Candidate
 
@@ -224,6 +244,7 @@ model-validation-framework/
   reports/               committed validation evidence
     public_lendingclub/   safe aggregate public-data validation
     macro_satellite/      independent aggregate satellite opinion
+    macro_remediation/    independent remediation and finding lifecycle
     replication/          aggregate independent model-rebuild evidence
     remediation/         synthetic finding lifecycle evidence
   scripts/               validation, publication, remediation, and database loaders
@@ -238,6 +259,7 @@ Core modules separate validation responsibilities:
 - `replication.py`: governed development adapter, independent model rebuild, and reconciliation
 - `metrics.py`: discrimination and portfolio calibration metrics
 - `macro_satellite.py`: independent satellite evidence checks and opinion
+- `macro_remediation.py`: independent selection, timing, benchmark, and lifecycle review
 - `calibration.py`: deterministic deciles and monthly backtesting
 - `diagnostics.py`: confidence intervals, vintage backtesting, and segment reliability
 - `stability.py`: chronological reference/current PSI
@@ -270,6 +292,8 @@ python scripts\run_validation.py
 python scripts\run_model_replication.py
 python scripts\run_remediation.py
 python scripts\run_macro_satellite_validation.py
+python scripts\run_macro_remediation_validation.py
+python scripts\run_macro_remediation_validation.py
 ```
 
 Use another compatible score file or output directory:
@@ -302,15 +326,18 @@ python scripts\load_validation_run.py --apply-schema --persist-remediation
 The integration test runs against PostgreSQL 16 in GitHub Actions and verifies the inserted
 run, metric, uncertainty, grouped-performance, characteristic summary/bin, finding,
 benchmark, limitation, three finding-event, macro-check, and macro-finding records.
+It also persists a macro-remediation run, 13 independent controls, and six append-only
+finding events while preserving the three original findings.
 
 Persist the independently regenerated macro-satellite opinion:
 
 ```powershell
-python scripts\load_macro_satellite_validation.py --apply-schema
+python scripts\load_macro_satellite_validation.py --apply-schema --persist-remediation
 ```
 
 The loader uses `MODEL_VALIDATION_DATABASE_URL`, stores source path/commit lineage, and writes
-the run, all nine controls, and three open findings in one transaction.
+the initial run, nine controls, three open findings, remediation run, 13 remediation controls,
+and six lifecycle events. Reused OOT evidence cannot generate a `closed` event.
 
 ## Report Outputs
 
@@ -341,6 +368,12 @@ the run, all nine controls, and three open findings in one transaction.
 | `reports/macro_satellite/validation_summary.csv` | Satellite control values, thresholds, and statuses |
 | `reports/macro_satellite/validation_findings.csv` | Open findings and required actions |
 | `reports/macro_satellite/macro_validation_report.md` | Independent restricted-use opinion |
+| `reports/macro_remediation/input_audit.csv` | SHA-256 audit of nine developer/validator inputs |
+| `reports/macro_remediation/selection_reperformance.csv` | Independently reproduced candidate and alpha |
+| `reports/macro_remediation/replicated_performance.csv` | Incumbent/remediation OOT metrics |
+| `reports/macro_remediation/validation_summary.csv` | Thirteen remediation control results |
+| `reports/macro_remediation/finding_lifecycle.csv` | MSV-001/002/003 retest and closure states |
+| `reports/macro_remediation/macro_remediation_validation_report.md` | Independent restricted remediation opinion |
 
 `reports/public_lendingclub/` contains the same aggregate validation contract for the full
 public-data run. `reports/remediation/` contains monthly sequential retest evidence, a
@@ -349,7 +382,7 @@ summary, finding lifecycle events, and a reviewer-readable report.
 The PostgreSQL schema and loader under `sql/` and `scripts/` retain validation runs, policy
 metrics, confidence intervals, grouped backtests, characteristic drift, findings, limitations,
 challenger results, remediation retests, closure decisions, and macro-satellite validation
-checks/findings for governance reporting.
+checks/findings plus append-only macro-remediation events for governance reporting.
 
 ## Limitations
 
@@ -365,8 +398,9 @@ checks/findings for governance reporting.
   cannot close the finding without a fresh independent OOT window.
 - The macro satellite uses only 70 aggregate quarters and its frozen OOT period includes the
   exceptional pandemic cycle. Historical macro values are revised rather than release-date
-  vintages. It underperforms persistence and cannot support point forecasts, account-level PD
-  calibration, or accounting decisions without remediation and new evidence.
+  vintages. Remediation reduces incumbent MAE/RMSE but still misses the persistence MAE
+  benchmark on reused evidence; it cannot support point forecasts, account-level PD
+  calibration, or accounting decisions without a fresh outcome window and vintage testing.
 
 ## Resume Description
 
@@ -375,8 +409,9 @@ checks/findings for governance reporting.
 > CSI, challenger comparisons, confidence intervals, and segment/vintage diagnostics on
 > 225,639 public OOT observations; independently rebuilt two development candidates and
 > reconciled 19 fitted parameters per model; implemented policy opinions, no-look-ahead
-> remediation, and independently restricted an Australian macro satellite after it missed
-> frozen persistence benchmarks; persisted deterministic governance evidence to PostgreSQL.
+> remediation, and independently re-performed 28 controlled macro candidate/penalty tests,
+> reducing reused-OOT incumbent MAE/RMSE by 14.73%/24.61% while closing zero findings;
+> persisted deterministic governance evidence and append-only finding events to PostgreSQL.
 
 ## Interview Discussion
 

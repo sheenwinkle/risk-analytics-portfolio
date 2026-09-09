@@ -83,6 +83,22 @@ def main() -> None:
         / "macro_satellite"
         / "ecl_ab_comparison.csv"
     )
+    macro_remediation_predictions_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "macro_remediation"
+        / "frozen_predictions.csv"
+    )
+    macro_remediation_comparison_path = (
+        REPO_ROOT
+        / "projects"
+        / "ifrs9-ecl-engine"
+        / "reports"
+        / "macro_remediation"
+        / "oot_comparison.csv"
+    )
     sicr_reconciliation_path = (
         REPO_ROOT
         / "projects"
@@ -175,6 +191,12 @@ def main() -> None:
             macro_satellite_predictions_path,
             macro_satellite_ecl_path,
             output_dir / "australian_macro_satellite.png",
+        ),
+        _build_macro_remediation_chart(
+            macro_satellite_predictions_path,
+            macro_remediation_predictions_path,
+            macro_remediation_comparison_path,
+            output_dir / "australian_macro_remediation.png",
         ),
         _build_sicr_rebuttal_chart(
             sicr_reconciliation_path,
@@ -546,6 +568,173 @@ def _build_macro_satellite_chart(
         0.07,
         0.025,
         "APRA asset-quality proxy + ABS macro series distributed by RBA | ECL difference is not a saving",
+        color=MUTED,
+        fontsize=8.5,
+    )
+    figure.subplots_adjust(left=0.07, right=0.98, top=0.80, bottom=0.21, wspace=0.30)
+    _save(figure, output_path)
+    return output_path
+
+
+def _build_macro_remediation_chart(
+    incumbent_predictions_path: Path,
+    remediation_predictions_path: Path,
+    comparison_path: Path,
+    output_path: Path,
+) -> Path:
+    incumbent_rows = [
+        row for row in _read_csv(incumbent_predictions_path) if row["split"] == "oot"
+    ]
+    remediation_rows = [
+        row for row in _read_csv(remediation_predictions_path) if row["split"] == "oot"
+    ]
+    comparison = {row["variant"]: row for row in _read_csv(comparison_path)}
+    if (
+        len(incumbent_rows) != 12
+        or len(remediation_rows) != 12
+        or set(comparison) != {"incumbent_satellite", "selected_remediation"}
+    ):
+        raise ValueError("Macro remediation showcase requires complete OOT evidence")
+    if [row["quarter"] for row in incumbent_rows] != [
+        row["quarter"] for row in remediation_rows
+    ]:
+        raise ValueError("Macro remediation OOT quarters do not align with the incumbent")
+
+    quarters = [row["quarter"][:7] for row in remediation_rows]
+    x_values = list(range(len(quarters)))
+    actual = [float(row["actual_npl_ratio"]) for row in remediation_rows]
+    persistence = [float(row["persistence_prediction"]) for row in remediation_rows]
+    incumbent = [float(row["model_prediction"]) for row in incumbent_rows]
+    remediation = [float(row["model_prediction"]) for row in remediation_rows]
+    incumbent_comparison = comparison["incumbent_satellite"]
+    remediation_comparison = comparison["selected_remediation"]
+
+    figure, (backtest_axis, benchmark_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(10.4, 5.3),
+        dpi=160,
+        gridspec_kw={"width_ratios": [1.55, 0.85]},
+    )
+    figure.suptitle(
+        "Macro remediation narrows the benchmark gap",
+        x=0.07,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.07,
+        0.91,
+        "Validation-only selection | reused 2019-2021 OOT | 0 findings closed | RESTRICTED",
+        color=MUTED,
+        fontsize=9,
+    )
+
+    backtest_axis.plot(
+        x_values,
+        actual,
+        color=TEXT,
+        linewidth=2.2,
+        marker="o",
+        label="Actual",
+    )
+    backtest_axis.plot(
+        x_values,
+        persistence,
+        color=BLUE,
+        linewidth=1.6,
+        linestyle="--",
+        label="Persistence",
+    )
+    backtest_axis.plot(
+        x_values,
+        incumbent,
+        color=RED,
+        linewidth=1.5,
+        linestyle=":",
+        marker="x",
+        label="Incumbent",
+    )
+    backtest_axis.plot(
+        x_values,
+        remediation,
+        color=TEAL,
+        linewidth=2.0,
+        marker="s",
+        label="Remediation",
+    )
+    backtest_axis.set_title("Reused OOT backtest", loc="left", fontsize=11, pad=12)
+    backtest_axis.set_ylabel("Aggregate NPL proxy")
+    backtest_axis.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=1))
+    backtest_axis.set_xticks(x_values[::2], quarters[::2], rotation=35, ha="right")
+    backtest_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    backtest_axis.set_axisbelow(True)
+    backtest_axis.spines[["top", "right"]].set_visible(False)
+    backtest_axis.legend(frameon=False, ncol=2, loc="upper left", fontsize=8.3)
+
+    metric_labels = ["MAE", "RMSE"]
+    positions = list(range(len(metric_labels)))
+    width = 0.34
+    incumbent_values = [
+        float(incumbent_comparison["mae_improvement_vs_persistence"]),
+        float(incumbent_comparison["rmse_improvement_vs_persistence"]),
+    ]
+    remediation_values = [
+        float(remediation_comparison["mae_improvement_vs_persistence"]),
+        float(remediation_comparison["rmse_improvement_vs_persistence"]),
+    ]
+    incumbent_bars = benchmark_axis.bar(
+        [position - width / 2 for position in positions],
+        incumbent_values,
+        width=width,
+        color=RED,
+        label="Incumbent",
+    )
+    remediation_bars = benchmark_axis.bar(
+        [position + width / 2 for position in positions],
+        remediation_values,
+        width=width,
+        color=TEAL,
+        label="Remediation",
+    )
+    benchmark_axis.axhline(0, color=TEXT, linewidth=1.0)
+    benchmark_axis.set_title("Improvement vs persistence", loc="left", fontsize=11, pad=12)
+    benchmark_axis.set_xticks(positions, metric_labels)
+    benchmark_axis.set_ylabel("Relative error improvement")
+    benchmark_axis.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    benchmark_axis.set_ylim(-0.36, 0.09)
+    benchmark_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    benchmark_axis.set_axisbelow(True)
+    benchmark_axis.spines[["top", "right"]].set_visible(False)
+    benchmark_axis.legend(
+        frameon=False,
+        fontsize=8.3,
+        loc="upper center",
+        ncol=2,
+    )
+    for bars, values in (
+        (incumbent_bars, incumbent_values),
+        (remediation_bars, remediation_values),
+    ):
+        for bar, value in zip(bars, values, strict=True):
+            vertical_alignment = "bottom" if value >= 0 else "top"
+            offset = 0.012 if value >= 0 else -0.012
+            benchmark_axis.text(
+                bar.get_x() + bar.get_width() / 2,
+                value + offset,
+                f"{value:.1%}",
+                ha="center",
+                va=vertical_alignment,
+                color=TEXT,
+                fontsize=8,
+                fontweight="bold",
+            )
+
+    figure.text(
+        0.07,
+        0.025,
+        "Error vs incumbent: MAE -14.7% | RMSE -24.6% | historical performance, not a saving",
         color=MUTED,
         fontsize=8.5,
     )

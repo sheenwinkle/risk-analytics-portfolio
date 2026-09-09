@@ -5,11 +5,14 @@ import psycopg
 import pytest
 
 from model_validation import Project1OOTPredictionAdapter, run_validation
+from model_validation.macro_remediation_demo import run_macro_remediation_validation
 from model_validation.macro_satellite_demo import run_macro_satellite_validation
 from model_validation.policy import ValidationPolicy
 from model_validation.postgres import (
+    MacroRemediationRunMetadata,
     MacroSatelliteRunMetadata,
     ValidationRunMetadata,
+    persist_macro_remediation_result,
     persist_macro_satellite_result,
     persist_remediation_result,
     persist_validation_result,
@@ -176,6 +179,70 @@ def test_validation_result_persists_to_real_postgresql_tables(tmp_path):
             (macro_run_id,),
         ).fetchone()[0]
 
+        macro_remediation = run_macro_remediation_validation(
+            project_dir.parent
+            / "ifrs9-ecl-engine"
+            / "reports"
+            / "macro_remediation",
+            developer_dir,
+            project_dir / "reports" / "macro_satellite",
+            tmp_path / "macro_remediation",
+        )
+        macro_remediation_run_id = persist_macro_remediation_result(
+            connection,
+            macro_run_id,
+            macro_remediation.result,
+            MacroRemediationRunMetadata(
+                source_report_path=(
+                    "projects/model-validation-framework/reports/macro_remediation/"
+                    "macro_remediation_validation_report.md"
+                ),
+                source_commit_sha="ci-macro-remediation-test",
+            ),
+        )
+        macro_remediation_run = connection.execute(
+            """
+            SELECT overall_opinion, intended_use, evidence_freshness
+            FROM model_validation_macro_remediation_run
+            WHERE macro_remediation_run_id = %s
+            """,
+            (macro_remediation_run_id,),
+        ).fetchone()
+        macro_remediation_check_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM model_validation_macro_remediation_check
+            WHERE macro_remediation_run_id = %s
+            """,
+            (macro_remediation_run_id,),
+        ).fetchone()[0]
+        macro_event_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM model_validation_macro_finding_event
+            WHERE macro_remediation_run_id = %s
+            """,
+            (macro_remediation_run_id,),
+        ).fetchone()[0]
+        macro_closed_event_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM model_validation_macro_finding_event
+            WHERE macro_remediation_run_id = %s
+              AND event_status = 'closed'
+            """,
+            (macro_remediation_run_id,),
+        ).fetchone()[0]
+        original_open_finding_count = connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM model_validation_macro_finding
+            WHERE macro_validation_run_id = %s
+              AND status = 'open'
+            """,
+            (macro_run_id,),
+        ).fetchone()[0]
+
     assert metric_count == 6
     assert uncertainty_count == 5
     assert group_count == len(result.vintage_performance) + len(result.segment_performance)
@@ -189,3 +256,14 @@ def test_validation_result_persists_to_real_postgresql_tables(tmp_path):
     assert macro_run == ("restricted", "sensitivity_only")
     assert macro_check_count == len(macro_validation.result.validation_summary)
     assert macro_finding_count == len(macro_validation.result.findings)
+    assert macro_remediation_run == (
+        "restricted",
+        "sensitivity_only",
+        "reused_oot",
+    )
+    assert macro_remediation_check_count == len(
+        macro_remediation.result.validation_summary
+    )
+    assert macro_event_count == 6
+    assert macro_closed_event_count == 0
+    assert original_open_finding_count == 3

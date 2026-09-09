@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Protocol, Self
 
 import pandas as pd
 
+from model_validation.macro_remediation import MacroRemediationValidationResult
 from model_validation.macro_satellite import MacroSatelliteValidationResult
 from model_validation.remediation import RemediationResult
 from model_validation.validation import ValidationResult
@@ -85,6 +87,150 @@ class MacroSatellitePersistenceRecords:
     run: dict[str, object]
     checks: tuple[dict[str, object], ...]
     findings: tuple[dict[str, object], ...]
+
+
+@dataclass(frozen=True)
+class MacroRemediationRunMetadata:
+    source_report_path: str
+    source_commit_sha: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.source_report_path.strip():
+            raise ValueError("source_report_path must not be blank")
+
+
+@dataclass(frozen=True)
+class MacroRemediationPersistenceRecords:
+    run: dict[str, object]
+    checks: tuple[dict[str, object], ...]
+    events: tuple[dict[str, object], ...]
+
+
+def build_macro_remediation_persistence_records(
+    result: MacroRemediationValidationResult,
+    metadata: MacroRemediationRunMetadata,
+) -> MacroRemediationPersistenceRecords:
+    summary = result.validation_summary
+    required_checks = {
+        "check",
+        "metric_value",
+        "threshold",
+        "direction",
+        "status",
+        "rationale",
+    }
+    missing_checks = required_checks - set(summary.columns)
+    if missing_checks:
+        raise ValueError(
+            "Macro remediation summary missing columns: "
+            + ", ".join(sorted(missing_checks))
+        )
+    if summary.empty or summary["check"].duplicated().any():
+        raise ValueError("Macro remediation checks must be non-empty and unique")
+    if not set(summary["status"]).issubset({"pass", "warning", "fail"}):
+        raise ValueError("Macro remediation summary contains unsupported statuses")
+    if result.overall_opinion not in {"acceptable", "conditional", "restricted"}:
+        raise ValueError("Macro remediation result contains an unsupported opinion")
+
+    selection = result.selection_reperformance
+    required_selection = {
+        "developer_candidate_id",
+        "developer_alpha",
+        "selection_reconciled",
+    }
+    missing_selection = required_selection - set(selection.columns)
+    if missing_selection:
+        raise ValueError(
+            "Macro remediation selection missing columns: "
+            + ", ".join(sorted(missing_selection))
+        )
+    if len(selection) != 1 or not bool(selection.iloc[0]["selection_reconciled"]):
+        raise ValueError("Macro remediation selection must independently reconcile")
+    selected = selection.iloc[0]
+    selected_alpha = float(selected["developer_alpha"])
+    if not math.isfinite(selected_alpha) or selected_alpha <= 0:
+        raise ValueError("Selected macro remediation alpha must be finite and positive")
+
+    lifecycle = result.finding_lifecycle
+    required_lifecycle = {
+        "finding_id",
+        "remediation_action",
+        "retest_status",
+        "retest_metric",
+        "closure_status",
+        "closure_reason",
+        "evidence_freshness",
+    }
+    missing_lifecycle = required_lifecycle - set(lifecycle.columns)
+    if missing_lifecycle:
+        raise ValueError(
+            "Macro finding lifecycle missing columns: "
+            + ", ".join(sorted(missing_lifecycle))
+        )
+    expected_findings = {"MSV-001", "MSV-002", "MSV-003"}
+    if set(lifecycle["finding_id"]) != expected_findings:
+        raise ValueError("Macro finding lifecycle must cover MSV-001 through MSV-003")
+    if lifecycle["finding_id"].duplicated().any():
+        raise ValueError("Macro lifecycle finding IDs must be unique")
+    evidence_freshness = set(lifecycle["evidence_freshness"])
+    if len(evidence_freshness) != 1:
+        raise ValueError("Macro finding lifecycle must use one evidence freshness label")
+    evidence_label = str(next(iter(evidence_freshness)))
+    if evidence_label not in {"reused_oot", "fresh_oot"}:
+        raise ValueError("Macro finding lifecycle has unsupported evidence freshness")
+    if evidence_label == "reused_oot" and lifecycle["closure_status"].eq("closed").any():
+        raise ValueError("Reused OOT evidence cannot close a macro finding")
+
+    run = {
+        "selected_candidate_id": str(selected["developer_candidate_id"]),
+        "selected_alpha": selected_alpha,
+        "source_report_path": metadata.source_report_path,
+        "source_commit_sha": metadata.source_commit_sha,
+        "overall_opinion": result.overall_opinion,
+        "intended_use": "sensitivity_only",
+        "evidence_freshness": evidence_label,
+    }
+    checks = tuple(
+        {
+            "check_name": str(row["check"]),
+            "metric_value": float(row["metric_value"]),
+            "threshold": float(row["threshold"]),
+            "direction": str(row["direction"]),
+            "status": str(row["status"]),
+            "rationale": str(row["rationale"]),
+        }
+        for _, row in summary.iterrows()
+    )
+    evidence_references = {
+        "MSV-001": "replicated_performance.csv",
+        "MSV-002": "validation_summary.csv",
+        "MSV-003": "validation_summary.csv",
+    }
+    events = tuple(
+        event
+        for _, row in lifecycle.iterrows()
+        for event in (
+            {
+                "finding_id": str(row["finding_id"]),
+                "event_type": "remediation_retest",
+                "event_status": str(row["retest_status"]),
+                "metric_value": float(row["retest_metric"]),
+                "evidence_freshness": str(row["evidence_freshness"]),
+                "evidence_reference": evidence_references[str(row["finding_id"])],
+                "detail": str(row["remediation_action"]),
+            },
+            {
+                "finding_id": str(row["finding_id"]),
+                "event_type": "closure_decision",
+                "event_status": str(row["closure_status"]),
+                "metric_value": None,
+                "evidence_freshness": str(row["evidence_freshness"]),
+                "evidence_reference": "finding_lifecycle.csv",
+                "detail": str(row["closure_reason"]),
+            },
+        )
+    )
+    return MacroRemediationPersistenceRecords(run=run, checks=checks, events=events)
 
 
 def build_macro_satellite_persistence_records(
@@ -462,6 +608,76 @@ def persist_macro_satellite_result(
                 ],
             )
     return macro_validation_run_id
+
+
+def persist_macro_remediation_result(
+    connection: Connection,
+    macro_validation_run_id: int,
+    result: MacroRemediationValidationResult,
+    metadata: MacroRemediationRunMetadata,
+) -> int:
+    if macro_validation_run_id <= 0:
+        raise ValueError("macro_validation_run_id must be positive")
+    records = build_macro_remediation_persistence_records(result, metadata)
+    run = dict(records.run, macro_validation_run_id=macro_validation_run_id)
+    with connection.transaction(), connection.cursor() as cursor:
+        cursor.execute(
+            """
+                INSERT INTO model_validation_macro_remediation_run (
+                    macro_validation_run_id, selected_candidate_id, selected_alpha,
+                    source_report_path, source_commit_sha, overall_opinion,
+                    intended_use, evidence_freshness
+                ) VALUES (
+                    %(macro_validation_run_id)s, %(selected_candidate_id)s,
+                    %(selected_alpha)s, %(source_report_path)s, %(source_commit_sha)s,
+                    %(overall_opinion)s, %(intended_use)s, %(evidence_freshness)s
+                )
+                RETURNING macro_remediation_run_id
+                """,
+            run,
+        )
+        inserted = cursor.fetchone()
+        if inserted is None:
+            raise RuntimeError("PostgreSQL did not return a macro_remediation_run_id")
+        macro_remediation_run_id = int(inserted[0])
+        cursor.executemany(
+            """
+                INSERT INTO model_validation_macro_remediation_check (
+                    macro_remediation_run_id, check_name, metric_value,
+                    threshold, direction, status, rationale
+                ) VALUES (
+                    %(macro_remediation_run_id)s, %(check_name)s, %(metric_value)s,
+                    %(threshold)s, %(direction)s, %(status)s, %(rationale)s
+                )
+                """,
+            [
+                dict(record, macro_remediation_run_id=macro_remediation_run_id)
+                for record in records.checks
+            ],
+        )
+        cursor.executemany(
+            """
+                INSERT INTO model_validation_macro_finding_event (
+                    macro_remediation_run_id, macro_validation_run_id, finding_id,
+                    event_type, event_status, metric_value, evidence_freshness,
+                    evidence_reference, detail
+                ) VALUES (
+                    %(macro_remediation_run_id)s, %(macro_validation_run_id)s,
+                    %(finding_id)s, %(event_type)s, %(event_status)s,
+                    %(metric_value)s, %(evidence_freshness)s,
+                    %(evidence_reference)s, %(detail)s
+                )
+                """,
+            [
+                dict(
+                    record,
+                    macro_remediation_run_id=macro_remediation_run_id,
+                    macro_validation_run_id=macro_validation_run_id,
+                )
+                for record in records.events
+            ],
+        )
+    return macro_remediation_run_id
 
 
 def persist_remediation_result(

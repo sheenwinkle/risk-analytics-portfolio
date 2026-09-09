@@ -321,3 +321,82 @@ CREATE TABLE IF NOT EXISTS model_validation_macro_finding (
 
 CREATE INDEX IF NOT EXISTS idx_model_validation_macro_check_status
     ON model_validation_macro_check (status, macro_validation_run_id);
+
+CREATE TABLE IF NOT EXISTS model_validation_macro_remediation_run (
+    macro_remediation_run_id BIGSERIAL PRIMARY KEY,
+    macro_validation_run_id BIGINT NOT NULL REFERENCES model_validation_macro_run(
+        macro_validation_run_id
+    ),
+    selected_candidate_id TEXT NOT NULL CHECK (
+        LENGTH(TRIM(selected_candidate_id)) > 0
+    ),
+    selected_alpha NUMERIC NOT NULL CHECK (selected_alpha > 0),
+    source_report_path TEXT NOT NULL CHECK (LENGTH(TRIM(source_report_path)) > 0),
+    source_commit_sha TEXT,
+    overall_opinion TEXT NOT NULL CHECK (
+        overall_opinion IN ('acceptable', 'conditional', 'restricted')
+    ),
+    intended_use TEXT NOT NULL CHECK (intended_use = 'sensitivity_only'),
+    evidence_freshness TEXT NOT NULL CHECK (
+        evidence_freshness IN ('reused_oot', 'fresh_oot')
+    ),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (macro_remediation_run_id, macro_validation_run_id)
+);
+
+CREATE TABLE IF NOT EXISTS model_validation_macro_remediation_check (
+    macro_remediation_run_id BIGINT NOT NULL REFERENCES
+        model_validation_macro_remediation_run(macro_remediation_run_id),
+    check_name TEXT NOT NULL,
+    metric_value NUMERIC NOT NULL,
+    threshold NUMERIC NOT NULL,
+    direction TEXT NOT NULL CHECK (
+        direction IN (
+            'greater_than', 'greater_than_or_equal', 'less_than_or_equal', 'equal'
+        )
+    ),
+    status TEXT NOT NULL CHECK (status IN ('pass', 'warning', 'fail')),
+    rationale TEXT NOT NULL CHECK (LENGTH(TRIM(rationale)) > 0),
+    PRIMARY KEY (macro_remediation_run_id, check_name)
+);
+
+CREATE TABLE IF NOT EXISTS model_validation_macro_finding_event (
+    macro_finding_event_id BIGSERIAL PRIMARY KEY,
+    macro_remediation_run_id BIGINT NOT NULL,
+    macro_validation_run_id BIGINT NOT NULL,
+    finding_id TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK (
+        event_type IN ('remediation_retest', 'closure_decision')
+    ),
+    event_status TEXT NOT NULL CHECK (
+        event_status IN (
+            'pass', 'partial', 'fail', 'open', 'pending_fresh_oot', 'closed'
+        )
+    ),
+    metric_value NUMERIC,
+    evidence_freshness TEXT NOT NULL CHECK (
+        evidence_freshness IN ('reused_oot', 'fresh_oot')
+    ),
+    evidence_reference TEXT NOT NULL CHECK (LENGTH(TRIM(evidence_reference)) > 0),
+    detail TEXT NOT NULL CHECK (LENGTH(TRIM(detail)) > 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (macro_remediation_run_id, macro_validation_run_id)
+        REFERENCES model_validation_macro_remediation_run (
+            macro_remediation_run_id, macro_validation_run_id
+        ),
+    FOREIGN KEY (macro_validation_run_id, finding_id)
+        REFERENCES model_validation_macro_finding (
+            macro_validation_run_id, finding_id
+        ),
+    UNIQUE (macro_remediation_run_id, finding_id, event_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_validation_macro_remediation_status
+    ON model_validation_macro_remediation_check (
+        status, macro_remediation_run_id
+    );
+
+CREATE INDEX IF NOT EXISTS idx_model_validation_macro_finding_event_status
+    ON model_validation_macro_finding_event (
+        event_status, macro_validation_run_id, finding_id
+    );

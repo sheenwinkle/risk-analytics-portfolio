@@ -5,6 +5,7 @@ __pycache__/
 **/.pytest-tmp/
 .pytest-tmp-*/
 **/.pytest-tmp-*/
+**/.pytest-*/
 .mypy_cache/
 .ruff_cache/
 .artifacts/

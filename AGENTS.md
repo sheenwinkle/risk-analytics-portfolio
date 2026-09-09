@@ -45,11 +45,13 @@ python scripts/run_pipeline.py
 pytest
 python scripts/run_pipeline.py
 python scripts/run_pd_integration.py
+python scripts/run_macro_remediation.py
 
 # Project 3
 pytest
 python scripts/run_validation.py
 python scripts/run_remediation.py
+python scripts/run_macro_remediation_validation.py
 ```
 
 ## Mandatory Self-Test Gate

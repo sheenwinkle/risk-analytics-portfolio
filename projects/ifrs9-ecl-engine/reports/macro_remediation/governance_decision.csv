@@ -1,0 +1,2 @@
+finding_id,retest_result,developer_recommendation,use_restriction,evidence_freshness,finding_closure_claimed,closure_blocker
+MSV-001,mixed_benchmark_evidence,retain_restricted_use,sensitivity_only,reused_oot,False,Fresh post-selection OOT outcomes and real-time macro vintages are not available.
