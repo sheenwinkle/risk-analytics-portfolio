@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from model_validation.macro_remediation import (
+    MacroRemediationValidationResult,
+    validate_macro_remediation,
+)
 from model_validation.macro_satellite import (
     MacroSatelliteValidationResult,
     validate_macro_satellite,
@@ -20,6 +24,7 @@ from model_validation.validation import (
 )
 
 __all__ = [
+    "MacroRemediationValidationResult",
     "MacroSatelliteValidationResult",
     "ModelReplicationResult",
     "Project1DevelopmentAdapter",
@@ -31,5 +36,6 @@ __all__ = [
     "run_model_replication_pipeline",
     "run_validation",
     "run_validation_pipeline",
+    "validate_macro_remediation",
     "validate_macro_satellite",
 ]

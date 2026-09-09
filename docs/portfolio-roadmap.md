@@ -51,6 +51,9 @@ Complete scoped case study:
 - Independent weight, severity, and combined macro-sensitivity cases
 - Attributed APRA/RBA macro-credit snapshot with 70 contiguous quarterly observations
 - Constrained macro satellite with development/tuning/frozen-OOT separation and persistence benchmark
+- Four pre-registered lag-compatible remediation candidates across target, dynamics, and horizon
+- Validation-only selection across 28 candidate/penalty combinations with OOT mutation tests
+- Reused-OOT incumbent/challenger comparison with explicit no-closure recommendation
 - Fixed-input manual-versus-empirical ECL multiplier comparison with use restriction
 - Overlay trigger, model-overlap, approval, cap, and duplicate-risk controls
 - Governed 30 DPD rebuttal decisions with evidence, forward-looking, DPD/date, approval,
@@ -74,20 +77,21 @@ Implemented outputs:
 - PD integration lineage, account, scenario, portfolio, migration, and Markdown reports
 - Macro-sensitivity detail/summary, overlay register, ECL reconciliation, and governance report
 - Macro model tuning, coefficients, backtest, scenario multipliers, ECL A/B, lineage, and report
+- Macro remediation register, tuning, selection, frozen predictions, comparison, and governance report
 - SICR decision register, account stage comparison, ECL impact reconciliation, and report
 - Contractual schedule/recovery inputs, monthly portfolio projection, account attribution,
   six-case sensitivity summary, zero-difference reconciliation, and Markdown report
 
 Potential extensions:
 
-- Remediate the restricted macro satellite with alternative targets, lags, horizons, and
-  segment-level data before a newly frozen OOT validation
+- Establish a comparable post-selection target across the APS 220 basis change and collect
+  release-vintage macro data before requesting finding closure
 - Estimate recovery assumptions from governed public data if a defensible recovery and
   collateral dataset becomes available
 
 Resume angle:
 
-> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration, and a validated Project 1 PD bridge; developed an APRA/RBA macro satellite with frozen OOT testing and ECL A/B sensitivity, retained a sensitivity-only restriction after benchmark failure, and added contractual cash-flow, SICR, and overlay controls.
+> Built a runnable IFRS 9 ECL engine calculating account-level and portfolio-level expected credit loss using configurable staging policy, monthly PD/LGD/EAD term structures, discounting, explicit scenario weights, stage migration, and a validated Project 1 PD bridge; developed and controlled-remediated an APRA/RBA macro satellite across 28 validation-only candidate/penalty tests, reduced reused-OOT incumbent MAE/RMSE by 14.73%/24.61%, retained a sensitivity-only restriction, and added contractual cash-flow, SICR, and overlay controls.
 
 ## Project 3: Model Validation Framework
 
@@ -116,6 +120,8 @@ Complete scoped case study:
 - Independent Project 2 macro-satellite residual, persistence benchmark, scenario, coefficient,
   tuning, and developer-metric reconciliation without importing development code
 - Restricted-use opinion and open finding persistence for failed macro benchmark checks
+- Independent macro-remediation selection, timing, benchmark, and finding-lifecycle review
+- PostgreSQL macro-remediation run, 13 control, and six append-only finding-event persistence
 
 Implemented outputs:
 
@@ -128,6 +134,7 @@ Implemented outputs:
 - Public vintage maturity, segment performance, and statistical uncertainty evidence
 - Public feature-stability summary, bin drivers, and recruiter-facing CSI chart
 - Independent macro-satellite restricted opinion, control summary, input audit, and findings
+- Independent macro-remediation opinion, selection reperformance, and three-finding lifecycle
 
 Current candidate opinion:
 
@@ -164,6 +171,13 @@ Macro-satellite validation evidence:
 - High finding for benchmark underperformance; moderate findings for inactive unemployment
   and missing real-time release-vintage evidence
 
+Macro-remediation evidence:
+
+- Selected one of 28 pre-registered candidate/penalty combinations without OOT input
+- Reused-OOT MAE/RMSE reductions versus incumbent: 14.73%/24.61%
+- MAE/RMSE improvement versus persistence: -0.35%/+1.57%; opinion remains restricted
+- MSV-001 and MSV-003 remain open; MSV-002 is pending fresh OOT; zero findings closed
+
 Decision-strategy evidence:
 
 - Controlled 20% max-PD challenger selected only on the pre-OOT calibration holdout
@@ -176,8 +190,8 @@ Potential extensions:
 - Production scoring-service implementation testing beyond analytical candidate replication
 - Formal fixed-horizon label construction or survival analysis for unresolved outcomes
 - Reject-inference sensitivity for the accepted-only applicant population
-- Alternative macro targets, lags, horizons, and fresh OOT evidence for finding remediation
+- Comparable post-APS target mapping, release vintages, and fresh OOT closure evidence
 
 Resume angle:
 
-> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, statistical uncertainty, vintage and segment backtesting, PSI/CSI stability, challenger benchmarking, public-data validation, no-look-ahead remediation, and an independent restricted opinion on a macro satellite that failed frozen persistence benchmarks.
+> Developed a reusable Python and PostgreSQL credit risk model validation framework covering independent discrimination and calibration reperformance, statistical uncertainty, vintage and segment backtesting, PSI/CSI stability, challenger benchmarking, public-data validation, no-look-ahead remediation, and independent macro remediation across 13 controls and six finding events; reduced reused-OOT incumbent MAE/RMSE by 14.73%/24.61% while closing zero findings and retaining a restricted opinion.

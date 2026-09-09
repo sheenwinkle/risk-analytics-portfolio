@@ -60,6 +60,11 @@ Review the [APRA](https://www.apra.gov.au/copyright),
 [third-party notice](../../../THIRD_PARTY_NOTICES.md) separates these terms from the code's
 MIT licence.
 
+The macro-remediation workflow reuses this same 70-quarter aggregate snapshot and publishes
+only candidate metadata, aggregate quarterly predictions, coefficients, metrics, and
+governance decisions. The 2019-2021 outcomes have already been observed, so they are labelled
+`reused_oot` and cannot be treated as fresh closure evidence.
+
 The macro-sensitivity and management-overlay demo uses no additional borrower data. Its
 scenario-weight shifts, trigger observations, requested amounts, overlap assessments, cap
 ratios, and approval records are deterministic synthetic governance assumptions. The

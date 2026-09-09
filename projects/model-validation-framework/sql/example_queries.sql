@@ -230,3 +230,34 @@ ORDER BY
         ELSE 3
     END,
     finding.finding_id;
+
+-- Latest append-only macro remediation lifecycle, preserving the initial finding status.
+WITH latest_remediation AS (
+    SELECT macro_remediation_run_id, macro_validation_run_id
+    FROM model_validation_macro_remediation_run
+    ORDER BY created_at DESC, macro_remediation_run_id DESC
+    LIMIT 1
+)
+SELECT
+    finding.finding_id,
+    finding.severity,
+    finding.status AS initial_status,
+    event.event_type,
+    event.event_status,
+    event.evidence_freshness,
+    event.metric_value,
+    event.evidence_reference,
+    event.detail
+FROM latest_remediation AS latest
+JOIN model_validation_macro_finding AS finding
+    USING (macro_validation_run_id)
+JOIN model_validation_macro_finding_event AS event
+    USING (macro_remediation_run_id, macro_validation_run_id, finding_id)
+ORDER BY
+    CASE finding.severity
+        WHEN 'high' THEN 1
+        WHEN 'moderate' THEN 2
+        ELSE 3
+    END,
+    finding.finding_id,
+    CASE event.event_type WHEN 'remediation_retest' THEN 1 ELSE 2 END;

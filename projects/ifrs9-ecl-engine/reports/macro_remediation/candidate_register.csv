@@ -1,0 +1,5 @@
+candidate_id,target_form,forecast_horizon_quarters,macro_lag_quarters,features,coefficient_constraint,release_compatible,eligible_for_selection,rationale
+ratio_change_lagged_macro,ratio_change,1,1,lag_unemployment_change|lag_gdp_stress_change,nonnegative,True,True,Model the quarterly NPL-ratio movement from lagged macro movements.
+dynamic_ratio_change_lagged_macro,ratio_change,1,1,lag_npl_change|lag_unemployment_change|lag_gdp_stress_change,nonnegative,True,True,Add lagged NPL momentum to the quarterly ratio-change specification.
+logit_change_lagged_macro,logit_change,1,1,lag_logit_npl_change|lag_unemployment_change|lag_gdp_stress_change,nonnegative,True,True,Test a bounded logit-change target with lagged dynamic drivers.
+ratio_change_two_quarter,ratio_change,2,2,lag_npl_change|lag_unemployment_change|lag_gdp_stress_change,nonnegative,True,True,Test a two-quarter forecast horizon with horizon-matched lagged changes.

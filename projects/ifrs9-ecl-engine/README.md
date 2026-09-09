@@ -2,7 +2,8 @@
 
 Status: complete scoped case study with deterministic standalone, Project 1 PD-integration,
 contractual cash-flow/recovery sensitivity, an attributed Australian macro-credit satellite,
-ECL A/B sensitivity, macro/management-overlay, and SICR rebuttal governance evidence.
+controlled satellite remediation, ECL A/B sensitivity, macro/management-overlay, and SICR
+rebuttal governance evidence.
 
 This project is a runnable, educational expected credit loss engine for credit risk
 analytics portfolio discussion. It calculates account-level and portfolio-level ECL from
@@ -158,6 +159,35 @@ Review the [developer report](reports/macro_satellite/macro_satellite_report.md)
 [source lineage](data/public/australia_macro_credit_lineage.json), and Project 3's
 [independent restricted opinion](../model-validation-framework/reports/macro_satellite/macro_validation_report.md).
 
+## Controlled Macro Satellite Remediation
+
+Public API:
+
+```python
+from ifrs9_ecl_engine import run_macro_satellite_remediation
+
+result = run_macro_satellite_remediation(australian_macro_credit_data)
+```
+
+The remediation pre-registers four economically directed candidates across ratio/logit
+change targets, dynamic terms, and one/two-quarter horizons. Each macro feature is lagged to
+the forecast origin. Seven Ridge penalties produce 28 candidate-alpha evaluations, and the
+winner is selected only on the 2016-2018 validation window using the mean MAE/RMSE ratio to
+a horizon-matched persistence benchmark. Tests mutate every 2019-2021 outcome and macro
+input and confirm that the candidate, alpha, tuning table, and frozen coefficients do not
+change.
+
+The selected `dynamic_ratio_change_lagged_macro` model uses alpha `1000` and retains both
+lagged macro-change factors. On the already observed 2019-2021 OOT period, it lowers MAE from
+`0.000601` to `0.000512` (`14.73%`) and RMSE from `0.000864` to `0.000652` (`24.61%`) versus
+the incumbent. It is still `0.35%` worse than persistence on MAE while beating persistence
+by `1.57%` on RMSE. The result is mixed remediation evidence, not fresh validation, a realised
+loss saving, or grounds to lift `sensitivity_only` use.
+
+Review the [developer remediation report](reports/macro_remediation/remediation_report.md)
+and Project 3's
+[independent remediation opinion](../model-validation-framework/reports/macro_remediation/macro_remediation_validation_report.md).
+
 ## Macro Sensitivity and Management Overlays
 
 The separate governance layer consumes frozen scenario-level model output. It never mutates
@@ -304,6 +334,7 @@ ruff check src tests scripts
 pytest
 python scripts\run_pipeline.py
 python scripts\run_macro_satellite.py
+python scripts\run_macro_remediation.py
 python scripts\run_macro_overlay.py
 python scripts\run_sicr_rebuttal.py
 python scripts\run_cashflow_sensitivity.py
@@ -337,6 +368,19 @@ The Australian macro satellite CLI writes:
 - `reports/macro_satellite/ecl_ab_comparison.csv`
 - `reports/macro_satellite/ecl_scenario_comparison.csv`
 - `reports/macro_satellite/macro_satellite_report.md`
+
+The controlled macro remediation CLI writes:
+
+- `reports/macro_remediation/input_audit.csv`
+- `reports/macro_remediation/candidate_register.csv`
+- `reports/macro_remediation/candidate_tuning.csv`
+- `reports/macro_remediation/selected_model.json`
+- `reports/macro_remediation/selected_coefficients.csv`
+- `reports/macro_remediation/frozen_predictions.csv`
+- `reports/macro_remediation/performance_summary.csv`
+- `reports/macro_remediation/oot_comparison.csv`
+- `reports/macro_remediation/governance_decision.csv`
+- `reports/macro_remediation/remediation_report.md`
 
 The SICR rebuttal governance CLI writes:
 
@@ -565,6 +609,8 @@ The public API validates:
 - Rejection of the post-2021 APS 220 reporting basis and invalid alpha grids
 - Frozen OOT predictions, persistence benchmark, constrained coefficients, and scenario ordering
 - Fixed-input incumbent/challenger ECL reconciliation with explicit sensitivity-only labels
+- Pre-registered macro target/dynamic/horizon candidates and validation-only selection
+- Forecast-origin lag controls, OOT mutation isolation, and no finding-closure claim
 - Exactly one macro-sensitivity baseline matching modelled scenario weights
 - Complete scenario coverage, weights summing to 1, and nonnegative severity multipliers
 - Unique overlay IDs and risk-driver/scope pairs
@@ -592,9 +638,10 @@ production disclosure, or institution-specific IFRS 9 and management-overlay pol
 
 The macro satellite uses a short aggregate banking-system proxy rather than borrower-level
 defaults or portfolio segments. The reporting-basis break prevents extending the current
-target past 2021 without a governed mapping, the unemployment level is inactive in the
-constrained fit, the macro series are revised rather than real-time vintages, and the model
-underperforms persistence on the frozen OOT period. Its
+target past 2021 without a governed mapping, the incumbent unemployment level is inactive,
+and the macro series are revised rather than real-time vintages. Remediation activates both
+lagged macro changes and materially reduces incumbent error, but its MAE remains `0.35%`
+worse than persistence on an already observed OOT period. Its
 scenario response is therefore sensitivity evidence only and does not establish a reasonable
 and supportable forecast, PD calibration, or accounting scenario.
 
@@ -651,6 +698,10 @@ model governance, SICR policy approval, or audited financial reporting.
 - Built an attributed APRA/RBA macro-credit satellite on 70 quarterly observations with
   development/tuning/frozen-OOT separation; reported `-17.7%` MAE improvement versus
   persistence and enforced sensitivity-only use instead of overstating a failed benchmark.
+- Pre-registered four lag-compatible remediation candidates and seven Ridge penalties,
+  selected one of 28 combinations without OOT input, and reduced reused-OOT MAE/RMSE versus
+  the incumbent by `14.73%`/`24.61%` while retaining restricted use after MAE still missed
+  persistence by `0.35%`.
 - Held accounts, LGD, EAD, staging, weights, and engine logic fixed in an A/B-style ECL
   comparison, quantifying a `-9.87%` manual-versus-empirical multiplier sensitivity without
   presenting the difference as a saving.

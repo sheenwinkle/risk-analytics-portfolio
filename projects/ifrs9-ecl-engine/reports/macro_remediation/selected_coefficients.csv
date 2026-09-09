@@ -1,0 +1,4 @@
+candidate_id,feature,feature_role,standardized_coefficient,raw_coefficient,constraint
+dynamic_ratio_change_lagged_macro,lag_npl_change,credit_momentum,3.5441467079419014e-05,0.033423259503150192,nonnegative
+dynamic_ratio_change_lagged_macro,lag_unemployment_change,macro_stress,8.595914867533474e-06,4.4480825776505987e-05,nonnegative
+dynamic_ratio_change_lagged_macro,lag_gdp_stress_change,macro_stress,1.2002916445927292e-05,2.0541818163204329e-05,nonnegative

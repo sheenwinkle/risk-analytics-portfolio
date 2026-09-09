@@ -61,6 +61,9 @@ def main() -> None:
     project2_macro_satellite_reports = (
         output_root / "ifrs9-ecl-engine" / "macro_satellite"
     )
+    project2_macro_remediation_reports = (
+        output_root / "ifrs9-ecl-engine" / "macro_remediation"
+    )
     project2_integration_reports = output_root / "ifrs9-ecl-engine" / "pd_integration"
     project2_macro_overlay_reports = output_root / "ifrs9-ecl-engine" / "macro_overlay"
     project2_sicr_rebuttal_reports = output_root / "ifrs9-ecl-engine" / "sicr_rebuttal"
@@ -68,6 +71,9 @@ def main() -> None:
     project3_reports = output_root / "model-validation-framework" / "reports"
     project3_macro_satellite_reports = (
         output_root / "model-validation-framework" / "macro_satellite"
+    )
+    project3_macro_remediation_reports = (
+        output_root / "model-validation-framework" / "macro_remediation"
     )
     project3_replication_reports = (
         output_root / "model-validation-framework" / "replication"
@@ -108,6 +114,23 @@ def main() -> None:
                 ),
                 "--output-dir",
                 str(project2_macro_satellite_reports),
+            ),
+        ),
+        PipelineStep(
+            "Controlled Australian macro satellite remediation",
+            PROJECT_ROOT / "ifrs9-ecl-engine",
+            (
+                "scripts/run_macro_remediation.py",
+                "--data-path",
+                str(
+                    PROJECT_ROOT
+                    / "ifrs9-ecl-engine"
+                    / "data"
+                    / "public"
+                    / "australia_macro_credit.csv"
+                ),
+                "--output-dir",
+                str(project2_macro_remediation_reports),
             ),
         ),
         PipelineStep(
@@ -159,6 +182,21 @@ def main() -> None:
                 str(project2_macro_satellite_reports),
                 "--output-dir",
                 str(project3_macro_satellite_reports),
+            ),
+        ),
+        PipelineStep(
+            "Independent macro satellite remediation validation",
+            PROJECT_ROOT / "model-validation-framework",
+            (
+                "scripts/run_macro_remediation_validation.py",
+                "--developer-remediation-dir",
+                str(project2_macro_remediation_reports),
+                "--incumbent-report-dir",
+                str(project2_macro_satellite_reports),
+                "--initial-validation-dir",
+                str(project3_macro_satellite_reports),
+                "--output-dir",
+                str(project3_macro_remediation_reports),
             ),
         ),
         PipelineStep(
@@ -220,12 +258,14 @@ def main() -> None:
         "credit-risk-pd-model": project1_reports,
         "ifrs9-ecl-engine": project2_reports,
         "ifrs9-ecl-macro-satellite": project2_macro_satellite_reports,
+        "ifrs9-ecl-macro-remediation": project2_macro_remediation_reports,
         "ifrs9-ecl-integration": project2_integration_reports,
         "ifrs9-ecl-macro-overlay": project2_macro_overlay_reports,
         "ifrs9-ecl-sicr-rebuttal": project2_sicr_rebuttal_reports,
         "ifrs9-ecl-cashflow-sensitivity": project2_cashflow_reports,
         "model-validation-framework": project3_reports,
         "model-validation-macro-satellite": project3_macro_satellite_reports,
+        "model-validation-macro-remediation": project3_macro_remediation_reports,
         "model-validation-replication": project3_replication_reports,
         "model-validation-remediation": project3_remediation_reports,
     }
@@ -271,6 +311,9 @@ def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
         "ifrs9-ecl-macro-satellite": (
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "macro_satellite"
         ),
+        "ifrs9-ecl-macro-remediation": (
+            PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "macro_remediation"
+        ),
         "ifrs9-ecl-integration": (
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "pd_integration"
         ),
@@ -289,6 +332,12 @@ def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
             / "model-validation-framework"
             / "reports"
             / "macro_satellite"
+        ),
+        "model-validation-macro-remediation": (
+            PROJECT_ROOT
+            / "model-validation-framework"
+            / "reports"
+            / "macro_remediation"
         ),
         "model-validation-replication": (
             PROJECT_ROOT / "model-validation-framework" / "reports" / "replication"

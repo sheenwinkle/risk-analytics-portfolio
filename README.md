@@ -18,6 +18,7 @@ Public/synthetic lending data
 -> IFRS 9 ECL consumption
 -> contractual cash-flow/recovery sensitivity
 -> public Australian macro-credit satellite and frozen OOT benchmark
+-> validation-only macro remediation and reused-OOT governance
 -> SICR rebuttal and macro/overlay governance
 -> independent PD and macro-satellite validation opinions
 -> score and input characteristic stability
@@ -47,6 +48,8 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | Synthetic contractual cash-flow combined downside ECL | +72.43% |
 | Australian macro-credit history | 70 quarters (2004 Q3-2021 Q4) |
 | Macro satellite OOT MAE improvement vs persistence | -17.7% (restricted) |
+| Remediated MAE / RMSE reduction vs incumbent | 14.73% / 24.61% (reused OOT) |
+| Remediated MAE / RMSE improvement vs persistence | -0.35% / +1.57% (restricted) |
 | Empirical-vs-manual multiplier ECL sensitivity | -9.87% (not a saving) |
 
 ![Public LendingClub calibration](docs/assets/public_pd_calibration.png)
@@ -62,8 +65,8 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | Project | Status | Main evidence | Target roles |
 | --- | --- | --- | --- |
 | [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, champion-challenger strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
-| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, public Australian macro satellite, ECL A/B sensitivity, PD bridge, SICR rebuttal, overlay controls | ECL, Portfolio Risk, Credit Risk |
-| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent candidate rebuild, PD and macro-satellite opinions, confidence intervals, vintage/segment backtesting, PSI/CSI drift, remediation lifecycle | Model Risk, Validation, Quant Risk |
+| [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, Australian macro satellite and controlled remediation, ECL A/B sensitivity, PD bridge, SICR rebuttal, overlay controls | ECL, Portfolio Risk, Credit Risk |
+| [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent candidate rebuild, PD and macro-remediation opinions, confidence intervals, vintage/segment backtesting, PSI/CSI drift, finding lifecycle | Model Risk, Validation, Quant Risk |
 
 ## Project 1: Credit Risk PD Modelling
 
@@ -116,6 +119,7 @@ Reporting-date PD cohort
 -> discounting, scenario weighting, migration, and portfolio evidence
 -> contractual principal, prepayment, cure, and eligible-collateral sensitivity
 -> APRA/RBA macro-credit satellite, frozen OOT backtest, and ECL A/B sensitivity
+-> validation-only target/lag/horizon remediation with no OOT selection
 -> governed 30 DPD rebuttal decisions and ECL impact reconciliation
 -> separate macro sensitivity, overlay controls, and ECL reconciliation
 ```
@@ -125,6 +129,8 @@ Reporting-date PD cohort
 ![ECL macro sensitivity and overlay reconciliation](docs/assets/ecl_macro_overlay.png)
 
 ![Australian macro satellite and ECL model-choice sensitivity](docs/assets/australian_macro_satellite.png)
+
+![Australian macro satellite remediation](docs/assets/australian_macro_remediation.png)
 
 ![SICR rebuttal governance impact](docs/assets/ecl_sicr_rebuttal.png)
 
@@ -141,13 +147,21 @@ real-GDP series distributed by the RBA. It uses 70 quarterly observations, exclu
 Replacing manual PD multipliers with its empirical response changes synthetic ECL from
 `27,996.92` to `25,233.66` (`-9.87%`); this is model-choice sensitivity, not a saving.
 
+The controlled remediation pre-registers four lag-compatible target/dynamic/horizon
+specifications and seven Ridge penalties, then selects one of 28 combinations using only the
+2016-2018 tuning window. On the already observed 2019-2021 OOT period, the selected model
+reduces MAE and RMSE versus the incumbent by `14.73%` and `24.61%`. It is still `0.35%` worse
+than persistence on MAE, despite a `1.57%` RMSE improvement, so the developer recommendation
+remains restricted and makes no finding-closure claim.
+
 The governance layer keeps sensitivities separate from booked adjustments. A downside-weight
 shift combined with the empirical `1.152` downside multiplier increases ECL by `16.54%` but is
 not booked. One triggered, approved, non-overlapping overlay is capped at 8% of modelled ECL,
 while duplicate and pending requests remain unrecognized. The bridge reconciles `27,996.92`
 modelled ECL to `30,236.67` illustrative reported ECL.
 
-Evidence: [macro satellite and ECL A/B report](projects/ifrs9-ecl-engine/reports/macro_satellite/macro_satellite_report.md)
+Evidence: [macro satellite and ECL A/B report](projects/ifrs9-ecl-engine/reports/macro_satellite/macro_satellite_report.md),
+[controlled remediation report](projects/ifrs9-ecl-engine/reports/macro_remediation/remediation_report.md),
 and [macro sensitivity and overlay report](projects/ifrs9-ecl-engine/reports/macro_overlay/macro_overlay_report.md).
 
 The SICR layer governs the 30 DPD rebuttable presumption without allowing it to override
@@ -202,6 +216,13 @@ MAE and RMSE persistence benchmarks; findings require alternative targets, lags,
 real-time data vintages, and a new frozen OOT test before point-forecast or
 accounting-calibration use.
 
+It then independently reperforms the remediation selection arithmetic, timing, coefficient,
+and OOT metrics from report artefacts without importing Project 2 code. Thirteen controls
+confirm the selected candidate and alpha, lag compatibility, both active macro drivers, and
+developer reconciliation. The reused OOT produces mixed benchmark evidence, leaving
+`MSV-001` and `MSV-003` open, moving only `MSV-002` to `pending_fresh_oot`, closing zero
+findings, and retaining the **restricted** opinion.
+
 Evidence:
 
 - [Public validation summary](projects/model-validation-framework/reports/public_lendingclub/README.md)
@@ -209,6 +230,7 @@ Evidence:
 - [Independent model replication](projects/model-validation-framework/reports/replication/model_replication_report.md)
 - [Remediation and lifecycle report](projects/model-validation-framework/reports/remediation/remediation_report.md)
 - [Independent macro satellite validation](projects/model-validation-framework/reports/macro_satellite/macro_validation_report.md)
+- [Independent macro remediation validation](projects/model-validation-framework/reports/macro_remediation/macro_remediation_validation_report.md)
 - [PostgreSQL schema](projects/model-validation-framework/sql/schema.sql)
 
 ## One-Command Reproduction
@@ -248,10 +270,11 @@ VS Code exposes both commands through **Tasks: Run Task**:
 - Contractual schedule, CPR, cure, collateral eligibility, recovery timing, and sensitivity reconciliation controls
 - Attributed APRA/RBA source snapshot, SHA-256 lineage, quarterly continuity, and APS 220 break controls
 - Independent macro-satellite benchmark replication and enforced sensitivity-only opinion
+- Pre-registered macro remediation with validation-only selection and explicit reused-OOT evidence
 - GitHub Actions matrix across all three projects
 - CI PostgreSQL 16 integration test for run, metric uncertainty, grouped performance,
   characteristic drift, finding, benchmark, limitation, remediation-event, and independent
-  macro-validation persistence
+  macro-validation, remediation-check, and finding-event persistence
 - Full-portfolio regeneration check with line-ending normalisation and machine-precision
   tolerance for parallel model output
 - Borrower-level publication deny-list plus safe aggregate report lists
@@ -288,7 +311,8 @@ risk-analytics-portfolio/
 - The macro target is an aggregate Australian banking-system proxy, not account-level PD.
   The short quarterly sample spans structural and pandemic effects, excludes the post-2021
   APS 220 basis, uses a revised 2026 macro snapshot rather than historical release vintages,
-  and the current specification underperforms persistence OOT.
+  the incumbent underperforms persistence OOT, and the remediated model still misses the MAE
+  benchmark by `0.35%` on an already observed window.
 - Validation policy thresholds are explicit case-study assumptions, not regulatory cutoffs.
 - Public aggregate results demonstrate analytical workflow, not production approval.
 
@@ -297,7 +321,8 @@ risk-analytics-portfolio/
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
 > LendingClub records, covering temporal PD development, recalibration, credit strategy,
 > vintage maturity, IFRS 9 ECL consumption, contractual cash-flow/recovery sensitivity, SICR
-> rebuttal, an attributed Australian macro-credit satellite with ECL model-choice sensitivity,
+> rebuttal, an attributed Australian macro-credit satellite with validation-only remediation,
+> ECL model-choice sensitivity,
 > overlay governance, independent candidate re-estimation, validation with confidence
 > intervals and segment backtesting, score/feature drift, no-look-ahead remediation, and
 > PostgreSQL governance persistence.
@@ -309,8 +334,9 @@ and the optional VS Code/Codex iteration process are documented in
 
 ## Next Evidence
 
-- Remediate the restricted macro satellite with alternative targets, factor lags, horizons,
-  and segment-level data, then repeat a newly frozen OOT benchmark.
+- Establish a comparable post-selection macro-credit outcome window, real-time release
+  vintages, and a governed bridge across the APS 220 reporting-basis change before requesting
+  macro finding closure.
 - Replace synthetic recovery assumptions with a governed public-data estimation study when a
   defensible recovery dataset and legal-scope mapping are available.
 - Revisit the pending calibration finding when an additional matured OOT horizon is available.

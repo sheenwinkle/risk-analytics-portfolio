@@ -1,0 +1,14 @@
+check,metric_value,threshold,direction,status,rationale
+candidate_registration,4,4,equal,pass,The independent review must receive the complete pre-registered candidate set.
+release_lag_compatibility,0,0,equal,pass,Every eligible macro input must be available by its forecast origin.
+selection_reperformance,1,1,equal,pass,Independent sorting and score arithmetic must reproduce the selected row.
+oot_selection_exclusion,1,1,equal,pass,The reused OOT period must not determine the candidate or alpha.
+prediction_timing,0,0,equal,pass,Each prediction must preserve its declared forecast horizon.
+coefficient_constraints,8.595914867533474e-06,0,greater_than_or_equal,pass,Selected challenger coefficients must retain the declared nonnegative signs.
+active_macro_drivers,2,2,greater_than_or_equal,pass,Both macro drivers should retain incremental sensitivity after remediation.
+developer_metric_reconciliation,1.7285482045714673e-08,9.9999999999999995e-08,less_than_or_equal,pass,Developer OOT claims must reconcile to independently recalculated errors.
+oot_mae_vs_persistence,-0.0035241308165111689,0,greater_than_or_equal,fail,The remediated point forecast should not underperform persistence on MAE.
+oot_rmse_vs_persistence,0.015682013224797502,0,greater_than_or_equal,pass,The remediated point forecast should not underperform persistence on RMSE.
+fresh_oot_closure_evidence,0,1,equal,fail,The 2019-2021 outcomes were already observed and cannot close a finding.
+developer_closure_control,1,1,equal,pass,Developer evidence must retain restricted use and make no closure claim.
+real_time_data_vintage,0,1,equal,warning,"Lagging addresses availability, but historical revision sensitivity remains."

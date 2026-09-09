@@ -24,6 +24,12 @@ MAE/RMSE benchmark deltas, scenario ordering, and control outcomes without impor
 `../ifrs9-ecl-engine/data/public/australia_macro_credit_lineage.json`; Project 3 records
 SHA-256 hashes of every consumed report in its validation input audit.
 
+The independent remediation review additionally reads Project 2's aggregate evidence under
+`../ifrs9-ecl-engine/reports/macro_remediation/` and the original Project 3 macro findings.
+It re-performs candidate selection and OOT metrics from files only. The candidate register,
+tuning grid, coefficients, aggregate quarterly predictions, governance decision, and finding
+lifecycle contain no borrower or account identifiers.
+
 ## Source Contract
 
 | Field | Role in validation |
@@ -57,6 +63,7 @@ and inconsistent derived loan-to-income values.
 - Vintage, segment, and characteristic-stability reports contain aggregate counts and metrics only.
 - The validation pipeline writes deterministic files without timestamps or local paths.
 - Macro-satellite validation outputs contain aggregate metrics, checks, and findings only.
+- Macro-remediation outputs contain aggregate quarterly evidence and append-only finding states only.
 - The public publisher uses an explicit aggregate allow-list and rejects CSV files containing
   a `customer_id` column.
 
