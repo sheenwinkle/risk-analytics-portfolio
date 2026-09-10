@@ -5,6 +5,10 @@ Probability of default modelling workflow for credit risk analytics and model va
 Status: complete scoped case study with reproducible synthetic reports and published aggregate
 evidence from a full public LendingClub run.
 
+Start with the [case study](case-study.md) for a recruiter-friendly summary of the
+business problem, my contribution, quantified challenger impact, A/B-test boundary, and
+governed scoring evidence.
+
 ## Business Problem
 
 Credit risk teams need more than a binary classifier. A useful PD model should estimate a borrower's probability of default, remain calibrated over time, and be monitored for portfolio drift.
