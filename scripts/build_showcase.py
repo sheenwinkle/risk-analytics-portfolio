@@ -178,6 +178,22 @@ def main() -> None:
         / "public_lendingclub"
         / "strategy_incremental_impact.csv"
     )
+    scoring_band_path = (
+        REPO_ROOT
+        / "projects"
+        / "credit-risk-pd-model"
+        / "reports"
+        / "public_lendingclub"
+        / "score_band_summary.csv"
+    )
+    scoring_reconciliation_path = (
+        REPO_ROOT
+        / "projects"
+        / "credit-risk-pd-model"
+        / "reports"
+        / "public_lendingclub"
+        / "scoring_reconciliation.csv"
+    )
 
     outputs = (
         _build_calibration_chart(calibration_path, output_dir / "public_pd_calibration.png"),
@@ -232,6 +248,11 @@ def main() -> None:
             strategy_comparison_path,
             strategy_impact_path,
             output_dir / "public_strategy_backtest.png",
+        ),
+        _build_scoring_service_chart(
+            scoring_band_path,
+            scoring_reconciliation_path,
+            output_dir / "public_pd_scoring_service.png",
         ),
     )
     for output in outputs:
@@ -1107,6 +1128,116 @@ def _build_strategy_chart(
         fontsize=8.5,
     )
     figure.subplots_adjust(left=0.07, right=0.98, top=0.79, bottom=0.18, wspace=0.34)
+    _save(figure, output_path)
+    return output_path
+
+
+def _build_scoring_service_chart(
+    score_band_path: Path,
+    reconciliation_path: Path,
+    output_path: Path,
+) -> Path:
+    band_order = ("low", "moderate", "high", "very_high")
+    bands = {row["risk_band"]: row for row in _read_csv(score_band_path)}
+    if set(bands) != set(band_order):
+        raise ValueError("Scoring showcase requires all four governed risk bands")
+    reconciliation_rows = _read_csv(reconciliation_path)
+    if len(reconciliation_rows) != 1:
+        raise ValueError("Scoring showcase requires exactly one reconciliation row")
+    reconciliation = reconciliation_rows[0]
+
+    shares = [float(bands[band]["portfolio_share"]) for band in band_order]
+    counts = [int(bands[band]["records"]) for band in band_order]
+    labels = ["Low", "Moderate", "High", "Very high"]
+
+    figure, (distribution_axis, control_axis) = plt.subplots(
+        1,
+        2,
+        figsize=(9.4, 4.9),
+        dpi=160,
+        gridspec_kw={"width_ratios": [1.35, 1.0]},
+    )
+    figure.suptitle(
+        "Governed public-data PD scoring replay",
+        x=0.07,
+        ha="left",
+        fontsize=15,
+        color=TEXT,
+    )
+    figure.text(
+        0.07,
+        0.91,
+        "Verified deployment contract | frozen 2017-2018 OOT applications",
+        color=MUTED,
+        fontsize=9,
+    )
+
+    bars = distribution_axis.bar(
+        labels,
+        shares,
+        color=[TEAL, BLUE, AMBER, RED],
+        width=0.64,
+    )
+    distribution_axis.set_title("Recalibrated PD risk bands", loc="left", fontsize=11, pad=12)
+    distribution_axis.set_ylabel("OOT portfolio share")
+    distribution_axis.set_ylim(0, max(shares) * 1.28)
+    distribution_axis.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    distribution_axis.grid(axis="y", color=GRID, linewidth=0.8)
+    distribution_axis.set_axisbelow(True)
+    distribution_axis.spines[["top", "right"]].set_visible(False)
+    distribution_axis.tick_params(axis="x", labelsize=8.5)
+    for bar, share, count in zip(bars, shares, counts, strict=True):
+        distribution_axis.text(
+            bar.get_x() + bar.get_width() / 2,
+            share + max(shares) * 0.035,
+            f"{share:.1%}\n{count:,}",
+            ha="center",
+            va="bottom",
+            color=TEXT,
+            fontsize=8.5,
+            fontweight="bold",
+        )
+
+    control_axis.axis("off")
+    control_axis.set_title("Deployment controls", loc="left", fontsize=11, pad=12)
+    control_rows = (
+        (
+            "Applications replayed",
+            f"{int(reconciliation['records_replayed']):,}",
+        ),
+        ("Governed batches", f"{int(reconciliation['batches_scored']):,}"),
+        ("PD reconciliation tolerance", f"<{float(reconciliation['replay_tolerance']):.0e}"),
+        (
+            "Artifact / replay checks",
+            (
+                "PASS"
+                if reconciliation["artifact_integrity_verified"] == "True"
+                and reconciliation["replay_reconciled"] == "True"
+                else "REVIEW"
+            ),
+        ),
+    )
+    for index, (label, value) in enumerate(control_rows):
+        y = 0.82 - index * 0.20
+        control_axis.text(0.02, y, label, color=MUTED, fontsize=9, transform=control_axis.transAxes)
+        control_axis.text(
+            0.02,
+            y - 0.09,
+            value,
+            color=TEAL if value == "PASS" else TEXT,
+            fontsize=16,
+            fontweight="bold",
+            transform=control_axis.transAxes,
+        )
+
+    figure.text(
+        0.07,
+        0.025,
+        "Aggregate evidence only | no application identifiers, row-level scores, or model binary committed",
+        color=MUTED,
+        fontsize=8.5,
+    )
+    figure.subplots_adjust(left=0.07, right=0.98, top=0.79, bottom=0.18, wspace=0.30)
     _save(figure, output_path)
     return output_path
 

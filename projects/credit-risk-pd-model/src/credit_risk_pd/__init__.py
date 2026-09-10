@@ -10,7 +10,8 @@ __all__ = [
     "monitoring",
     "pipeline",
     "reporting",
+    "scoring_demo",
+    "serving",
     "strategy",
     "woe",
 ]
-

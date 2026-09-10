@@ -89,10 +89,14 @@ def test_publish_public_run_copies_only_aggregate_evidence_and_writes_lineage(tm
     assert publication.manifest_path.read_bytes().endswith(b"\n")
 
 
-def test_publish_public_run_rejects_report_with_customer_identifier(tmp_path):
+@pytest.mark.parametrize("identifier_column", ["application_id", "customer_id"])
+def test_publish_public_run_rejects_report_with_borrower_identifier(
+    tmp_path,
+    identifier_column,
+):
     report_dir = tmp_path / "source_reports"
     _write_source_reports(report_dir)
-    pd.DataFrame({"customer_id": ["PRIVATE-1"]}).to_csv(
+    pd.DataFrame({identifier_column: ["PRIVATE-1"]}).to_csv(
         report_dir / "model_metrics.csv",
         index=False,
     )
@@ -113,7 +117,7 @@ def test_publish_public_run_rejects_report_with_customer_identifier(tmp_path):
     vintage_path = tmp_path / "vintage_resolution.csv"
     _write_vintage_resolution(vintage_path)
 
-    with pytest.raises(ValueError, match="cannot include customer_id"):
+    with pytest.raises(ValueError, match="cannot include borrower identifier"):
         publish_public_lendingclub_run(
             report_dir,
             audit_path,
@@ -143,7 +147,7 @@ def test_publish_public_run_rejects_vintage_report_with_customer_identifier(tmp_
     vintage_path = tmp_path / "vintage_resolution.csv"
     pd.DataFrame({"customer_id": ["PRIVATE-1"]}).to_csv(vintage_path, index=False)
 
-    with pytest.raises(ValueError, match="cannot include customer_id"):
+    with pytest.raises(ValueError, match="cannot include borrower identifier"):
         publish_public_lendingclub_run(
             report_dir,
             audit_path,

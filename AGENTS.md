@@ -40,6 +40,8 @@ Individual project checks remain available:
 # Project 1
 pytest
 python scripts/run_pipeline.py
+python scripts/run_scoring_demo.py
+python scripts/serve_model.py
 
 # Project 2
 pytest
@@ -63,7 +65,8 @@ Every implementation iteration must complete this loop before it is committed or
 3. Run the focused tests while iterating.
 4. Run the complete test suite after implementation.
 5. Run every pipeline affected by the change and inspect the generated artefacts.
-6. For public data, publish only allow-listed aggregate evidence; never publish borrower IDs.
+6. For public data, publish only allow-listed aggregate evidence; never publish borrower IDs
+   or row-level scores.
 7. Run `git diff --check` and review the final diff for unrelated changes.
 
 On Windows, prefer the project interpreter explicitly:
@@ -72,6 +75,7 @@ On Windows, prefer the project interpreter explicitly:
 $pytestTemp = ".pytest-tmp-$([guid]::NewGuid().ToString('N'))"
 .\.venv\Scripts\python.exe -m pytest -p no:cacheprovider --basetemp=$pytestTemp
 .\.venv\Scripts\python.exe scripts\run_pipeline.py
+.\.venv\Scripts\python.exe scripts\run_scoring_demo.py
 ```
 
 Projects 2 and 3 can use their own virtual environments or the Project 1 interpreter when

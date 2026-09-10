@@ -57,6 +57,7 @@ def main() -> None:
 
     project1_reports = output_root / "credit-risk-pd-model" / "reports"
     project1_models = output_root / "credit-risk-pd-model" / "models"
+    project1_scoring_reports = output_root / "credit-risk-pd-model" / "scoring"
     project2_reports = output_root / "ifrs9-ecl-engine" / "reports"
     project2_macro_satellite_reports = (
         output_root / "ifrs9-ecl-engine" / "macro_satellite"
@@ -92,6 +93,21 @@ def main() -> None:
                 str(project1_reports),
                 "--models",
                 str(project1_models),
+            ),
+        ),
+        PipelineStep(
+            "Governed PD scoring replay",
+            PROJECT_ROOT / "credit-risk-pd-model",
+            (
+                "scripts/run_scoring_demo.py",
+                "--manifest",
+                str(project1_models / "deployment_manifest.json"),
+                "--predictions",
+                str(project1_reports / "oot_predictions.csv"),
+                "--output-dir",
+                str(project1_scoring_reports),
+                "--data-context",
+                "synthetic_demo",
             ),
         ),
         PipelineStep(
@@ -256,6 +272,7 @@ def main() -> None:
 
     generated_report_dirs = {
         "credit-risk-pd-model": project1_reports,
+        "credit-risk-pd-scoring": project1_scoring_reports,
         "ifrs9-ecl-engine": project2_reports,
         "ifrs9-ecl-macro-satellite": project2_macro_satellite_reports,
         "ifrs9-ecl-macro-remediation": project2_macro_remediation_reports,
@@ -307,6 +324,9 @@ def _run_project_checks() -> None:
 def _verify_committed_reports(generated_report_dirs: dict[str, Path]) -> None:
     committed_report_dirs = {
         "credit-risk-pd-model": PROJECT_ROOT / "credit-risk-pd-model" / "reports",
+        "credit-risk-pd-scoring": (
+            PROJECT_ROOT / "credit-risk-pd-model" / "reports" / "scoring"
+        ),
         "ifrs9-ecl-engine": PROJECT_ROOT / "ifrs9-ecl-engine" / "reports",
         "ifrs9-ecl-macro-satellite": (
             PROJECT_ROOT / "ifrs9-ecl-engine" / "reports" / "macro_satellite"

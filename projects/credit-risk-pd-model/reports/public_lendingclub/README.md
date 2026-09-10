@@ -28,6 +28,13 @@ The random forest was selected using the later pre-OOT calibration holdout. On t
 recalibration reduced Brier score from `0.208` to `0.155`; mean recalibrated PD was `23.9%`
 against an observed default rate of `21.3%`.
 
+The selected artifact was registered with its fitted input levels, numeric domain, derived
+feature definition, policy cutoff, risk bands, batch limit, and both structural and artifact
+SHA-256 checks. The scoring service replayed all 225,639 OOT applications in 226 batches and
+reconciled to the frozen offline PD with zero reported difference at 12 decimal places,
+passing the `1e-12` tolerance. See the
+[aggregate scoring report](scoring_service_report.md).
+
 ## Credit Decision Strategy Backtest
 
 The incumbent 15% max-PD cutoff and candidate thresholds were compared on the pre-OOT
@@ -64,6 +71,8 @@ right-censoring in the terminal-status target.
 Only aggregate reports are committed. Raw data, canonical borrower-level data, fitted model
 objects, and `oot_predictions.csv` remain under Git-ignored local directories. The publication
 script rejects any safe-list CSV containing a `customer_id` column.
+It also rejects the service-facing `application_id`; row-level scores and the model artifact
+are never copied into this directory.
 
 ## Reproduce Locally
 
@@ -88,7 +97,14 @@ python scripts/run_pipeline.py `
   --input data/processed/lendingclub_pd.csv `
   --oot-cutoff 2017-01-01 `
   --reports data/processed/public_run/reports `
-  --models data/processed/public_run/models
+  --models data/processed/public_run/models `
+  --model-version lendingclub-public-pd-v1
+
+python scripts/run_scoring_demo.py `
+  --manifest data/processed/public_run/models/deployment_manifest.json `
+  --predictions data/processed/public_run/reports/oot_predictions.csv `
+  --output-dir data/processed/public_run/reports `
+  --data-context public_lendingclub
 
 python scripts/publish_public_run.py `
   --source-reports data/processed/public_run/reports `

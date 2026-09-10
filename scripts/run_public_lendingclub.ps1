@@ -41,7 +41,14 @@ if ($ForceDownload) {
     --input $PreparedFile `
     --oot-cutoff 2017-01-01 `
     --reports (Join-Path $PublicRun "reports") `
-    --models (Join-Path $PublicRun "models")
+    --models (Join-Path $PublicRun "models") `
+    --model-version lendingclub-public-pd-v1
+
+& $VenvPython (Join-Path $Project1 "scripts\run_scoring_demo.py") `
+    --manifest (Join-Path $PublicRun "models\deployment_manifest.json") `
+    --predictions (Join-Path $PublicRun "reports\oot_predictions.csv") `
+    --output-dir (Join-Path $PublicRun "reports") `
+    --data-context public_lendingclub
 
 & $VenvPython (Join-Path $Project1 "scripts\publish_public_run.py") `
     --source-reports (Join-Path $PublicRun "reports") `
