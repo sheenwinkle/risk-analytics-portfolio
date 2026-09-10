@@ -16,7 +16,8 @@ Data checks -> feature engineering -> out-of-time split -> baseline model -> cha
 -> pre-OOT calibration holdout model selection -> logistic PD recalibration
 -> pre-OOT champion-challenger policy selection -> frozen OOT strategy backtest
 -> fixed lending approval cutoff scenarios -> WOE/IV screening -> permutation importance
--> PSI monitoring -> raw-status vintage maturity audit -> report outputs
+-> PSI monitoring -> raw-status vintage maturity audit -> governed deployment manifest
+-> strict batch scoring API -> frozen OOT service reconciliation -> aggregate report outputs
 ```
 
 ## Public LendingClub Evidence
@@ -30,6 +31,8 @@ ignored.
 | Raw accepted-loan rows audited | 2,260,701 |
 | Resolved terminal outcomes retained | 1,348,099 |
 | Untouched 2017-2018 OOT observations | 225,639 |
+| Governed scoring replay | 225,639 records / 226 batches |
+| Offline-vs-service PD reconciliation | Zero at 12 decimal places (1e-12 tolerance) |
 | Selected model | Random forest |
 | OOT ROC-AUC / Gini / KS | 0.6999 / 0.3998 / 0.2925 |
 | Raw to recalibrated Brier score | 0.2085 -> 0.1547 |
@@ -41,6 +44,7 @@ ignored.
 Review the [public aggregate model report](reports/public_lendingclub/model_report.md),
 [ingestion audit](reports/public_lendingclub/ingestion_audit.csv), and
 [vintage maturity report](reports/public_lendingclub/vintage_resolution.csv), and
+[scoring service reconciliation](reports/public_lendingclub/scoring_service_report.md), and
 [data lineage record](reports/public_lendingclub/data_lineage.json). These results are an
 exploratory terminal-outcome case study, not a Basel-compliant fixed-horizon PD estimate.
 The strategy evidence is a retrospective accepted-loan backtest, not a randomized A/B test
@@ -71,6 +75,10 @@ It demonstrates:
 - Model-agnostic permutation importance evaluated on the out-of-time sample
 - Population Stability Index for monitoring drift
 - Quarterly resolved/unresolved status denominators to expose maturity and right-censoring
+- Versioned input/model/policy manifest with structural and model-artifact SHA-256 checks
+- Strict FastAPI batch contract, governed cutoff outcomes, risk bands, batch limits, and
+  missing/unseen-input telemetry
+- Privacy-safe service replay over every frozen public OOT record with offline PD reconciliation
 - SQL schema design for credit risk data
 
 ## Repository Structure
@@ -89,6 +97,8 @@ credit-risk-pd-model/
     prepare_lendingclub_data.py
     publish_public_run.py
     run_pipeline.py
+    run_scoring_demo.py
+    serve_model.py
   sql/
     schema.sql
     example_queries.sql
@@ -123,7 +133,23 @@ Use deterministic synthetic data for the fast demo:
 
 ```powershell
 python scripts/run_pipeline.py
+python scripts/run_scoring_demo.py
 ```
+
+Start the local reference API after building the model, then open `http://127.0.0.1:8000/docs`
+for the generated request schema:
+
+```powershell
+python scripts/serve_model.py
+```
+
+The service loads the model once, verifies the artifact and structural contract before
+deserialization, rejects coercion and unknown fields, derives `loan_to_income` internally,
+and returns raw/recalibrated PD, risk band, governed-cutoff outcome, policy input flags, and
+batch input-quality telemetry. It is a local portfolio reference: authentication,
+authorization, rate limits, durable audit storage, registry signatures, and production PII
+controls are out of scope. Policy flags are monitoring rules, not model attribution,
+adverse-action reasons, or automated approval decisions.
 
 From the repository root, download and rebuild the complete public-data evidence chain:
 
@@ -188,7 +214,7 @@ The pipeline writes:
 - `reports/strategy_oot_comparison.csv`: incumbent/challenger OOT approvals, exposure, loss, and simplified expected/realised credit contribution
 - `reports/strategy_incremental_impact.csv`: marginal-cohort uplift and paired bootstrap interval
 - `reports/strategy_acceptance_checks.csv`: explicit rollout criteria and pass/fail evidence
-- `reports/strategy_governance_decision.csv`: advance, controlled-experiment, or retain-incumbent decision without a causal claim
+- `reports/strategy_governance_decision.csv`: advance-challenger or retain-incumbent decision without a causal claim
 - `reports/calibration_table.csv`: decile-level predicted PD vs observed default rate
 - `reports/woe_bins.csv`: Weight of Evidence bin detail for numeric quantile bins and categorical category bins
 - `reports/woe_summary.csv`: feature-level Information Value ranking for development-sample variable screening
@@ -197,6 +223,11 @@ The pipeline writes:
 - `reports/model_report.md`: markdown summary of model performance, recalibration, strategy scenarios, Information Value, feature importance, and PSI monitoring
 - `reports/oot_predictions.csv`: account-level out-of-time actuals, selected/raw/recalibrated PDs, the complete frozen model-input contract, and non-sensitive segments; Project 2's ECL bridge uses only `customer_id`, `observation_date`, and `recalibrated_pd`, while Project 3 independently validates feature lineage and drift
 - `models/<selected_model>_recalibrated.joblib`: selected base model plus fitted logistic recalibrator with `predict_proba`
+- `models/deployment_manifest.json`: model version, selected estimator, input/derived-feature
+  contract, categorical levels, numeric bounds, risk bands, governed cutoff, batch limit, and
+  structural/artifact SHA-256 lineage
+- `reports/scoring/`: deterministic aggregate service reconciliation, score-band distribution,
+  audit summary, and input-quality evidence; no application identifiers or row-level scores
 - `models/validation_inputs/model_development_sample.csv`: local, borrower-level pre-OOT development and calibration rows used only for independent replication; this path is Git-ignored
 - `models/validation_inputs/model_development_spec.json`: machine-readable feature, preprocessing, candidate, and selection contract
 - `models/validation_inputs/model_parameter_reference.csv`: fitted logistic coefficients and random-forest importances used as reconciliation references
@@ -256,13 +287,17 @@ extrapolation is an educational portfolio assumption, not an IFRS 9 compliance c
 Do not commit raw datasets or borrower-level processed data to GitHub. Store raw files
 under `data/raw/` and processed files under `data/processed/`, both of which are ignored.
 `publish_public_run.py` enforces a report allow-list and rejects CSVs containing
-`customer_id`; `oot_predictions.csv` is deliberately excluded from publication.
+`customer_id` or `application_id`; `oot_predictions.csv` is deliberately excluded from
+publication.
 
 ## Resume Bullets
 
 - Built an end-to-end Python credit risk PD workflow over 2.26 million public LendingClub records, retaining 1.35 million resolved outcomes through chunked ingestion, leakage-safe temporal model selection, recalibration, WOE/IV screening, permutation importance, strategy scenarios, PSI, and vintage maturity monitoring.
 - Built a pre-OOT champion-challenger policy backtest that selected a controlled 20% max-PD cutoff, then measured 35,876 incremental OOT approvals and a USD 17.0 million realised credit-contribution proxy uplift (95% paired-bootstrap CI: 16.1-18.0 million) while preserving accepted-loan and non-causal limitations.
 - Selected a random forest challenger before OOT evaluation and achieved 0.6999 ROC-AUC on 225,639 untouched 2017-2018 observations; logistic recalibration reduced Brier score from 0.2085 to 0.1547.
+- Registered and served the selected model through a strict, integrity-checked batch API,
+  replaying 225,639 frozen OOT applications in 226 batches with a maximum offline-versus-service
+  PD difference of zero at 12 decimal places while publishing aggregate-only telemetry.
 - Designed SQL schemas and analytics queries for loan, customer, and performance data to support credit risk reporting and model development.
 
 ## Interview Talking Points
@@ -276,5 +311,7 @@ under `data/raw/` and processed files under `data/processed/`, both of which are
 - How PSI can detect portfolio drift before model performance deteriorates
 - Why resolved-only terminal outcomes create recent-vintage right-censoring and how to expose it
 - Why logistic regression is still common in regulated risk modelling
+- Why model/input contract hashes, artifact verification, strict schemas, and offline-online
+  reconciliation matter before deploying a PD model
 - How this project's recalibrated synthetic OOT PD outputs can feed an educational ECL
   bridge without leaking future outcomes

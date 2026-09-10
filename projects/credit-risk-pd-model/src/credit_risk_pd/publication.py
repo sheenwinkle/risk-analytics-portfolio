@@ -12,12 +12,17 @@ KAGGLE_DATASET_URL = "https://www.kaggle.com/datasets/wordsforthewise/lending-cl
 SAFE_AGGREGATE_REPORTS = (
     "approval_strategy.csv",
     "calibration_table.csv",
+    "data_quality_summary.csv",
     "feature_importance.csv",
     "model_metrics.csv",
     "model_report.md",
     "model_selection_audit.csv",
     "psi_report.csv",
     "recalibration_summary.csv",
+    "score_band_summary.csv",
+    "scoring_audit.csv",
+    "scoring_reconciliation.csv",
+    "scoring_service_report.md",
     "strategy_acceptance_checks.csv",
     "strategy_governance_decision.csv",
     "strategy_incremental_impact.csv",
@@ -27,6 +32,7 @@ SAFE_AGGREGATE_REPORTS = (
     "woe_summary.csv",
 )
 EXCLUDED_BORROWER_LEVEL_REPORTS = ("oot_predictions.csv",)
+BORROWER_IDENTIFIER_COLUMNS = frozenset({"application_id", "customer_id"})
 VINTAGE_RESOLUTION_REPORT = "vintage_resolution.csv"
 
 
@@ -135,9 +141,11 @@ def _validate_aggregate_reports(source_report_dir: Path) -> None:
 
 def _validate_safe_csv(path: Path, published_name: str) -> None:
     columns = pd.read_csv(path, nrows=0).columns
-    if "customer_id" in columns:
+    identifier_columns = sorted(set(columns) & BORROWER_IDENTIFIER_COLUMNS)
+    if identifier_columns:
         raise ValueError(
-            f"Aggregate publication cannot include customer_id: {published_name}"
+            "Aggregate publication cannot include borrower identifier "
+            f"{', '.join(identifier_columns)}: {published_name}"
         )
 
 

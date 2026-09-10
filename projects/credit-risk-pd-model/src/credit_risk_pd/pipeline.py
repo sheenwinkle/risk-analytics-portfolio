@@ -31,6 +31,7 @@ from credit_risk_pd.metrics import (
 from credit_risk_pd.model import candidate_models
 from credit_risk_pd.monitoring import psi_report
 from credit_risk_pd.reporting import generate_model_report
+from credit_risk_pd.serving import write_deployment_manifest
 from credit_risk_pd.strategy import approval_strategy_table
 from credit_risk_pd.validation_contract import write_model_validation_bundle
 from credit_risk_pd.woe import calculate_woe_iv
@@ -41,6 +42,7 @@ def run_pd_modelling_workflow(
     output_dir: str | Path = "reports",
     model_dir: str | Path = "models",
     config: ModelConfig = DEFAULT_CONFIG,
+    model_version: str = "synthetic-pd-v1",
 ) -> dict[str, Path]:
     """Run the end-to-end PD modelling workflow and export portfolio-ready artefacts."""
     output_path = Path(output_dir)
@@ -268,13 +270,25 @@ def run_pd_modelling_workflow(
     woe_bins_df.to_csv(woe_bins_file, index=False)
     woe_summary_df.to_csv(woe_summary_file, index=False)
     feature_importance_df.to_csv(feature_importance_file, index=False)
-    joblib.dump(
-        RecalibratedPDModel(
-            selected_model_name=best_model_name,
-            base_estimator=trained_models[best_model_name],
-            recalibrator=recalibrator,
-        ),
+    deployed_model = RecalibratedPDModel(
+        selected_model_name=best_model_name,
+        base_estimator=trained_models[best_model_name],
+        recalibrator=recalibrator,
+    )
+    joblib.dump(deployed_model, model_file)
+    governance = decision_strategy.strategy_governance_decision.iloc[0]
+    approval_cutoff = (
+        float(governance["challenger_cutoff"])
+        if governance["decision"] == "advance_challenger"
+        else float(governance["incumbent_cutoff"])
+    )
+    deployment_manifest = write_deployment_manifest(
         model_file,
+        deployed_model,
+        model_version=model_version,
+        approval_cutoff=approval_cutoff,
+        policy_decision=str(governance["decision"]),
+        output_path=model_path / "deployment_manifest.json",
     )
     validation_bundle = write_model_validation_bundle(
         model_development=model_development,
@@ -307,6 +321,7 @@ def run_pd_modelling_workflow(
         "feature_importance": feature_importance_file,
         "report": report_file,
         "model": model_file,
+        "deployment_manifest": deployment_manifest,
         **validation_bundle,
     }
 

@@ -14,6 +14,7 @@ connected model lifecycle rather than presenting unrelated notebooks:
 ```text
 Public/synthetic lending data
 -> PD development and OOT scoring
+-> versioned deployment contract and integrity-checked scoring replay
 -> vintage maturity and statistical uncertainty checks
 -> IFRS 9 ECL consumption
 -> contractual cash-flow/recovery sensitivity
@@ -37,6 +38,8 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 | Raw rows read | 2,260,701 |
 | Resolved terminal-outcome rows | 1,348,099 |
 | 2017-2018 OOT accounts | 225,639 |
+| Governed service replay / batches | 225,639 / 226 |
+| Offline-vs-service PD reconciliation | Zero at 12 decimal places (1e-12 tolerance) |
 | Selected-model OOT ROC-AUC / Gini / KS | 0.700 / 0.400 / 0.292 |
 | Raw to recalibrated Brier score | 0.208 -> 0.155 |
 | Selected-model ROC-AUC 95% CI | 0.697 -> 0.702 |
@@ -54,6 +57,8 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 
 ![Public LendingClub calibration](docs/assets/public_pd_calibration.png)
 
+![Public governed PD scoring replay](docs/assets/public_pd_scoring_service.png)
+
 ![Public validation opinion](docs/assets/public_validation_opinion.png)
 
 ![Public feature stability](docs/assets/public_feature_stability.png)
@@ -64,7 +69,7 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 
 | Project | Status | Main evidence | Target roles |
 | --- | --- | --- | --- |
-| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, champion-challenger strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
+| [Credit Risk PD Modelling](projects/credit-risk-pd-model) | Complete case study | Full public-data run, temporal model selection, recalibration, governed scoring API/replay, champion-challenger strategy, WOE/IV, explainability, PSI | Credit Risk, Risk Analytics, Lending Data Science |
 | [IFRS 9 ECL Engine](projects/ifrs9-ecl-engine) | Complete scoped case study | Staging, monthly PD/LGD/EAD, Australian macro satellite and controlled remediation, ECL A/B sensitivity, PD bridge, SICR rebuttal, overlay controls | ECL, Portfolio Risk, Credit Risk |
 | [Model Validation Framework](projects/model-validation-framework) | Complete scoped case study | Independent candidate rebuild, PD and macro-remediation opinions, confidence intervals, vintage/segment backtesting, PSI/CSI drift, finding lifecycle | Model Risk, Validation, Quant Risk |
 
@@ -79,12 +84,19 @@ Chunked LendingClub ingestion and audit
 -> logistic baseline and random-forest challenger
 -> pre-OOT model selection and logistic recalibration
 -> OOT discrimination, calibration, strategy, WOE/IV, importance, and PSI evidence
+-> SHA-256 model registration, strict scoring contract, local API, and OOT replay reconciliation
 ```
 
 The public-data model selected the random forest on the 2016 pre-OOT holdout. On the
 2017-2018 OOT cohort, recalibration preserved ROC-AUC `0.699887` while reducing Brier score
 from `0.208470` to `0.154725`. The highest-risk decile remained over-predicted by `7.1%`, so
 the report retains a material calibration discussion rather than presenting a perfect model.
+
+The deployment layer registers the selected artifact and complete input/policy contract,
+rejects altered artifacts or manifests before loading, and exposes strict batch scoring plus
+input-quality telemetry through a local FastAPI reference service. Replaying all 225,639 public
+OOT applications in 226 governed batches reconciled to frozen offline PDs with a maximum
+reported difference of zero at 12 decimal places, passing the `1e-12` acceptance tolerance.
 
 Public aggregate evidence:
 
@@ -93,6 +105,7 @@ Public aggregate evidence:
 - [Data lineage and SHA-256](projects/credit-risk-pd-model/reports/public_lendingclub/data_lineage.json)
 - [Ingestion audit](projects/credit-risk-pd-model/reports/public_lendingclub/ingestion_audit.csv)
 - [Raw-status vintage maturity](projects/credit-risk-pd-model/reports/public_lendingclub/vintage_resolution.csv)
+- [Scoring service reconciliation](projects/credit-risk-pd-model/reports/public_lendingclub/scoring_service_report.md)
 
 The committed synthetic run remains the fast, deterministic CI fixture for cross-project
 tests. It intentionally includes a stressed 2022 OOT period.
@@ -259,11 +272,15 @@ VS Code exposes both commands through **Tasks: Run Task**:
 - `Portfolio: Full Self-Test and Reproduction`
 - `Portfolio: Reproduce Committed Evidence`
 - `Build Public LendingClub Evidence`
+- `Project 1: Build and Reconcile Scoring Service`
+- `Project 1: Serve Local PD API`
 
 ## Engineering Controls
 
 - Python packages with explicit public APIs rather than notebook-only logic
 - Behavioural, edge-case, lineage, privacy, and deterministic-report tests
+- Strict PD API schema, versioned model/input/policy manifest, SHA-256 artifact checks, batch
+  limits, input-quality telemetry, and byte-reproducible aggregate replay evidence
 - Pre-OOT strategy selection, frozen OOT evaluation, and paired marginal-cohort uncertainty
 - Governed SICR evidence, DPD/date matching, approval, precedence, and impact reconciliation
 - Separate ECL sensitivity, overlay trigger, double-counting, approval, cap, and reconciliation controls
@@ -315,11 +332,15 @@ risk-analytics-portfolio/
   benchmark by `0.35%` on an already observed window.
 - Validation policy thresholds are explicit case-study assumptions, not regulatory cutoffs.
 - Public aggregate results demonstrate analytical workflow, not production approval.
+- The local scoring API is a portfolio reference service. It has no authentication,
+  authorization, rate limiting, durable audit store, signed model registry, or production PII
+  controls; policy input flags are not local model attributions or adverse-action reasons.
 
 ## Resume Positioning
 
 > Built an end-to-end Python and PostgreSQL credit-risk portfolio across 2.26 million public
 > LendingClub records, covering temporal PD development, recalibration, credit strategy,
+> integrity-checked batch scoring and OOT replay reconciliation,
 > vintage maturity, IFRS 9 ECL consumption, contractual cash-flow/recovery sensitivity, SICR
 > rebuttal, an attributed Australian macro-credit satellite with validation-only remediation,
 > ECL model-choice sensitivity,

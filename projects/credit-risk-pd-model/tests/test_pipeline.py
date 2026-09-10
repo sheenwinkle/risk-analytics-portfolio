@@ -14,6 +14,7 @@ from credit_risk_pd.data import (
 )
 from credit_risk_pd.features import CATEGORICAL_FEATURES, NUMERIC_FEATURES, split_features_target
 from credit_risk_pd.pipeline import run_pd_modelling_workflow
+from credit_risk_pd.serving import load_scoring_service
 
 
 class FeatureScoreEstimator(ClassifierMixin, BaseEstimator):
@@ -55,6 +56,7 @@ def test_pipeline_creates_outputs(tmp_path):
     assert "strategy_incremental_impact" in outputs
     assert "strategy_acceptance_checks" in outputs
     assert "strategy_governance_decision" in outputs
+    assert "deployment_manifest" in outputs
     for path in outputs.values():
         assert path.exists()
 
@@ -177,6 +179,22 @@ def test_pipeline_creates_outputs(tmp_path):
         atol=1e-12,
     )
 
+    deployment = json.loads(
+        outputs["deployment_manifest"].read_text(encoding="utf-8")
+    )
+    assert outputs["deployment_manifest"].name == "deployment_manifest.json"
+    assert deployment["model_version"] == "synthetic-pd-v1"
+    assert deployment["approval_cutoff"] == pytest.approx(0.15)
+    assert deployment["policy_decision"] == "retain_incumbent"
+    assert deployment["numeric_bounds"]["annual_income"]["minimum"] == 0.0
+    assert deployment["numeric_bounds"]["annual_income"]["minimum_inclusive"] is True
+    assert deployment["risk_band_edges"] == [0.1, 0.15, 0.25]
+    assert deployment["explanation_method"] == (
+        "policy_input_flags_not_model_attribution"
+    )
+    service = load_scoring_service(outputs["model"], outputs["deployment_manifest"])
+    assert service.manifest.artifact_sha256 == deployment["artifact_sha256"]
+
     woe_bins = pd.read_csv(outputs["woe_bins"])
     woe_summary = pd.read_csv(outputs["woe_summary"])
     assert {"feature", "bin", "goods", "bads", "woe", "iv"}.issubset(woe_bins.columns)
@@ -195,7 +213,15 @@ def test_pipeline_selects_model_on_calibration_holdout_not_oot(monkeypatch, tmp_
             "oot_winner_if_leaky": FeatureScoreEstimator(invert=True),
         }
 
+    def fake_deployment_manifest(*args, output_path, **kwargs):
+        output_path.write_text("{}\n", encoding="utf-8")
+        return output_path
+
     monkeypatch.setattr("credit_risk_pd.pipeline.candidate_models", fake_candidate_models)
+    monkeypatch.setattr(
+        "credit_risk_pd.pipeline.write_deployment_manifest",
+        fake_deployment_manifest,
+    )
 
     outputs = run_pd_modelling_workflow(
         input_path=input_path,

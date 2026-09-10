@@ -1,0 +1,2 @@
+request_id,scored_at_utc,contract_version,model_version,selected_model_name,contract_sha256,artifact_integrity_verified,records_scored,batches_scored,approval_cutoff,within_cutoff_count,within_cutoff_rate,mean_recalibrated_pd,explanation_method,missing_input_values,unseen_category_values
+oot-replay-001,2026-01-01T00:00:00+00:00,1.0,lendingclub-public-pd-v1,random_forest,c9a493660a0e59f7dafccfebc22f7bde2bce56abcccd35c5e397c64d42a3ad10,True,225639,226,0.200000000000,101696,0.450702227895,0.239255182363,policy_input_flags_not_model_attribution,243257,0

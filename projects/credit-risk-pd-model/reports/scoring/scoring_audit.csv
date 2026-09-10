@@ -1,0 +1,2 @@
+request_id,scored_at_utc,contract_version,model_version,selected_model_name,contract_sha256,artifact_integrity_verified,records_scored,batches_scored,approval_cutoff,within_cutoff_count,within_cutoff_rate,mean_recalibrated_pd,explanation_method,missing_input_values,unseen_category_values
+oot-replay-001,2026-01-01T00:00:00+00:00,1.0,synthetic-pd-v1,logistic_regression,cef4c3726a6cb4a30cc1eb4daf0e6cb6251952cd38eaf0b09110d6857d3c1ade,True,994,1,0.150000000000,841,0.846076458753,0.096946790735,policy_input_flags_not_model_attribution,0,0

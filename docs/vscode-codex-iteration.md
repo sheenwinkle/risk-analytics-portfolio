@@ -98,8 +98,8 @@ git status --short
 The root runner checks all Ruff and pytest suites, regenerates all deterministic synthetic,
 ECL-integration, contractual cash-flow sensitivity, SICR rebuttal, macro/overlay governance,
 Australian macro-satellite/ECL A/B, independent macro validation, model-replication,
-controlled macro remediation and independent lifecycle review, validation, and remediation
-reports, then compares them with the committed evidence. GitHub
+controlled macro remediation and independent lifecycle review, governed PD scoring replay,
+validation, and remediation reports, then compares them with the committed evidence. GitHub
 Actions repeats this gate on Linux and runs the database integration test against PostgreSQL
 16.
 
@@ -116,10 +116,15 @@ The complete public workflow is one command:
 
 It downloads or reuses the ignored LendingClub accepted-loans file, performs chunked
 ingestion, runs the PD model and independent validation, publishes allow-listed aggregate
-reports, and rebuilds the showcase charts. Expect model fitting to take several minutes.
+reports, reconciles all frozen OOT scores through the governed service, and rebuilds the
+showcase charts. Expect model fitting to take several minutes.
 
 Never stage files under `data/raw/` or `data/processed/`. The publishers reject CSV files
-with `customer_id`, and borrower-level OOT predictions stay local.
+with `customer_id` or `application_id`, and borrower-level OOT predictions stay local.
+
+For the fast synthetic workflow, VS Code exposes `Project 1: Build and Reconcile Scoring
+Service`. After it succeeds, run `Project 1: Serve Local PD API` and inspect the generated
+contract at `http://127.0.0.1:8000/docs`. Stop that task when the local review is complete.
 
 ## 6. Pull Request Workflow
 

@@ -63,6 +63,39 @@
       "problemMatcher": []
     },
     {
+      "label": "Project 1: Build and Reconcile Scoring Service",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Project 1: Run PD Pipeline",
+        "Project 1: Replay Governed Scoring"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 1: Replay Governed Scoring",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/run_scoring_demo.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/credit-risk-pd-model"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Project 1: Serve Local PD API",
+      "type": "process",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": [
+        "scripts/serve_model.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/credit-risk-pd-model"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Project 1: Tests",
       "type": "process",
       "command": "${workspaceFolder}/.venv/Scripts/python.exe",

@@ -21,6 +21,10 @@ Core deliverables:
 - Population Stability Index monitoring
 - Privacy-safe publication of aggregate public-data evidence and lineage metadata
 - Raw-status vintage resolution denominators for maturity and right-censoring review
+- Versioned model/input/policy deployment contract with structural and artifact SHA-256 checks
+- Strict local batch scoring API with model-derived features, governed cutoff outcomes,
+  risk bands, batch limits, and missing/unseen-input telemetry
+- Deterministic, aggregate-only offline-versus-service OOT replay reconciliation
 - Clean README and resume bullets
 
 Current evidence:
@@ -29,6 +33,8 @@ Current evidence:
 - 225,639 untouched 2017-2018 OOT observations
 - Selected random forest ROC-AUC 0.6999; recalibration reduced Brier score from 0.2085 to 0.1547
 - Status resolution falls from 48.4% in 2017Q1 to 3.9% in 2018Q4, exposing recent-vintage censoring
+- 225,639 public OOT applications replayed through 226 governed service batches; zero
+  offline-versus-service PD difference at 12 decimal places versus a 1e-12 tolerance
 
 ## Project 2: IFRS 9 ECL Engine
 

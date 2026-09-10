@@ -1,0 +1,11 @@
+feature,feature_type,records,missing_count,missing_rate,unseen_category_count,unseen_category_rate
+age,numeric,994,0,0.000000000000,0,0.000000000000
+annual_income,numeric,994,0,0.000000000000,0,0.000000000000
+debt_to_income,numeric,994,0,0.000000000000,0,0.000000000000
+credit_utilisation,numeric,994,0,0.000000000000,0,0.000000000000
+delinquencies_2y,numeric,994,0,0.000000000000,0,0.000000000000
+loan_amount,numeric,994,0,0.000000000000,0,0.000000000000
+interest_rate,numeric,994,0,0.000000000000,0,0.000000000000
+employment_length,numeric,994,0,0.000000000000,0,0.000000000000
+home_ownership,categorical,994,0,0.000000000000,0,0.000000000000
+purpose,categorical,994,0,0.000000000000,0,0.000000000000

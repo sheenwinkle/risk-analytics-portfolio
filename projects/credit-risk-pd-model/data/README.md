@@ -87,7 +87,8 @@ Keep raw data out of the repository. Commit only:
 - Aggregate reports
 
 The public-report publisher uses an explicit allow-list, rejects CSV files containing a
-`customer_id` column, and never publishes `oot_predictions.csv`. The committed lineage file
+`customer_id` or `application_id` column, and never publishes `oot_predictions.csv`. The
+committed lineage file
 records the source URL, licence, raw-file hash, input count, and resolved-output count.
-It also publishes aggregate strategy and `vintage_resolution.csv` evidence; no borrower
-identifiers are included.
+It also publishes aggregate strategy, service reconciliation, and `vintage_resolution.csv`
+evidence; no borrower identifiers or row-level scores are included.
