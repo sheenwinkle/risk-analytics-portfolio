@@ -5,6 +5,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = PROJECT_ROOT.parents[1]
 CASE_STUDY = PROJECT_ROOT / "case-study.md"
+WALKTHROUGH = PROJECT_ROOT / "interview-walkthrough.md"
 PUBLIC_REPORTS = PROJECT_ROOT / "reports" / "public_lendingclub"
 
 
@@ -51,9 +52,43 @@ def test_project_readme_links_to_case_study():
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "[case study](case-study.md)" in readme
+    assert "[interview walkthrough](interview-walkthrough.md)" in readme
 
 
 def test_portfolio_readme_links_to_case_study():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "[Project 1 case study](projects/credit-risk-pd-model/case-study.md)" in readme
+    assert (
+        "[Project 1 interview walkthrough](projects/credit-risk-pd-model/interview-walkthrough.md)"
+        in readme
+    )
+
+
+def test_interview_walkthrough_is_structured_and_evidence_backed():
+    walkthrough = WALKTHROUGH.read_text(encoding="utf-8")
+    impact = pd.read_csv(PUBLIC_REPORTS / "strategy_incremental_impact.csv").iloc[0]
+    scoring_audit = pd.read_csv(PUBLIC_REPORTS / "scoring_audit.csv").iloc[0]
+
+    required_phrases = [
+        "5-minute walkthrough",
+        "30-second pitch",
+        "Live demo path",
+        "What I personally built",
+        "How I quantified impact",
+        "What I would say if challenged",
+        "not a randomized A/B test",
+        "known limitation",
+        "accepted-loan sample",
+        "governed scoring contract",
+        "artifact integrity",
+        "privacy-safe aggregate reports",
+        "strongest technical proof",
+        f"{int(scoring_audit['records_scored']):,} public OOT applications",
+        f"{int(scoring_audit['batches_scored']):,} batches",
+        f"{int(impact['incremental_approved_accounts']):,} incremental approvals",
+        f"USD {impact['incremental_realized_credit_contribution_proxy'] / 1_000_000:.1f}m",
+    ]
+
+    for phrase in required_phrases:
+        assert phrase in walkthrough
