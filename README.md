@@ -78,6 +78,8 @@ dataset. Raw and borrower-level files remain local; only aggregate evidence is c
 Read the [Project 1 case study](projects/credit-risk-pd-model/case-study.md) for the
 interview-ready contribution summary, quantified challenger impact, A/B-test boundary,
 and governed scoring evidence.
+The [Project 1 interview walkthrough](projects/credit-risk-pd-model/interview-walkthrough.md)
+turns the same evidence into a 5-minute GitHub demo path with defensible answers.
 
 The workflow keeps model selection and calibration before untouched OOT evaluation:
 
