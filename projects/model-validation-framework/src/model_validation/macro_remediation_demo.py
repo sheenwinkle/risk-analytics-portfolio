@@ -63,7 +63,7 @@ def run_macro_remediation_validation(
                 "artifact": name,
                 "file_name": path.name,
                 "row_count": 1 if path.suffix == ".json" else len(frames[name]),
-                "sha256": _sha256(path),
+                "sha256": _canonical_text_sha256(path),
             }
             for name, path in inputs.items()
         ]
@@ -201,5 +201,7 @@ def _markdown_report(result: MacroRemediationValidationResult) -> str:
     )
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _canonical_text_sha256(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()

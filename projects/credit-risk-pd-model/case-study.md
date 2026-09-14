@@ -6,6 +6,10 @@ This project is designed to signal the intersection of Economics + CS + FRM:
 credit risk modelling, production-style scoring, and governance evidence rather
 than a generic machine-learning notebook.
 
+Regulatory boundary: this is an APRA-aligned portfolio case study, not a production
+underwriting, regulatory capital, or approved compliance framework; see the
+[APRA alignment matrix](../../docs/apra-alignment-matrix.md).
+
 The business question is:
 
 > Can a lender deploy a calibrated PD model and controlled growth policy while

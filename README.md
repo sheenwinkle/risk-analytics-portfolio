@@ -11,6 +11,12 @@ I combine economics, computer science, FRM-aligned risk knowledge, Python, Postg
 machine learning to build auditable credit-risk workflows. This repository follows one
 connected model lifecycle rather than presenting unrelated notebooks:
 
+Regulatory boundary: this is an APRA-aligned educational portfolio artifact, not an
+APRA-approved production, regulatory capital, or underwriting system. The
+[APRA alignment matrix](docs/apra-alignment-matrix.md) maps the portfolio to APS 220,
+APG 220, APS 113, CPS 220, CPS 230, and CPS 234 using `Implemented`,
+`Partially aligned`, and `Not in scope` boundaries.
+
 ```text
 Public/synthetic lending data
 -> PD development and OOT scoring

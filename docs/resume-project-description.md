@@ -6,12 +6,12 @@ Credit Risk Probability of Default Modelling
 
 ## One-Line Version
 
-Built a Python and PostgreSQL credit risk analytics portfolio across 2.26 million public
-LendingClub records, covering temporal PD modelling, recalibration, educational IFRS 9 ECL,
-credit strategy, integrity-checked PD serving, contractual cash-flow/recovery sensitivity,
-SICR and macro/overlay
-governance, an Australian macro-credit satellite, validation-only remediation, independent
-validation, and PostgreSQL finding lifecycles.
+Built an APRA-aligned educational portfolio in Python and PostgreSQL across 2.26 million
+public LendingClub records, covering temporal PD modelling, recalibration, educational IFRS
+9 ECL, credit strategy, integrity-checked PD serving, contractual cash-flow/recovery
+sensitivity, SICR and macro/overlay governance, an Australian macro-credit satellite,
+validation-only remediation, independent validation, and PostgreSQL finding lifecycles
+without claiming production, regulatory capital, or approved compliance use.
 
 ## Resume Bullets
 
@@ -56,6 +56,8 @@ frozen OOT scores and model inputs,
 quantifies metric uncertainty, grouped
 performance, and characteristic drift, records policy findings, tests sequential and macro
 remediation, and persists append-only governance history to PostgreSQL.
+The framing is APRA-aligned for portfolio demonstration, not an APRA-approved production,
+underwriting, regulatory capital, or compliance framework.
 
 ## Interview Pitch
 

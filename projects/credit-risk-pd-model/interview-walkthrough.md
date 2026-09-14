@@ -4,6 +4,10 @@
 
 Use this when an interviewer says: "Tell me about one project on your GitHub."
 
+Regulatory boundary: describe this as an APRA-aligned portfolio artifact, not a
+production underwriting, regulatory capital, or approved compliance framework; see the
+[APRA alignment matrix](../../docs/apra-alignment-matrix.md).
+
 ### 30-second pitch
 
 I built a credit risk PD modelling project that goes beyond a notebook. It covers
