@@ -10,6 +10,9 @@ business problem, my contribution, quantified challenger impact, A/B-test bounda
 governed scoring evidence.
 Use the [interview walkthrough](interview-walkthrough.md) to practise the 5-minute
 GitHub demo path and defensible answers to common model-risk questions.
+Regulatory boundary: this is an APRA-aligned portfolio project, not a production
+underwriting, regulatory capital, or approved compliance framework; see the
+[APRA alignment matrix](../../docs/apra-alignment-matrix.md).
 
 ## Business Problem
 
