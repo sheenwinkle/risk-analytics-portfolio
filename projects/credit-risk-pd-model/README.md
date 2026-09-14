@@ -8,6 +8,8 @@ evidence from a full public LendingClub run.
 Start with the [case study](case-study.md) for a recruiter-friendly summary of the
 business problem, my contribution, quantified challenger impact, A/B-test boundary, and
 governed scoring evidence.
+Use the [interview walkthrough](interview-walkthrough.md) to practise the 5-minute
+GitHub demo path and defensible answers to common model-risk questions.
 
 ## Business Problem
 
