@@ -101,6 +101,64 @@ def test_macro_remediation_validation_pipeline_is_deterministic(tmp_path: Path) 
     assert "No finding is closed" in report
 
 
+def test_macro_remediation_input_audit_hashes_are_line_ending_stable(
+    tmp_path: Path,
+) -> None:
+    project_dir = Path(__file__).resolve().parents[1]
+    ifrs9_reports = project_dir.parent / "ifrs9-ecl-engine" / "reports"
+    source_sets = {
+        "developer_remediation_dir": ifrs9_reports / "macro_remediation",
+        "incumbent_report_dir": ifrs9_reports / "macro_satellite",
+        "initial_validation_dir": project_dir / "reports" / "macro_satellite",
+    }
+    required_files = {
+        "developer_remediation_dir": [
+            "candidate_register.csv",
+            "candidate_tuning.csv",
+            "selected_model.json",
+            "selected_coefficients.csv",
+            "frozen_predictions.csv",
+            "oot_comparison.csv",
+            "governance_decision.csv",
+        ],
+        "incumbent_report_dir": ["backtest_predictions.csv"],
+        "initial_validation_dir": ["validation_findings.csv"],
+    }
+
+    normalized_inputs: dict[str, Path] = {}
+    crlf_inputs: dict[str, Path] = {}
+    for input_name, source_dir in source_sets.items():
+        normalized_dir = tmp_path / "lf" / input_name
+        crlf_dir = tmp_path / "crlf" / input_name
+        normalized_dir.mkdir(parents=True)
+        crlf_dir.mkdir(parents=True)
+        normalized_inputs[input_name] = normalized_dir
+        crlf_inputs[input_name] = crlf_dir
+        for file_name in required_files[input_name]:
+            source_text = (source_dir / file_name).read_text(encoding="utf-8")
+            normalized_dir.joinpath(file_name).write_text(
+                source_text.replace("\r\n", "\n"),
+                encoding="utf-8",
+                newline="\n",
+            )
+            crlf_dir.joinpath(file_name).write_text(
+                source_text.replace("\r\n", "\n"),
+                encoding="utf-8",
+                newline="\r\n",
+            )
+
+    lf_output = run_macro_remediation_validation(
+        **normalized_inputs,
+        output_dir=tmp_path / "lf_output",
+    )
+    crlf_output = run_macro_remediation_validation(
+        **crlf_inputs,
+        output_dir=tmp_path / "crlf_output",
+    )
+
+    pd.testing.assert_frame_equal(lf_output.input_audit, crlf_output.input_audit)
+
+
 def test_macro_remediation_validation_cli_reproduces_opinion(tmp_path: Path) -> None:
     project_dir = Path(__file__).resolve().parents[1]
     ifrs9_reports = project_dir.parent / "ifrs9-ecl-engine" / "reports"
